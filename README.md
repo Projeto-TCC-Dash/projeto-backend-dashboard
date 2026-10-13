@@ -105,7 +105,7 @@ flowchart TD
     Services -.-> ExternalAPIs["APIs Externas"]
 
     subgraph ExternalAPIs["Serviços de IA"]
-        GoogleGemini["Google AI Studio (Gemini 2.5 Flash)"]
+        GoogleGemini["Google AI Studio (Gemini 3.8 Flash)"]
     end
 ```
 
@@ -197,7 +197,7 @@ flowchart TD
 
     subgraph MissFlow["CACHE MISS / INVALIDAÇÃO"]
         DecKey["Descriptografa Chave BYOK em memória"]
-        CallGemini["Gera Diagnóstico Estruturado via Gemini 2.5 Flash"]
+        CallGemini["Gera Diagnóstico Estruturado via Gemini 3.8 Flash"]
         Upsert["Upsert no MongoDB com TTL de 24 horas"]
         DecKey --> CallGemini --> Upsert
     end

@@ -9,7 +9,7 @@
 
 Backend financeiro de alta performance construído com **Node.js 20 LTS**, **TypeScript estrito** e **Fastify**, projetado sob a filosofia **BYOK (Bring Your Own Key)** e estrita conformidade com a **LGPD**. 
 
-A plataforma consolida transações bancárias via arquivos de extrato (**OFX SGML**, **CSV**) e sincronização automatizada via **Open Finance (Pluggy Sandbox)**, executando classificação orçamentária inteligente, consultoria financeira interativa em streaming via **Server-Sent Events (SSE)** e diagnósticos analíticos com **cache nativo de 24 horas no MongoDB**.
+A plataforma consolida transações bancárias via arquivos de extrato (**OFX SGML**, **CSV**) e gerador autônomo local de dados sintéticos para desenvolvimento e demonstrações, executando classificação orçamentária inteligente, consultoria financeira interativa em streaming via **Server-Sent Events (SSE)** e diagnósticos analíticos com **cache nativo de 24 horas no MongoDB**.
 
 ---
 
@@ -39,13 +39,13 @@ A plataforma consolida transações bancárias via arquivos de extrato (**OFX SG
 - **Minimização Extrema de Tokens**: Pré-processamento local agressivo que deduplica nomes comerciais e resume métricas matemáticas no backend antes de acionar o LLM, economizando até **95% dos tokens** em comparação com abordagens tradicionais.
 - **Cache Persistente com TTL (24h)**: Diagnósticos financeiros mensais persistem no MongoDB com índice TTL nativo e invalidação determinística por hash de estado (`transactionStateHash`), eliminando requisições redundantes ao Gemini e entregando respostas em `< 15ms`.
 - **Privacidade e LGPD por Design**: Remoção cirúrgica de PII (CPFs, CNPJs, códigos de transação, dados de cartões) antes de qualquer persistência ou tráfego para provedores de inteligência artificial.
-- **Automação de Testes Plug & Play**: Script de seed idempotente (`npm run seed`) integrado à sandbox da Pluggy e provisionamento automático da chave do `.env`.
+- **Automação de Testes Plug & Play**: Script de seed determinístico e 100% offline (`npm run seed`) com provisionamento automático da chave do `.env`, 35+ transações em múltiplos meses cobrindo todas as 7 categorias canônicas e pré-aquecimento do cache de análise.
 
 ---
 
 ## 🏛 Princípios de Arquitetura
 
-O projeto segue rigorosamente os 7 princípios definidos na sua Constituição técnica:
+O projeto segue rigorosamente os 7 princípios definidos na Constituição Técnica v2.0.0:
 
 | Princípio | Implementação Técnica |
 |---|---|
@@ -53,7 +53,7 @@ O projeto segue rigorosamente os 7 princípios definidos na sua Constituição t
 | **II. Stack Tecnológica Sem Dependências Relacionais** | Persistência exclusiva no **MongoDB 7.0 (NoSQL)** via Mongoose; sem Redis e sem bancos relacionais adicionais. |
 | **III. Arquitetura BYOK & Custo Zero** | Chaves do Google AI Studio validadas ativamente via ping, salvas criptografadas com `AES-256-GCM` e descriptografadas apenas em memória no ciclo de vida da requisição. |
 | **IV. Minimização Extrema de Tokens** | Agrupamento de estabelecimentos comerciais, Structured Outputs com JSON Schema e cache persistente com TTL. |
-| **V. Ingestão Dupla** | Suporte unificado para extratos bancários manuais (OFX SGML, CSV com detecção de encoding UTF-8 / Windows-1252) e Open Finance automático (Pluggy). |
+| **V. Ingestão de Extratos e Provedor Local Sintético** | Ingestão robusta de extratos bancários manuais (OFX SGML, CSV com detecção de encoding UTF-8 / Windows-1252) e gerador local autônomo de dados de teste (Seed), sem dependências de APIs externas de Open Finance. |
 | **VI. Containerização Integral** | Configuração completa em `docker-compose.yml` multi-container (Fastify API + MongoDB Replica/Single com healthchecks integrados). |
 | **VII. Autenticação Stateless e LGPD** | JWT stateless, multi-tenancy rigoroso com isolamento por `userId` e expurgo de PII em memória. |
 
@@ -78,7 +78,6 @@ flowchart TD
     subgraph Router["Rotas REST"]
         R_Auth["/api/auth & /api/user/ai-key"]
         R_Tx["/api/transactions"]
-        R_Pluggy["/api/pluggy"]
         R_Chat["/api/chat/stream (SSE)"]
         R_Analysis["/api/analysis/:month"]
     end
@@ -90,7 +89,6 @@ flowchart TD
         ParserSvc["ParserService (OFX/CSV)"]
         SanitizerSvc["SanitizerService (LGPD Regex)"]
         TxSvc["TransactionService (Idempotência)"]
-        PluggySvc["PluggyService (Open Finance)"]
         GeminiSvc["GeminiService (LLM & Structured Output)"]
         AnalysisSvc["AnalysisService (Cache & Hash Engine)"]
     end
@@ -106,9 +104,8 @@ flowchart TD
 
     Services -.-> ExternalAPIs["APIs Externas"]
 
-    subgraph ExternalAPIs["Serviços de Terceiros"]
+    subgraph ExternalAPIs["Serviços de IA"]
         GoogleGemini["Google AI Studio (Gemini 2.5 Flash)"]
-        PluggyAPI["Pluggy.ai Open Finance Sandbox"]
     end
 ```
 
@@ -118,7 +115,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A["Extrato Bruto (OFX / CSV / Pluggy)"] --> B["ParserService"]
+    A["Extrato Bruto (OFX / CSV) ou Seed Local"] --> B["ParserService / SeedGenerator"]
     B -->|Extração de Metadados| C["SanitizerService"]
     
     subgraph C["Pipeline de Sanitização (LGPD)"]
@@ -222,27 +219,23 @@ flowchart TD
 - Parser resiliente de arquivos **OFX SGML** e **CSV** (suporte para separadores `;` ou `,` e detecção de charset Windows-1252 / UTF-8).
 - Deduplicação determinística no banco baseada na combinação única `{ userId, externalId }`.
 
-### 3. Open Finance (Pluggy Sandbox)
-- Sincronização direta de contas e transações da Pluggy Sandbox (`POST /api/pluggy/sync`).
-- Conversão automática para o modelo canônico do sistema e categorização inicial.
-
-### 4. Categorização Inteligente Pré-LLM
+### 3. Categorização Inteligente Pré-LLM
 - `POST /api/transactions/categorize`: Extrai estabelecimentos únicos não classificados (`Outros`).
 - Envia apenas a lista deduplicada de nomes para o Gemini com JSON Schema estrito nas 7 categorias canônicas: **Alimentação**, **Transporte**, **Moradia**, **Saúde**, **Lazer**, **Educação** e **Outros**.
 - Reassociação em massa no MongoDB via `bulkWrite`.
 
-### 5. Consultoria Financeira Conversacional (Chatbot SSE)
+### 4. Consultoria Financeira Conversacional (Chatbot SSE)
 - `POST /api/chat/stream`: Stream contínuo em tempo real via Server-Sent Events (`text/event-stream`).
 - Injeção automática do resumo financeiro consolidado do mês atual no prompt de sistema (`systemInstruction`).
 - Persona de planejador financeiro CFP® empático, prático e construtivo, focado na realidade financeira brasileira.
 
-### 6. Cache Inteligente de Análises com TTL e Invalidação por Hash
+### 5. Cache Inteligente de Análises com TTL e Invalidação por Hash
 - `GET /api/analysis/:month`: Diagnóstico mensal detalhado, métricas de taxa de poupança e recomendações priorizadas.
 - Índice TTL nativo do MongoDB (`expiresAt: 1`, `expireAfterSeconds: 0`) para limpeza automática após 24 horas.
 - Invalidação automática e imediata caso novas transações sejam adicionadas ou valores alterados no mês informado.
 
-### 7. Script de Seed Automatizado
-- `npm run seed`: Provisionamento automático do usuário de testes `teste.pluggy@exemplo.com`, integração da chave do `.env`, importação de transações da Pluggy e pré-aquecimento do cache de análise.
+### 6. Script de Seed 100% Local e Autônomo
+- `npm run seed`: Provisionamento automático do usuário de testes `teste.usuario@exemplo.com`, integração da chave do `.env`, geração sintética de dezenas de transações brasileiras em múltiplos meses cobrindo todas as categorias canônicas e pré-aquecimento do cache de análise.
 
 ---
 
@@ -257,19 +250,16 @@ HOST=0.0.0.0
 NODE_ENV=development
 
 # URI de Conexão com o MongoDB
-MONGODB_URI=mongodb://localhost:27017/finance_dev
+MONGODB_URI=mongodb://localhost:27017/financial_db
 
 # Segredo para assinatura de Tokens JWT (mínimo 32 caracteres)
 JWT_SECRET=super_secret_jwt_key_dashboard_sdd_financial_2026
 
-# Chave mestra para criptografia AES-256-GCM das chaves BYOK (exatamente 32 caracteres)
-ENCRYPTION_KEY=12345678901234567890123456789012
+# Chave mestra para criptografia AES-256-GCM das chaves BYOK (exatamente 32 caracteres ASCII ou 64 hexadecimais)
+ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 
 # Chave Padrão do Google AI Studio para testes e seed (obtida em https://aistudio.google.com/)
 GOOGLE_GENERATIVE_AI_API_KEY=AIzaSy...
-
-# Chave de Acesso à API da Pluggy (Sandbox Open Finance)
-PLUGGY_API_KEY=sua-pluggy-api-key
 ```
 
 > [!NOTE]
@@ -326,18 +316,18 @@ npm run dev
 
 ### Automação de Seed de Dados de Teste
 
-Para popular o banco imediatamente com um usuário pronto para testes, chave de IA ativa e transações da sandbox:
+Para popular o banco imediatamente com um usuário pronto para testes, chave de IA ativa e extrato financeiro sintético multi-mês:
 
 ```bash
 npm run seed
 ```
 
 **Resultado do Seed:**
-- **E-mail de Teste**: `teste.pluggy@exemplo.com`
+- **E-mail de Teste**: `teste.usuario@exemplo.com`
 - **Senha**: `SenhaForte#123`
 - **Chave do Gemini**: Criptografada e vinculada a partir de `GOOGLE_GENERATIVE_AI_API_KEY` do `.env`.
-- **Transações**: Extrato financeiro de Outubro/2026 categorizado e pronto para consulta.
-- **Análise Pré-aquecida**: Diagnóstico mensal já persistido no cache do MongoDB.
+- **Transações Sintéticas**: 35+ transações brasileiras autênticas cobrindo o mês atual e anterior em todas as 7 categorias canônicas (`Alimentação`, `Transporte`, `Moradia`, `Saúde`, `Lazer`, `Educação`, `Outros`).
+- **Análise Pré-aquecida**: Diagnóstico mensal já persistido no cache do MongoDB (`cached: true`).
 
 ---
 
@@ -353,7 +343,6 @@ npm run seed
 | `POST` | `/api/transactions/upload` | **JWT** | Upload e processamento de extrato em lote (OFX ou CSV) |
 | `GET` | `/api/transactions` | **JWT** | Listagem de transações com filtros por mês, categoria e origem |
 | `POST` | `/api/transactions/categorize` | **JWT + BYOK** | Categorização em lote via IA com minimização de tokens |
-| `POST` | `/api/pluggy/sync` | **JWT** | Sincronização de contas e transações da Pluggy Sandbox |
 | `POST` | `/api/chat/stream` | **JWT + BYOK** | Consultoria financeira conversacional em streaming via SSE |
 | `GET` | `/api/analysis/:month` | **JWT + BYOK** | Diagnóstico orçamentário mensal com cache de 24h e TTL |
 

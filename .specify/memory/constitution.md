@@ -1,20 +1,18 @@
 <!--
 SYNC IMPACT REPORT:
-- Version change: 0.0.0 (Unratified Template) → 1.0.0
-- Ratification Date: 2026-10-13
+- Version change: 1.0.0 → 2.0.0 (MAJOR: Redefinição e simplificação de princípio fundamental de governança)
+- Last Amended Date: 2026-10-13
 - Modified Principles:
-  - PRINCIPLE_1 (Template Slot) → I. Escopo Estrito de Backend (TypeScript & Node.js Strict)
-  - PRINCIPLE_2 (Template Slot) → II. Stack Tecnológica Sem Dependências Relacionais (Fastify, Zod & MongoDB/Mongoose)
-  - PRINCIPLE_3 (Template Slot) → III. Arquitetura BYOK & Custo Zero de IA no Servidor (AES-256-GCM)
-  - PRINCIPLE_4 (Template Slot) → IV. Minimização Extrema de Tokens & Processamento Local Pré-LLM
-  - PRINCIPLE_5 (Template Slot) → V. Ingestão Dupla de Dados Financeiros (OFX/CSV Local & Sandbox Pluggy)
-  - PRINCIPLE_6 (Novo): VI. Containerização Integral e Resiliência (Docker Compose & Healthcheck)
-  - PRINCIPLE_7 (Novo): VII. Autenticação Stateless e Conformidade Estrita com LGPD (JWT & Privacy-by-Design)
-- Added Sections:
-  - Diretrizes de Segurança, Criptografia e Privacidade (replaces SECTION_2)
-  - Fluxo de Desenvolvimento e Garantia de Qualidade (replaces SECTION_3)
-- Removed Sections: None
-- Follow-up TODOs: None
+  - PRINCIPLE_5 → V. Ingestão de Extratos Bancários (OFX/CSV) e Provedor Local de Dados Sintéticos (Seed)
+    - Revogada a dependência e integração obrigatória com a API de Sandbox da Pluggy / Open Finance externo.
+    - A ingestão de produção passa a ser exclusivamente focada em arquivos de extrato bancário (.ofx e .csv).
+    - O provisionamento de dados para testes, desenvolvimento e amostragem é atribuído exclusivamente a um motor local e autônomo de dados sintéticos (seed).
+- Removed Dependencies:
+  - Pluggy API / PLUGGY_API_KEY
+- Updated Sections:
+  - Diretrizes de Segurança: remoção de credenciais da Pluggy da gestão de segredos.
+  - Estratégia de Testes: remoção de contratos com a Pluggy sandbox e inclusão do gerador de seed local.
+  - Princípio VII (LGPD): remoção de menções à Pluggy no fluxo de parsing.
 -->
 
 # Plataforma de Inteligência Financeira Pessoal Constitution
@@ -58,14 +56,14 @@ O backend adota o modelo Bring Your Own Key (BYOK) para todos os serviços de in
 
 *Rationale*: Reduz drasticamente a latência de rede, economiza a cota de tokens e taxa de requisições (rate limits) da chave do usuário, previne envio acidental de dados redundantes e otimiza a performance global do sistema.
 
-### V. Ingestão Dupla de Dados Financeiros (OFX/CSV Local & Sandbox Pluggy)
-A plataforma DEVE prover suporte nativo a dois canais canônicos de ingestão financeira, garantindo desacoplamento entre fontes de dados e a camada de domínio.
-- Canal Local: O backend DEVE aceitar upload multipart de extratos nos formatos OFX e CSV, tratando adequadamente variações de encoding (UTF-8, ISO-8859-1) e delimitadores locais.
-- Canal Open Finance: O backend DEVE suportar sincronização com a sandbox da Pluggy API para simulação de conexões de Open Finance com instituições bancárias.
-- Ambos os canais de ingestão DEVEM normalizar os lançamentos para um Esquema Canônico Unificado de Transação antes de submeter os dados à sanitização, categorização e persistência.
-- Os módulos de ingestão DEVEM ser concebidos como adaptadores desacoplados e testáveis de maneira isolada.
+### V. Ingestão de Extratos Bancários (OFX/CSV) e Provedor Local de Dados Sintéticos (Seed)
+A plataforma DEVE prover suporte nativo à ingestão de dados financeiros através de arquivos de extrato bancário e disponibilizar um motor autônomo e 100% local de geração de dados sintéticos para testes e amostragem, eliminando dependências de provedores externos de Open Finance.
+- Canal de Ingestão de Produção: O backend DEVE aceitar upload multipart de extratos nos formatos OFX (SGML) e CSV, tratando adequadamente variações de encoding (UTF-8, ISO-8859-1/Windows-1252) e delimitadores locais (; ou ,).
+- Motor Local de Dados Sintéticos (Seed): O ambiente de desenvolvimento e testes DEVE dispor de script de seed autônomo e determinístico, capaz de gerar e popular o banco de dados com massa de transações brasileiras realistas (salários, transferências, despesas essenciais e variáveis em múltiplos meses) sem requisições de rede ou dependências de serviços de terceiros.
+- Esquema Canônico Unificado: Todos os lançamentos ingeridos via extratos ou gerados via seed DEVEM ser normalizados para o Esquema Canônico Unificado de Transação antes da sanitização, categorização e persistência.
+- Desacoplamento dos Módulos: Os parsers de extrato e o gerador de dados sintéticos DEVEM ser concebidos como adaptadores desacoplados e testáveis de maneira isolada.
 
-*Rationale*: Assegura flexibilidade operacional para usuários que utilizam arquivos manuais ou conexões automatizadas de Open Finance, preservando a coerência do domínio financeiro independente da fonte de origem.
+*Rationale*: O upload manual de extratos (OFX/CSV) é o padrão universal e soberano adotado pelos usuários da plataforma, eliminando fricção regulatória, contratos de Open Finance e passivos de segurança. A geração local de dados sintéticos confere velocidade instantânea (<1s), confiabilidade e independência total de conexão externa para demonstrações e testes do dashboard.
 
 ### VI. Containerização Integral e Resiliência (Docker Compose & Healthcheck)
 Todo o ecossistema da aplicação DEVE ser 100% conteinerizado e executável via Docker Compose, sem dependências de binários instalados na máquina do host além da engine do Docker.
@@ -79,7 +77,7 @@ Todo o ecossistema da aplicação DEVE ser 100% conteinerizado e executável via
 ### VII. Autenticação Stateless e Conformidade Estrita com LGPD (JWT & Privacy-by-Design)
 A autenticação na API DEVE ser totalmente stateless baseada em JSON Web Tokens (JWT), e todos os fluxos de ingestão e armazenamento DEVEM cumprir integralmente o princípio de minimização de dados da Lei Geral de Proteção de Dados (LGPD).
 - As requisições protegidas DEVEM ser autenticadas via JWT no cabeçalho `Authorization: Bearer <token>`, validadas em hooks globais de ciclo de vida (`onRequest` ou `preHandler`) do Fastify.
-- *Privacy by Design na Ingestão*: Durante a leitura e processamento de extratos (OFX, CSV ou Open Finance da Pluggy), identificadores bancários sensíveis e dados pessoais identificáveis (PII) — incluindo números de agência, conta corrente, CPF, CNPJ, dados de cartão e documentos de titularidade — DEVEM ser descartados sumariamente na camada de parsing.
+- *Privacy by Design na Ingestão*: Durante a leitura e processamento de extratos (OFX e CSV), identificadores bancários sensíveis e dados pessoais identificáveis (PII) — incluindo números de agência, conta corrente, CPF, CNPJ, dados de cartão e documentos de titularidade — DEVEM ser descartados sumariamente na camada de parsing.
 - É PROIBIDO persistir números de agência, conta e documentos pessoais no MongoDB.
 - É TERMINANTEMENTE PROIBIDO enviar qualquer PII ou identificador bancário pessoal para a LLM.
 - Registros de logs da aplicação NÃO DEVEM conter tokens JWT, senhas, chaves de API ou dados de transações que identifiquem diretamente a titularidade civil do usuário.
@@ -89,7 +87,7 @@ A autenticação na API DEVE ser totalmente stateless baseada em JSON Web Tokens
 ## Diretrizes de Segurança, Criptografia e Privacidade
 
 A implementação do backend DEVE obedecer às seguintes diretrizes operacionais de proteção de dados:
-- **Gestão de Segredos**: Segredos da aplicação (`JWT_SECRET`, `ENCRYPTION_KEY`, credenciais da Pluggy) DEVEM ser fornecidos exclusivamente via variáveis de ambiente, validadas na inicialização do servidor por um esquema Zod de ambiente. A ausência de qualquer variável obrigatória DEVE interromper imediatamente a inicialização do processo com erro claro.
+- **Gestão de Segredos**: Segredos da aplicação (`JWT_SECRET`, `ENCRYPTION_KEY`) DEVEM ser fornecidos exclusivamente via variáveis de ambiente, validadas na inicialização do servidor por um esquema Zod de ambiente. A ausência de qualquer variável obrigatória DEVE interromper imediatamente a inicialização do processo com erro claro.
 - **Padrão Criptográfico AES-256-GCM**: O módulo criptográfico DEVE derivar ou utilizar uma chave de 32 bytes (256 bits), gerar um vetor de inicialização (IV) aleatório de 12 bytes por cifragem e anexar a tag de autenticação de 16 bytes junto ao texto cifrado, garantindo confidencialidade e autenticidade da chave BYOK do usuário.
 - **Sanitização de Strings Financeiras**: Expressões regulares e rotinas locais DEVEM expurgar padrões de CPFs/CNPJs e códigos numéricos de agência/conta contidos incidentalmente em descrições textuais de transações antes de qualquer persistência ou envio à IA.
 - **Isolamento Multi-tenant Lógico**: Todas as operações de leitura, escrita e consulta no MongoDB DEVEM filtrar estritamente pelo identificador do usuário autenticado extraído do payload do JWT verificado.
@@ -100,7 +98,7 @@ Todo o ciclo de engenharia do backend DEVE seguir as seguintes práticas de qual
 - **Contratos como Fonte Única da Verdade**: Schemas Zod definem a tipagem de entrada, saída e validação de rotas do Fastify, impedindo divergências entre documentação e código em execução.
 - **Estratégia de Testes**:
   - *Testes Unitários*: Cobertura obrigatória para os algoritmos de parsing (OFX/CSV), rotinas de criptografia/decriptografia AES-256-GCM, funções de sanitização/LGPD e agrupamento/deduplicação de transações.
-  - *Testes de Integração*: Cobertura de rotas Fastify, ciclo de autenticação JWT, integração com MongoDB (utilizando instâncias isoladas de teste ou MongoDB em memória) e simulação de contratos com a Pluggy sandbox.
+  - *Testes de Integração*: Cobertura de rotas Fastify, ciclo de autenticação JWT, integração com MongoDB (utilizando instâncias isoladas de teste ou MongoDB em memória) e testes determinísticos do gerador de seed sintético local.
 - **Verificação Estática e Linting**: O pipeline de integração contínua (CI) e os scripts de validação local DEVEM executar `tsc --noEmit` para garantir conformidade estrita de tipos TypeScript e análise de linter sem supressões não autorizadas.
 - **Pipeline Determinístico de Ingestão**: O fluxo de dados de transações DEVE cumprir a ordem imutável: Upload/Fetch → Parsing do Formato → Descarte LGPD de PII → Deduplicação de Descrições → Enriquecimento BYOK Gemini → Reassociação Local → Persistência no MongoDB.
 
@@ -115,4 +113,4 @@ A presente Constituição estabelece as diretrizes arquiteturais e normativas so
   - *PATCH*: Correções de texto, melhorias de redação, clarificações técnicas ou correções tipográficas sem alteração semântica das obrigações.
 - **Auditoria de Conformidade**: Cada nova funcionalidade, rota ou refatoração DEVE ser auditada contra os 7 Princípios Centrais antes de ser integrada à branch principal.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13
+**Version**: 2.0.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13

@@ -16,7 +16,6 @@ import { analysisRoutes } from './routes/analysis.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
-import { pluggyRoutes } from './routes/pluggy.routes.js';
 import { transactionRoutes } from './routes/transactions.routes.js';
 
 export function buildApp(): FastifyInstance {
@@ -52,7 +51,7 @@ export function buildApp(): FastifyInstance {
     openapi: {
       info: {
         title: 'Financial Intelligence API',
-        description: 'API REST do backend financeiro com arquitetura BYOK, ingestão de extratos OFX/CSV, Open Finance e consultoria via IA.',
+        description: 'API REST do backend financeiro com arquitetura BYOK, ingestão de extratos OFX/CSV e consultoria via IA.',
         version: '1.0.0',
       },
       components: {
@@ -80,9 +79,6 @@ export function buildApp(): FastifyInstance {
 
   // Transactions routes
   app.register(transactionRoutes);
-
-  // Pluggy Open Finance routes
-  app.register(pluggyRoutes);
 
   // Chatbot SSE routes
   app.register(chatRoutes);

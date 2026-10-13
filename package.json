@@ -1,7 +1,7 @@
 {
   "name": "projeto-backend-dashboard-sdd",
   "version": "1.0.0",
-  "description": "API REST do backend financeiro com arquitetura BYOK, ingestão de extratos OFX/CSV, Open Finance e consultoria via IA.",
+  "description": "API REST do backend financeiro com arquitetura BYOK, ingestão de extratos OFX/CSV e consultoria via IA.",
   "type": "module",
   "main": "dist/server.js",
   "scripts": {
@@ -19,8 +19,7 @@
     "byok",
     "gemini",
     "mongodb",
-    "ofx",
-    "open-finance"
+    "ofx"
   ],
   "author": "",
   "license": "ISC",

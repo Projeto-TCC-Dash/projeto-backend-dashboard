@@ -1,86 +1,141 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
+import { Category } from '../src/config/constants.js';
 import { env } from '../src/config/env.js';
+import { TransactionModel } from '../src/models/transaction.model.js';
 import { UserModel } from '../src/models/user.model.js';
 import { AnalysisService } from '../src/services/analysis.service.js';
 import { CryptoService } from '../src/services/crypto.service.js';
-import { ParsedTransaction } from '../src/services/parser.service.js';
-import { PluggyService } from '../src/services/pluggy.service.js';
-import { SanitizerService } from '../src/services/sanitizer.service.js';
-import { TransactionService } from '../src/services/transaction.service.js';
 
 export const SEED_CONFIG = {
-  EMAIL: 'teste.pluggy@exemplo.com',
+  EMAIL: 'teste.usuario@exemplo.com',
   PASSWORD: 'SenhaForte#123',
-  PLUGGY_ITEM_ID: '87c6b485-6bbd-4e96-a81d-872f9b2d8801',
 };
 
-export const MOCK_PLUGGY_FIXTURES: ParsedTransaction[] = [
-  {
-    externalId: 'pluggy-seed-001',
-    rawDescription: 'TED RECEBIDA EMPRESA XYZ SALARIO',
-    cleanDescription: 'EMPRESA XYZ SALARIO',
-    amount: 6200.0,
-    date: new Date('2026-10-02T10:00:00Z'),
-    source: 'PLUGGY',
-  },
-  {
-    externalId: 'pluggy-seed-002',
-    rawDescription: 'COMPRA CARTAO PAO DE ACUCAR SP',
-    cleanDescription: 'PAO DE ACUCAR',
-    amount: -520.4,
-    date: new Date('2026-10-04T15:30:00Z'),
-    source: 'PLUGGY',
-  },
-  {
-    externalId: 'pluggy-seed-003',
-    rawDescription: 'PAGTO ELETRONICO ENEL DISTRIBUICAO',
-    cleanDescription: 'ENEL DISTRIBUICAO',
-    amount: -195.2,
-    date: new Date('2026-10-06T11:00:00Z'),
-    source: 'PLUGGY',
-  },
-  {
-    externalId: 'pluggy-seed-004',
-    rawDescription: 'UBER *TRIP SAO PAULO BR',
-    cleanDescription: 'UBER TRIP',
-    amount: -48.9,
-    date: new Date('2026-10-08T09:20:00Z'),
-    source: 'PLUGGY',
-  },
-  {
-    externalId: 'pluggy-seed-005',
-    rawDescription: 'POSTO IPIRANGA COMBUSTIVEL',
-    cleanDescription: 'POSTO IPIRANGA',
-    amount: -220.0,
-    date: new Date('2026-10-09T17:45:00Z'),
-    source: 'PLUGGY',
-  },
-  {
-    externalId: 'pluggy-seed-006',
-    rawDescription: 'DROGA RAIA FARMACIA MEDICAMENTOS',
-    cleanDescription: 'DROGA RAIA',
-    amount: -135.5,
-    date: new Date('2026-10-10T14:10:00Z'),
-    source: 'PLUGGY',
-  },
-  {
-    externalId: 'pluggy-seed-007',
-    rawDescription: 'RESTAURANTE OUTBACK STEAKHOUSE',
-    cleanDescription: 'RESTAURANTE OUTBACK',
-    amount: -189.0,
-    date: new Date('2026-10-11T20:30:00Z'),
-    source: 'PLUGGY',
-  },
-  {
-    externalId: 'pluggy-seed-008',
-    rawDescription: 'NETFLIX.COM MENSALIDADE ASSINATURA',
-    cleanDescription: 'NETFLIX COM',
-    amount: -55.9,
-    date: new Date('2026-10-12T08:00:00Z'),
-    source: 'PLUGGY',
-  },
-];
+export interface SyntheticTransaction {
+  externalId: string;
+  rawDescription: string;
+  cleanDescription: string;
+  amount: number;
+  date: Date;
+  category: Category;
+  source: 'SEED';
+}
+
+/**
+ * Gera um lote determinístico e realista de transações bancárias brasileiras
+ * cobrindo o mês atual e o mês anterior em todas as 7 categorias canônicas.
+ */
+export function generateSyntheticTransactions(baseDate: Date = new Date()): SyntheticTransaction[] {
+  const currYear = baseDate.getUTCFullYear();
+  const currMonth = baseDate.getUTCMonth(); // 0-indexed
+
+  // Mês anterior (M-1)
+  const prevDate = new Date(Date.UTC(currYear, currMonth - 1, 1));
+  const prevYear = prevDate.getUTCFullYear();
+  const prevMonth = prevDate.getUTCMonth();
+
+  const transactions: SyntheticTransaction[] = [];
+
+  const addTx = (
+    year: number,
+    month: number,
+    day: number,
+    hour: number,
+    minute: number,
+    seq: number,
+    rawDescription: string,
+    cleanDescription: string,
+    amount: number,
+    category: Category
+  ) => {
+    const monthStr = String(month + 1).padStart(2, '0');
+    const seqStr = String(seq).padStart(3, '0');
+    transactions.push({
+      externalId: `seed-${year}-${monthStr}-${seqStr}`,
+      rawDescription,
+      cleanDescription,
+      amount,
+      date: new Date(Date.UTC(year, month, day, hour, minute, 0)),
+      category,
+      source: 'SEED',
+    });
+  };
+
+  // ==========================================
+  // MÊS ATUAL (M) : 20 transações realistas
+  // ==========================================
+  // Receitas (Outros)
+  addTx(currYear, currMonth, 2, 9, 30, 1, 'TED RECEBIDA TECH CORP SALARIO', 'TECH CORP SALARIO', 7500.0, 'Outros');
+  addTx(currYear, currMonth, 15, 14, 0, 2, 'PIX RECEBIDO JOAO SILVA FREELANCE', 'PIX RECEBIDO JOAO FREELANCE', 1200.0, 'Outros');
+
+  // Moradia
+  addTx(currYear, currMonth, 5, 10, 0, 3, 'PAGTO BOLETO QUINTOANDAR ALUGUEL', 'QUINTOANDAR ALUGUEL', -2200.0, 'Moradia');
+  addTx(currYear, currMonth, 7, 8, 30, 4, 'DEBITO AUTOMATICO ENEL DISTRIBUICAO', 'ENEL DISTRIBUICAO', -195.3, 'Moradia');
+  addTx(currYear, currMonth, 8, 11, 15, 5, 'PAGTO ELETRONICO CLARO FIBRA', 'CLARO FIBRA', -149.9, 'Moradia');
+
+  // Alimentação
+  addTx(currYear, currMonth, 6, 16, 45, 6, 'COMPRA CARTAO PAO DE ACUCAR SP', 'PAO DE ACUCAR', -580.4, 'Alimentação');
+  addTx(currYear, currMonth, 12, 20, 30, 7, 'RESTAURANTE OUTBACK STEAKHOUSE', 'RESTAURANTE OUTBACK', -215.0, 'Alimentação');
+  addTx(currYear, currMonth, 16, 18, 10, 8, 'SUPERMERCADO CARREFOUR LOJA', 'SUPERMERCADO CARREFOUR', -420.6, 'Alimentação');
+  addTx(currYear, currMonth, 20, 8, 15, 9, 'PADARIA REAL LANCHES E CAFE', 'PADARIA REAL', -45.5, 'Alimentação');
+
+  // Transporte
+  addTx(currYear, currMonth, 9, 8, 50, 10, 'UBER *TRIP SAO PAULO BR', 'UBER TRIP', -38.5, 'Transporte');
+  addTx(currYear, currMonth, 10, 17, 30, 11, 'POSTO IPIRANGA COMBUSTIVEL', 'POSTO IPIRANGA', -240.0, 'Transporte');
+  addTx(currYear, currMonth, 14, 7, 40, 12, 'RECARGA BILHETE UNICO METRO', 'BILHETE UNICO METRO', -100.0, 'Transporte');
+  addTx(currYear, currMonth, 21, 19, 20, 13, 'UBER *TRIP SAO PAULO BR', 'UBER TRIP', -42.1, 'Transporte');
+
+  // Saúde
+  addTx(currYear, currMonth, 11, 13, 10, 14, 'DROGA RAIA MEDICAMENTOS', 'DROGA RAIA', -142.8, 'Saúde');
+  addTx(currYear, currMonth, 17, 10, 0, 15, 'LABORATORIO FLEURY EXAMES', 'LABORATORIO FLEURY', -310.0, 'Saúde');
+
+  // Lazer
+  addTx(currYear, currMonth, 13, 9, 0, 16, 'NETFLIX.COM MENSALIDADE', 'NETFLIX COM', -55.9, 'Lazer');
+  addTx(currYear, currMonth, 14, 15, 0, 17, 'SPOTIFY BRASIL ASSINATURA', 'SPOTIFY BRASIL', -34.9, 'Lazer');
+  addTx(currYear, currMonth, 19, 21, 15, 18, 'CINEMARK BRASIL INGRESSOS', 'CINEMARK BRASIL', -86.0, 'Lazer');
+
+  // Educação
+  addTx(currYear, currMonth, 18, 14, 20, 19, 'ALURA CURSOS ONLINE TECNOLOGIA', 'ALURA CURSOS ONLINE', -110.0, 'Educação');
+  addTx(currYear, currMonth, 22, 16, 40, 20, 'LIVRARIA DA VILA LIVROS', 'LIVRARIA DA VILA', -129.9, 'Educação');
+
+  // ==========================================
+  // MÊS ANTERIOR (M-1) : 18 transações realistas
+  // ==========================================
+  // Receitas (Outros)
+  addTx(prevYear, prevMonth, 2, 9, 30, 101, 'TED RECEBIDA TECH CORP SALARIO', 'TECH CORP SALARIO', 7500.0, 'Outros');
+  addTx(prevYear, prevMonth, 25, 12, 0, 102, 'RENDIMENTO APLICACAO CDB LIQUIDO', 'RENDIMENTO CDB LIQUIDO', 285.5, 'Outros');
+
+  // Moradia
+  addTx(prevYear, prevMonth, 5, 10, 0, 103, 'PAGTO BOLETO QUINTOANDAR ALUGUEL', 'QUINTOANDAR ALUGUEL', -2200.0, 'Moradia');
+  addTx(prevYear, prevMonth, 7, 8, 30, 104, 'DEBITO AUTOMATICO ENEL DISTRIBUICAO', 'ENEL DISTRIBUICAO', -210.4, 'Moradia');
+  addTx(prevYear, prevMonth, 8, 11, 15, 105, 'PAGTO ELETRONICO CLARO FIBRA', 'CLARO FIBRA', -149.9, 'Moradia');
+
+  // Alimentação
+  addTx(prevYear, prevMonth, 6, 17, 0, 106, 'COMPRA CARTAO PAO DE ACUCAR SP', 'PAO DE ACUCAR', -612.3, 'Alimentação');
+  addTx(prevYear, prevMonth, 12, 20, 0, 107, 'RESTAURANTE OUTBACK STEAKHOUSE', 'RESTAURANTE OUTBACK', -195.0, 'Alimentação');
+  addTx(prevYear, prevMonth, 16, 18, 30, 108, 'SUPERMERCADO CARREFOUR LOJA', 'SUPERMERCADO CARREFOUR', -489.2, 'Alimentação');
+  addTx(prevYear, prevMonth, 20, 8, 45, 109, 'PADARIA REAL LANCHES E CAFE', 'PADARIA REAL', -52.8, 'Alimentação');
+
+  // Transporte
+  addTx(prevYear, prevMonth, 9, 9, 10, 110, 'UBER *TRIP SAO PAULO BR', 'UBER TRIP', -52.0, 'Transporte');
+  addTx(prevYear, prevMonth, 10, 18, 0, 111, 'POSTO IPIRANGA COMBUSTIVEL', 'POSTO IPIRANGA', -230.0, 'Transporte');
+  addTx(prevYear, prevMonth, 22, 14, 0, 112, 'OFICINA MECANICA AUTO CENTER', 'OFICINA MECANICA AUTO', -350.0, 'Transporte');
+
+  // Saúde
+  addTx(prevYear, prevMonth, 11, 11, 30, 113, 'DROGA RAIA MEDICAMENTOS', 'DROGA RAIA', -98.5, 'Saúde');
+  addTx(prevYear, prevMonth, 17, 7, 0, 114, 'SMART FIT MENSALIDADE ACADEMIA', 'SMART FIT ACADEMIA', -139.9, 'Saúde');
+
+  // Lazer
+  addTx(prevYear, prevMonth, 13, 9, 0, 115, 'NETFLIX.COM MENSALIDADE', 'NETFLIX COM', -55.9, 'Lazer');
+  addTx(prevYear, prevMonth, 14, 15, 0, 116, 'SPOTIFY BRASIL ASSINATURA', 'SPOTIFY BRASIL', -34.9, 'Lazer');
+  addTx(prevYear, prevMonth, 19, 21, 0, 117, 'INGRESSO RAPIDO SHOW E TEATRO', 'INGRESSO RAPIDO', -180.0, 'Lazer');
+
+  // Educação
+  addTx(prevYear, prevMonth, 18, 16, 0, 118, 'CURSO INGLES ONLINE PLATAFORMA', 'CURSO INGLES ONLINE', -250.0, 'Educação');
+
+  return transactions;
+}
 
 export async function runSeed(): Promise<{
   userId: string;
@@ -89,11 +144,11 @@ export async function runSeed(): Promise<{
   hasAiKey: boolean;
   analysisCached: boolean;
 }> {
-  console.log('🌱 Iniciando Seed Automatizado de Teste...');
+  console.log('🌱 Iniciando Seed Sintético Local de Teste...');
 
   // 1. Conexão ao MongoDB se não conectado
   if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(env.MONGODB_URI);
+    await mongoose.connect(env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
   }
 
   // 2. Criação ou recuperação idempotente do usuário de teste
@@ -129,50 +184,39 @@ export async function runSeed(): Promise<{
 
   const userId = user._id.toString();
 
-  // 4. Ingestão de dados da Sandbox da Pluggy (ou Fixture de contingência)
-  let importStats = { imported: 0, duplicatesIgnored: 0 };
-  let usedFallback = false;
+  // 4. Ingestão 100% local e autônoma de transações sintéticas (Multi-mês e Multi-categoria)
+  const syntheticTransactions = generateSyntheticTransactions();
+  const operations = syntheticTransactions.map((t) => ({
+    updateOne: {
+      filter: {
+        userId: user._id,
+        externalId: t.externalId,
+      },
+      update: {
+        $setOnInsert: {
+          userId: user._id,
+          externalId: t.externalId,
+          rawDescription: t.rawDescription,
+          cleanDescription: t.cleanDescription,
+          amount: t.amount,
+          date: t.date,
+          category: t.category,
+          source: t.source,
+        },
+      },
+      upsert: true,
+    },
+  }));
 
-  try {
-    if (env.PLUGGY_API_KEY && !env.PLUGGY_API_KEY.includes('sua-chave')) {
-      console.log(`📡 Sincronizando com Pluggy Sandbox (itemId: ${SEED_CONFIG.PLUGGY_ITEM_ID})...`);
-      const syncResult = await PluggyService.syncItem(userId, SEED_CONFIG.PLUGGY_ITEM_ID);
-      importStats = {
-        imported: syncResult.imported,
-        duplicatesIgnored: syncResult.duplicatesIgnored,
-      };
-      console.log(`✅ Transações importadas da Pluggy: ${syncResult.imported} novas, ${syncResult.duplicatesIgnored} já existentes.`);
-    } else {
-      usedFallback = true;
-    }
-  } catch (pluggyErr: any) {
-    console.warn('⚠️ Não foi possível sincronizar diretamente com a Pluggy Sandbox:', pluggyErr?.message || pluggyErr);
-    usedFallback = true;
-  }
+  const result = await TransactionModel.bulkWrite(operations, { ordered: false });
+  const transactionsImported = result.upsertedCount;
+  const duplicatesIgnored = syntheticTransactions.length - transactionsImported;
 
-  if (usedFallback) {
-    console.log('📦 Aplicando fixture simulada de transações da sandbox da Pluggy...');
-    const result = await TransactionService.importTransactions(userId, MOCK_PLUGGY_FIXTURES);
-    importStats = {
-      imported: result.imported,
-      duplicatesIgnored: result.duplicatesIgnored,
-    };
-    console.log(`✅ Fixture Pluggy importada: ${result.imported} novas, ${result.duplicatesIgnored} já existentes.`);
+  console.log(
+    `✅ Transações sintéticas processadas: ${transactionsImported} novas inseridas, ${duplicatesIgnored} já existentes.`
+  );
 
-    // Categorização padrão inicial para as fixtures
-    await TransactionService.reassociateCategories(userId, {
-      'EMPRESA XYZ SALARIO': 'Outros',
-      'PAO DE ACUCAR': 'Alimentação',
-      'ENEL DISTRIBUICAO': 'Moradia',
-      'UBER TRIP': 'Transporte',
-      'POSTO IPIRANGA': 'Transporte',
-      'DROGA RAIA': 'Saúde',
-      'RESTAURANTE OUTBACK': 'Alimentação',
-      'NETFLIX COM': 'Lazer',
-    });
-  }
-
-  // 5. Pre-warming da análise financeira do mês
+  // 5. Pre-warming da análise financeira do mês atual no cache
   const currentMonth = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, '0')}`;
   let analysisCached = false;
 
@@ -189,7 +233,7 @@ export async function runSeed(): Promise<{
     console.warn('⚠️ Pré-aquecimento da análise financeira não executado:', analysisErr?.message || analysisErr);
   }
 
-  console.log('\n🎉 Seed finalizado com sucesso!');
+  console.log('\n🎉 Seed local finalizado com sucesso!');
   console.log(`   Credenciais de Teste:`);
   console.log(`   - E-mail: ${SEED_CONFIG.EMAIL}`);
   console.log(`   - Senha:  ${SEED_CONFIG.PASSWORD}\n`);
@@ -197,7 +241,7 @@ export async function runSeed(): Promise<{
   return {
     userId,
     email: user.email,
-    transactionsImported: importStats.imported,
+    transactionsImported,
     hasAiKey: user.hasAiKey(),
     analysisCached,
   };

@@ -1,0 +1,401 @@
+openapi: 3.0.3
+info:
+  title: Financial Intelligence API
+  version: 1.0.0
+  description: API REST para gestão financeira pessoal com arquitetura BYOK, ingestão de extratos (OFX/CSV), integração Open Finance (Pluggy), categorização inteligente e consultoria com IA via streaming SSE.
+
+servers:
+  - url: http://localhost:3000
+    description: Servidor de Desenvolvimento Local
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: usuario@exemplo.com
+        password:
+          type: string
+          minLength: 8
+          example: SenhaForte#123
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Token de autenticação JWT stateless
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              example: 65287f3b8e1a7b45c89d1234
+            email:
+              type: string
+              example: usuario@exemplo.com
+            hasAiKey:
+              type: boolean
+              example: false
+
+    SetApiKeyRequest:
+      type: object
+      required:
+        - apiKey
+      properties:
+        apiKey:
+          type: string
+          description: Chave do Google AI Studio (Gemini) fornecida pelo usuário
+          example: AIzaSy...
+
+    SetApiKeyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Chave BYOK do Google Gemini validada e armazenada com criptografia.
+
+    TransactionItem:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 65287f3b8e1a7b45c89d5678
+        externalId:
+          type: string
+          example: FITID-9928310
+        rawDescription:
+          type: string
+          example: COMPRA CARTAO SUPERMERCADO EXTRA
+        cleanDescription:
+          type: string
+          example: SUPERMERCADO EXTRA
+        amount:
+          type: number
+          example: -154.30
+        date:
+          type: string
+          format: date-time
+          example: "2026-10-10T14:30:00.000Z"
+        category:
+          type: string
+          enum: [Alimentação, Transporte, Moradia, Saúde, Lazer, Educação, Outros]
+          example: Alimentação
+        source:
+          type: string
+          enum: [OFX, CSV, PLUGGY]
+          example: OFX
+
+    UploadTransactionsResponse:
+      type: object
+      properties:
+        totalExtracted:
+          type: integer
+          example: 45
+        imported:
+          type: integer
+          example: 40
+        duplicatesIgnored:
+          type: integer
+          example: 5
+
+    PluggySyncRequest:
+      type: object
+      required:
+        - itemId
+      properties:
+        itemId:
+          type: string
+          description: Identificador do item/conexão no Sandbox da Pluggy
+          example: 87c6b485-6bbd-4e96-a81d-872f9b2d8801
+
+    CategorizeResponse:
+      type: object
+      properties:
+        uniqueMerchantsAnalyzed:
+          type: integer
+          example: 18
+        transactionsUpdated:
+          type: integer
+          example: 40
+
+    ChatMessageRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Pergunta ou solicitação de orientação ao consultor financeiro
+          example: Como posso reduzir meus gastos em Alimentação este mês?
+        sessionId:
+          type: string
+          description: Identificador opcional da sessão para continuidade de conversa
+          example: 65287f3b8e1a7b45c89d9999
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: Formato de arquivo não suportado.
+
+paths:
+  /health:
+    get:
+      summary: Healthcheck da Aplicação
+      description: Retorna o status operacional da API e a conectividade com o MongoDB.
+      responses:
+        '200':
+          description: Serviço operacional
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  database:
+                    type: string
+                    example: connected
+
+  /api/auth/register:
+    post:
+      summary: Registro de Novo Usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Dados inválidos ou e-mail já cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/login:
+    post:
+      summary: Login de Usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Autenticado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user/ai-key:
+    put:
+      summary: Configuração e Validação de Chave de IA (BYOK)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetApiKeyRequest'
+      responses:
+        '200':
+          description: Chave validada na API do Gemini e criptografada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetApiKeyResponse'
+        '400':
+          description: Chave inválida ou ping de teste no Gemini falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Não autenticado
+
+  /api/transactions/upload:
+    post:
+      summary: Upload e Ingestão de Extratos (.ofx / .csv)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Arquivo bancário em formato .ofx ou .csv
+      responses:
+        '200':
+          description: Processamento concluído com contagem de importações e duplicidades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadTransactionsResponse'
+        '400':
+          description: Erro no parsing ou formato não suportado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Não autenticado
+
+  /api/transactions:
+    get:
+      summary: Listagem de Transações
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: month
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "2026-10"
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [Alimentação, Transporte, Moradia, Saúde, Lazer, Educação, Outros]
+      responses:
+        '200':
+          description: Lista de transações do usuário autenticado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransactionItem'
+        '401':
+          description: Não autenticado
+
+  /api/transactions/categorize:
+    post:
+      summary: Categorização Inteligente de Transações Pendentes via Gemini BYOK
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Transações categorizadas e salvas no banco
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategorizeResponse'
+        '403':
+          description: Bloqueado por ausência de chave BYOK cadastrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Não autenticado
+
+  /api/integrations/pluggy/sync:
+    post:
+      summary: Sincronização de Transações via Sandbox Pluggy
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PluggySyncRequest'
+      responses:
+        '200':
+          description: Transações do Sandbox sincronizadas com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadTransactionsResponse'
+        '400':
+          description: Falha na integração com a Pluggy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Não autenticado
+
+  /api/chat/stream:
+    post:
+      summary: Consultoria Financeira Interativa via Streaming SSE
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageRequest'
+      responses:
+        '200':
+          description: Fluxo contínuo Server-Sent Events (SSE)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  data: {"text": "Olá! "}
+
+                  data: {"text": "Analisando seus gastos de outubro, identifiquei..."}
+
+                  data: {"done": true}
+        '403':
+          description: Chave BYOK não configurada (HTTP 403 Forbidden)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Não autenticado

@@ -1,0 +1,50 @@
+{
+  "name": "projeto-backend-dashboard-sdd",
+  "version": "1.0.0",
+  "description": "API REST do backend financeiro com arquitetura BYOK, ingestão de extratos OFX/CSV, Open Finance e consultoria via IA.",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:flow": "tsx scripts/test-flow.ts"
+  },
+  "keywords": [
+    "finance",
+    "fastify",
+    "byok",
+    "gemini",
+    "mongodb",
+    "ofx",
+    "open-finance"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/jwt": "^8.0.1",
+    "@fastify/multipart": "^8.3.0",
+    "@fastify/swagger": "^8.15.0",
+    "@fastify/swagger-ui": "^4.0.1",
+    "@google/genai": "^2.29.1",
+    "bcryptjs": "^2.4.3",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.1",
+    "fastify-type-provider-zod": "^2.0.0",
+    "iconv-lite": "^0.6.3",
+    "mongoose": "^8.5.1",
+    "node-ofx-parser": "^0.5.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.14.12",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.4"
+  }
+}

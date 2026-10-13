@@ -9,7 +9,7 @@
 
 Backend financeiro de alta performance construído com **Node.js 20 LTS**, **TypeScript estrito** e **Fastify**, projetado sob a filosofia **BYOK (Bring Your Own Key)** e estrita conformidade com a **LGPD**. 
 
-A plataforma consolida transações bancárias via arquivos de extrato (**OFX SGML**, **CSV**) e sincronização automatizada via **Open Finance (Pluggy Sandbox)**, executando classificação orçamentária inteligente, consultoria financeira interativa em streaming via **Server-Sent Events (SSE)** e diagnósticos analíticos com **cache nativo de 24 horas no MongoDB**.
+A plataforma consolida transações bancárias do usuário via arquivos de extrato (**OFX SGML**, **CSV**), executando classificação orçamentária inteligente, consultoria financeira interativa em streaming via **Server-Sent Events (SSE)** e diagnósticos analíticos com **cache nativo de 24 horas no MongoDB**, além de dispor de motor de amostragem de dados integrado à **Pluggy Sandbox** para geração instantânea de dados sintéticos para testes e desenvolvimento.
 
 ---
 
@@ -78,7 +78,6 @@ flowchart TD
     subgraph Router["Rotas REST"]
         R_Auth["/api/auth & /api/user/ai-key"]
         R_Tx["/api/transactions"]
-        R_Pluggy["/api/pluggy"]
         R_Chat["/api/chat/stream (SSE)"]
         R_Analysis["/api/analysis/:month"]
     end
@@ -90,7 +89,7 @@ flowchart TD
         ParserSvc["ParserService (OFX/CSV)"]
         SanitizerSvc["SanitizerService (LGPD Regex)"]
         TxSvc["TransactionService (Idempotência)"]
-        PluggySvc["PluggyService (Open Finance)"]
+        PluggySvc["PluggyService (Seed & Sandbox Engine)"]
         GeminiSvc["GeminiService (LLM & Structured Output)"]
         AnalysisSvc["AnalysisService (Cache & Hash Engine)"]
     end
@@ -108,7 +107,7 @@ flowchart TD
 
     subgraph ExternalAPIs["Serviços de Terceiros"]
         GoogleGemini["Google AI Studio (Gemini 2.5 Flash)"]
-        PluggyAPI["Pluggy.ai Open Finance Sandbox"]
+        PluggyAPI["Pluggy.ai Sandbox (Motor de Amostragem / Seed)"]
     end
 ```
 
@@ -222,9 +221,9 @@ flowchart TD
 - Parser resiliente de arquivos **OFX SGML** e **CSV** (suporte para separadores `;` ou `,` e detecção de charset Windows-1252 / UTF-8).
 - Deduplicação determinística no banco baseada na combinação única `{ userId, externalId }`.
 
-### 3. Open Finance (Pluggy Sandbox)
-- Sincronização direta de contas e transações da Pluggy Sandbox (`POST /api/pluggy/sync`).
-- Conversão automática para o modelo canônico do sistema e categorização inicial.
+### 3. Motor de Amostragem & Seed (Pluggy Sandbox)
+- Utilização interna exclusiva no script de seed (`npm run seed`), sem expor rotas públicas de Open Finance na API do usuário final.
+- Conecta dinamicamente ao conector de Sandbox da Pluggy (`connectorId: 2` com credenciais simuladas), realiza polling até a conclusão da sincronização e baixa centenas de lançamentos bancários realistas para alimentar o banco de desenvolvimento/testes.
 
 ### 4. Categorização Inteligente Pré-LLM
 - `POST /api/transactions/categorize`: Extrai estabelecimentos únicos não classificados (`Outros`).
@@ -353,7 +352,6 @@ npm run seed
 | `POST` | `/api/transactions/upload` | **JWT** | Upload e processamento de extrato em lote (OFX ou CSV) |
 | `GET` | `/api/transactions` | **JWT** | Listagem de transações com filtros por mês, categoria e origem |
 | `POST` | `/api/transactions/categorize` | **JWT + BYOK** | Categorização em lote via IA com minimização de tokens |
-| `POST` | `/api/pluggy/sync` | **JWT** | Sincronização de contas e transações da Pluggy Sandbox |
 | `POST` | `/api/chat/stream` | **JWT + BYOK** | Consultoria financeira conversacional em streaming via SSE |
 | `GET` | `/api/analysis/:month` | **JWT + BYOK** | Diagnóstico orçamentário mensal com cache de 24h e TTL |
 

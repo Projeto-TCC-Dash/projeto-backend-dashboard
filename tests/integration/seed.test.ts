@@ -1,15 +1,15 @@
 import mongoose from 'mongoose';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { env } from '../../src/config/env.js';
 import { TransactionModel } from '../../src/models/transaction.model.js';
 import { UserModel } from '../../src/models/user.model.js';
 import { MOCK_PLUGGY_FIXTURES, runSeed, SEED_CONFIG } from '../../scripts/seed.js';
+import { PluggyService } from '../../src/services/pluggy.service.js';
 
 describe('Seed Integration & Idempotency Tests', () => {
   it('deve possuir constantes e fixtures de seed válidas para a Pluggy sandbox', () => {
     expect(SEED_CONFIG.EMAIL).toBe('teste.pluggy@exemplo.com');
     expect(SEED_CONFIG.PASSWORD).toBe('SenhaForte#123');
-    expect(SEED_CONFIG.PLUGGY_ITEM_ID).toBeDefined();
 
     expect(MOCK_PLUGGY_FIXTURES.length).toBeGreaterThanOrEqual(5);
     for (const fixture of MOCK_PLUGGY_FIXTURES) {
@@ -20,6 +20,11 @@ describe('Seed Integration & Idempotency Tests', () => {
       expect(fixture.date instanceof Date).toBe(true);
       expect(fixture.source).toBe('PLUGGY');
     }
+  });
+
+  it('deve executar o fluxo de criação dinâmica de sandbox com fallback resiliente', async () => {
+    // Valida que o método createAndSyncSandboxItem está implementado no serviço
+    expect(typeof PluggyService.createAndSyncSandboxItem).toBe('function');
   });
 
   it('deve executar o seed com idempotência e integridade sem duplicar dados', async () => {

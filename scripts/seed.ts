@@ -135,13 +135,13 @@ export async function runSeed(): Promise<{
 
   try {
     if (env.PLUGGY_API_KEY && !env.PLUGGY_API_KEY.includes('sua-chave')) {
-      console.log(`📡 Sincronizando com Pluggy Sandbox (itemId: ${SEED_CONFIG.PLUGGY_ITEM_ID})...`);
-      const syncResult = await PluggyService.syncItem(userId, SEED_CONFIG.PLUGGY_ITEM_ID);
+      console.log('📡 Conectando à Sandbox da Pluggy, criando conexão dinâmica e sincronizando lançamentos...');
+      const syncResult = await PluggyService.createAndSyncSandboxItem(userId);
       importStats = {
         imported: syncResult.imported,
         duplicatesIgnored: syncResult.duplicatesIgnored,
       };
-      console.log(`✅ Transações importadas da Pluggy: ${syncResult.imported} novas, ${syncResult.duplicatesIgnored} já existentes.`);
+      console.log(`✅ Transações importadas dinamicamente da Pluggy: ${syncResult.imported} novas (${syncResult.totalExtracted} coletadas), ${syncResult.duplicatesIgnored} já existentes.`);
     } else {
       usedFallback = true;
     }

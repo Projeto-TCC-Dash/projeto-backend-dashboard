@@ -32,7 +32,8 @@ describe('OpenAPI Swagger Documentation Route', () => {
     expect(paths).toContain('/api/transactions/upload');
     expect(paths).toContain('/api/transactions');
     expect(paths).toContain('/api/transactions/categorize');
-    expect(paths).toContain('/api/integrations/pluggy/sync');
+    expect(paths).not.toContain('/api/integrations/pluggy/sync');
     expect(paths).toContain('/api/chat/stream');
+    expect(paths).toContain('/api/analysis/{month}');
   });
 });

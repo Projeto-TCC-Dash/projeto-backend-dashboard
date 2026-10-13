@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../../src/app.js';
 
-describe('Pluggy Open Finance Routes (HTTP Inject)', () => {
+describe('Pluggy Public Routes Dismantling (HTTP Inject)', () => {
   const app = buildApp();
 
   beforeAll(async () => {
@@ -12,7 +12,7 @@ describe('Pluggy Open Finance Routes (HTTP Inject)', () => {
     await app.close();
   });
 
-  it('deve retornar 401 se a requisição não contiver token JWT', async () => {
+  it('deve retornar 404 para a rota antiga POST /api/integrations/pluggy/sync', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/integrations/pluggy/sync',
@@ -21,6 +21,6 @@ describe('Pluggy Open Finance Routes (HTTP Inject)', () => {
       },
     });
 
-    expect(res.statusCode).toBe(401);
+    expect(res.statusCode).toBe(404);
   });
 });

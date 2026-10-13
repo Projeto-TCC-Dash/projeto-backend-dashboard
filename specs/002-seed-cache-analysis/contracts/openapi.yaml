@@ -1,0 +1,94 @@
+openapi: 3.0.3
+info:
+  title: Financial Intelligence API - Analysis Cache Extension
+  version: 1.1.0
+  description: Extensão de endpoints analíticos com cache e TTL.
+
+paths:
+  /api/analysis/{month}:
+    get:
+      summary: Consulta e Geração de Análise Financeira Mensal (com Cache e TTL)
+      description: Retorna o diagnóstico orçamentário do mês gerado por IA. Se o estado das transações não tiver mudado e o TTL de 24h estiver válido, retorna diretamente do cache sem consumir tokens no Gemini.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: month
+          in: path
+          required: true
+          description: Mês de competência no formato YYYY-MM
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2026-10'
+        - name: forceRefresh
+          in: query
+          required: false
+          description: Forçar regeneração ignorando o cache
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Análise financeira entregue (com indicador de cache)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cached:
+                    type: boolean
+                    example: true
+                  month:
+                    type: string
+                    example: '2026-10'
+                  diagnosis:
+                    type: string
+                    example: 'Seus gastos em outubro representam 65% da sua renda total...'
+                  recommendations:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - 'Reduzir pedidos de delivery nos finais de semana'
+                      - 'Destinar R$ 500,00 para a reserva de emergência'
+                  metrics:
+                    type: object
+                    properties:
+                      totalIncome:
+                        type: number
+                        example: 5000.00
+                      totalExpenses:
+                        type: number
+                        example: 3250.00
+                      netBalance:
+                        type: number
+                        example: 1750.00
+                      savingsRate:
+                        type: number
+                        example: 35.0
+                      topCategories:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            category:
+                              type: string
+                              example: 'Alimentação'
+                            amount:
+                              type: number
+                              example: 1200.00
+                            percentage:
+                              type: number
+                              example: 36.9
+                  generatedAt:
+                    type: string
+                    format: date-time
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Mês inválido ou ausência de transações no período
+        '401':
+          description: Não autenticado
+        '403':
+          description: Chave BYOK não configurada (necessária para gerar nova análise se houver cache miss)

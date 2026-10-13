@@ -12,6 +12,7 @@ import {
 } from 'fastify-type-provider-zod';
 import { env } from './config/env.js';
 import { setupErrorHandler } from './plugins/error-handler.plugin.js';
+import { analysisRoutes } from './routes/analysis.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
@@ -85,6 +86,9 @@ export function buildApp(): FastifyInstance {
 
   // Chatbot SSE routes
   app.register(chatRoutes);
+
+  // Financial Analysis routes (Cache & TTL)
+  app.register(analysisRoutes);
 
   return app;
 }

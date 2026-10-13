@@ -10,7 +10,8 @@
     "dev": "tsx watch src/server.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:flow": "tsx scripts/test-flow.ts"
+    "test:flow": "tsx scripts/test-flow.ts",
+    "seed": "tsx scripts/seed.ts"
   },
   "keywords": [
     "finance",

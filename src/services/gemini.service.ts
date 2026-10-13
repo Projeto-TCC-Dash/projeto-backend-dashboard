@@ -155,4 +155,86 @@ Diretrizes:
       }
     }
   }
+
+  /**
+   * Gera diagnóstico e recomendações financeiras detalhadas para um mês utilizando Structured Outputs.
+   */
+  public static async generateFinancialDiagnosis(
+    apiKey: string,
+    summary: {
+      month: string;
+      totalIncome: number;
+      totalExpenses: number;
+      netBalance: number;
+      savingsRate: number;
+      topCategories: Array<{ category: string; amount: number; percentage: number }>;
+    }
+  ): Promise<{ diagnosis: string; recommendations: string[] }> {
+    const ai = new GoogleGenAI({ apiKey });
+
+    const systemPrompt = `Você é um especialista em planejamento financeiro pessoal de alto nível.
+Analise os números consolidados do mês do usuário e produza um diagnóstico executivo com tom construtivo, empático e prático, acompanhado de recomendações acionáveis.`;
+
+    const userPrompt = `DADOS FINANCEIROS CONSOLIDADOS DO MÊS (${summary.month}):
+- Total de Receitas: R$ ${summary.totalIncome.toFixed(2)}
+- Total de Despesas: R$ ${summary.totalExpenses.toFixed(2)}
+- Saldo Líquido: R$ ${summary.netBalance.toFixed(2)}
+- Taxa de Poupança: ${summary.savingsRate.toFixed(1)}%
+- Maiores Gastos:
+${summary.topCategories
+  .map((c) => `  * ${c.category}: R$ ${c.amount.toFixed(2)} (${c.percentage.toFixed(1)}%)`)
+  .join('\n')}
+
+Retorne um JSON estrito contendo:
+- "diagnosis": texto analítico da saúde financeira do mês (máx 3 parágrafos curtos).
+- "recommendations": lista com 3 a 5 ações concretas e priorizadas para melhorar o orçamento.`;
+
+    const schema = {
+      type: 'object',
+      properties: {
+        diagnosis: { type: 'string' },
+        recommendations: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      required: ['diagnosis', 'recommendations'],
+    };
+
+    try {
+      const response = await ai.models.generateContent({
+        model: SYSTEM_DEFAULTS.GEMINI_MODEL,
+        contents: `${systemPrompt}\n\n${userPrompt}`,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: schema,
+          temperature: 0.2,
+        },
+      });
+
+      const text = response.text;
+      if (!text) {
+        throw new Error('Resposta vazia da IA.');
+      }
+
+      return JSON.parse(text) as { diagnosis: string; recommendations: string[] };
+    } catch (err: any) {
+      console.warn('⚠️ Falha na geração estruturada com Gemini, aplicando diagnóstico heurístico de contingência:', err?.message || err);
+      // Fallback heurístico inteligente caso a chamada ao Gemini falhe
+      const isPositive = summary.netBalance >= 0;
+      return {
+        diagnosis: isPositive
+          ? `No mês de ${summary.month}, você manteve um saldo positivo de R$ ${summary.netBalance.toFixed(2)}, poupando ${summary.savingsRate.toFixed(1)}% das suas receitas totais.`
+          : `No mês de ${summary.month}, suas despesas superaram suas receitas em R$ ${Math.abs(summary.netBalance).toFixed(2)}. É recomendável rever despesas não essenciais.`,
+        recommendations: [
+          'Priorize manter ou formar uma reserva de emergência equivalente a 6 meses de custo fixo.',
+          summary.topCategories[0]
+            ? `Avalie oportunidades de otimização na categoria ${summary.topCategories[0].category}, que concentrou ${summary.topCategories[0].percentage.toFixed(1)}% do seu orçamento.`
+            : 'Mantenha o registro contínuo dos seus lançamentos para obter previsibilidade orçamentária.',
+          'Evite o uso de cheque especial ou rotativo de cartão de crédito.',
+        ],
+      };
+    }
+  }
 }
+

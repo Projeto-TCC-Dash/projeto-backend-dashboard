@@ -13,7 +13,7 @@ export const CANONICAL_CATEGORIES = [
 export const CategoryEnum = z.enum(CANONICAL_CATEGORIES);
 export type Category = z.infer<typeof CategoryEnum>;
 
-export const TRANSACTION_SOURCES = ['OFX', 'CSV', 'PLUGGY'] as const;
+export const TRANSACTION_SOURCES = ['OFX', 'CSV', 'SEED'] as const;
 export const TransactionSourceEnum = z.enum(TRANSACTION_SOURCES);
 export type TransactionSource = z.infer<typeof TransactionSourceEnum>;
 

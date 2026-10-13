@@ -90,15 +90,18 @@ export const authRoutes: FastifyPluginAsyncZod = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        await AuthService.setApiKey(request.user.id, request.body.apiKey);
+        const result = await AuthService.setApiKey(request.user.id, request.body.apiKey);
         return reply.status(200).send({
           success: true,
-          message: 'Chave BYOK do Google Gemini validada e armazenada com criptografia.',
+          message: result.message,
+          status: result.status,
         });
       } catch (err: any) {
-        return reply.status(400).send({
-          statusCode: 400,
-          error: 'Bad Request',
+        const statusCode = err?.statusCode || 400;
+        const errorTitle = statusCode === 400 ? 'Bad Request' : 'Error';
+        return reply.status(statusCode).send({
+          statusCode,
+          error: errorTitle,
           message: err?.message || 'Falha ao validar ou salvar a chave de IA.',
         });
       }

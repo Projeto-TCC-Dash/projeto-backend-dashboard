@@ -3,7 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { UserModel } from '../models/user.model.js';
 import { AuthResponse, RegisterRequest } from '../schemas/auth.schemas.js';
 import { CryptoService } from './crypto.service.js';
-import { GeminiService } from './gemini.service.js';
+import { GeminiService, KeyValidationResult } from './gemini.service.js';
 
 export class AuthService {
   /**
@@ -84,9 +84,9 @@ export class AuthService {
   /**
    * Valida ativamente a chave do Gemini do usuário e armazena criptografada com AES-256-GCM.
    */
-  public static async setApiKey(userId: string, apiKey: string): Promise<void> {
-    // 1. Validação ativa disparando um ping no Google AI Studio
-    await GeminiService.validateApiKey(apiKey);
+  public static async setApiKey(userId: string, apiKey: string): Promise<KeyValidationResult> {
+    // 1. Validação ativa disparando um ping no Google AI Studio com retry e captura de erros
+    const validation = await GeminiService.validateApiKey(apiKey);
 
     // 2. Criptografia AES-256-GCM
     const encrypted = CryptoService.encrypt(apiKey);
@@ -105,6 +105,8 @@ export class AuthService {
     if (!updated) {
       throw new Error('Usuário não encontrado.');
     }
+
+    return validation;
   }
 
   /**

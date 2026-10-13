@@ -30,5 +30,6 @@ export type SetApiKeyRequest = z.infer<typeof SetApiKeyRequestSchema>;
 export const SetApiKeyResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
+  status: z.enum(['ACTIVE_VERIFIED', 'ACTIVE_PROVISIONAL_DEMAND']).optional(),
 });
 export type SetApiKeyResponse = z.infer<typeof SetApiKeyResponseSchema>;

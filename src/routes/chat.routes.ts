@@ -5,6 +5,7 @@ import { ChatMessageRequestSchema } from '../schemas/chat.schemas.js';
 import { AuthService } from '../services/auth.service.js';
 import { ChatService } from '../services/chat.service.js';
 import { GeminiService } from '../services/gemini.service.js';
+import { GeminiErrorParser } from '../utils/gemini-errors.js';
 
 export const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
   fastify.post(
@@ -85,10 +86,13 @@ export const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         }
       } catch (err: any) {
         console.error('❌ Erro no streaming SSE do chat:', err?.message || err);
+        const parsed = GeminiErrorParser.parse(err);
         if (isClientConnected) {
           reply.raw.write(
             `data: ${JSON.stringify({
-              error: 'Ocorreu um erro ao gerar a resposta com a IA.',
+              error: parsed.userMessage,
+              code: parsed.type,
+              statusCode: parsed.statusCode,
             })}\n\n`
           );
         }

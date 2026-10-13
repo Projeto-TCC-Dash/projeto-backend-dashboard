@@ -22,11 +22,18 @@ export function setupErrorHandler(app: FastifyInstance): void {
       });
     }
 
-    // 3. Erros HTTP já com statusCode definido
-    if (error.statusCode && error.statusCode >= 400 && error.statusCode < 500) {
+    // 3. Erros HTTP ou de Domínio com statusCode definido (4xx e 5xx, incluindo 503 e 429)
+    if (error.statusCode && error.statusCode >= 400 && error.statusCode < 600) {
+      let errorTitle = error.name || 'Error';
+      if (error.statusCode === 503) errorTitle = 'Service Unavailable';
+      else if (error.statusCode === 429) errorTitle = 'Too Many Requests';
+      else if (error.statusCode === 400) errorTitle = 'Bad Request';
+      else if (error.statusCode === 401) errorTitle = 'Unauthorized';
+      else if (error.statusCode === 403) errorTitle = 'Forbidden';
+
       return reply.status(error.statusCode).send({
         statusCode: error.statusCode,
-        error: error.name || 'Client Error',
+        error: errorTitle,
         message: error.message,
       });
     }

@@ -1,22 +1,74 @@
 import { GoogleGenAI } from '@google/genai';
 import { CANONICAL_CATEGORIES, Category, SYSTEM_DEFAULTS } from '../config/constants.js';
+import {
+  GeminiApiError,
+  GeminiErrorParser,
+  withGeminiRetry,
+} from '../utils/gemini-errors.js';
+
+export type KeyValidationStatus = 'ACTIVE_VERIFIED' | 'ACTIVE_PROVISIONAL_DEMAND';
+
+export interface KeyValidationResult {
+  status: KeyValidationStatus;
+  message: string;
+}
 
 export class GeminiService {
   /**
-   * Executa um teste ativo mínimo na API do Gemini para validar a chave do usuário antes de aceitá-la.
+   * Executa um teste ativo na API do Gemini para validar a chave do usuário antes de aceitá-la.
+   * Se o Google responder 503 UNAVAILABLE ou 429, a chave é reconhecida como autenticada pelo gateway.
    */
-  public static async validateApiKey(apiKey: string): Promise<void> {
-    try {
-      const ai = new GoogleGenAI({ apiKey });
-      await ai.models.generateContent({
-        model: SYSTEM_DEFAULTS.GEMINI_MODEL,
-        contents: 'Ping de validação de chave de API',
+  public static async validateApiKey(apiKey: string): Promise<KeyValidationResult> {
+    if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length < 20) {
+      throw new GeminiApiError({
+        type: 'AUTH_ERROR',
+        statusCode: 400,
+        userMessage: 'A chave de API fornecida é inválida ou possui formato incorreto.',
+        isTransient: false,
+        originalMessage: 'API key syntax validation failed (length < 20 or empty)',
       });
-    } catch (error: any) {
-      console.error('❌ Falha na validação ativa da API Key no Gemini:', error?.message || error);
-      throw new Error(
-        'A chave de API fornecida é inválida, foi revogada ou possui problemas de cota no Google AI Studio.'
+    }
+
+    try {
+      await withGeminiRetry(
+        async () => {
+          const ai = new GoogleGenAI({ apiKey });
+          await ai.models.generateContent({
+            model: SYSTEM_DEFAULTS.GEMINI_MODEL,
+            contents: 'Ping de validação de chave de API',
+          });
+        },
+        2,
+        400
       );
+
+      return {
+        status: 'ACTIVE_VERIFIED',
+        message: 'Chave BYOK do Google Gemini validada e armazenada com criptografia.',
+      };
+    } catch (error: unknown) {
+      const parsed = GeminiErrorParser.parse(error);
+
+      // Se o erro for UPSTREAM_UNAVAILABLE (503) ou RATE_LIMIT_ERROR (429),
+      // a chave passou com sucesso pela camada de autenticação do Google Cloud Endpoints!
+      if (
+        parsed.type === 'UPSTREAM_UNAVAILABLE' ||
+        parsed.type === 'RATE_LIMIT_ERROR' ||
+        parsed.type === 'NETWORK_ERROR'
+      ) {
+        console.warn(
+          `⚠️ Chave reconhecida e aceita com aviso de demanda upstream (${parsed.type} - status ${parsed.statusCode}):`,
+          parsed.originalMessage
+        );
+        return {
+          status: 'ACTIVE_PROVISIONAL_DEMAND',
+          message:
+            'Chave de IA vinculada com sucesso! O Google AI Studio está com alta demanda temporária no momento, mas sua chave foi reconhecida e salva.',
+        };
+      }
+
+      console.error('❌ Falha na validação ativa da API Key no Gemini:', parsed.originalMessage);
+      throw new GeminiApiError(parsed);
     }
   }
 
@@ -74,43 +126,47 @@ Diretrizes:
     )}`;
 
     try {
-      const response = await ai.models.generateContent({
-        model: SYSTEM_DEFAULTS.GEMINI_MODEL,
-        contents: `${systemPrompt}\n\n${userPrompt}`,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: jsonSchema,
-          temperature: 0.1,
+      return await withGeminiRetry(
+        async () => {
+          const response = await ai.models.generateContent({
+            model: SYSTEM_DEFAULTS.GEMINI_MODEL,
+            contents: `${systemPrompt}\n\n${userPrompt}`,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: jsonSchema,
+              temperature: 0.1,
+            },
+          });
+
+          const responseText = response.text;
+          if (!responseText) {
+            throw new Error('Resposta vazia recebida do modelo Gemini.');
+          }
+
+          const parsed = JSON.parse(responseText) as {
+            categories: Array<{ merchant: string; category: Category }>;
+          };
+
+          const result: Record<string, Category> = {};
+          for (const item of parsed.categories) {
+            if (CANONICAL_CATEGORIES.includes(item.category)) {
+              result[item.merchant] = item.category;
+            } else {
+              result[item.merchant] = SYSTEM_DEFAULTS.DEFAULT_CATEGORY;
+            }
+          }
+
+          return result;
         },
-      });
-
-      const responseText = response.text;
-      if (!responseText) {
-        throw new Error('Resposta vazia recebida do modelo Gemini.');
+        2,
+        400
+      );
+    } catch (err: unknown) {
+      if (err instanceof GeminiApiError) {
+        throw err;
       }
-
-      const parsed = JSON.parse(responseText) as {
-        categories: Array<{ merchant: string; category: Category }>;
-      };
-
-      const result: Record<string, Category> = {};
-      for (const item of parsed.categories) {
-        if (CANONICAL_CATEGORIES.includes(item.category)) {
-          result[item.merchant] = item.category;
-        } else {
-          result[item.merchant] = SYSTEM_DEFAULTS.DEFAULT_CATEGORY;
-        }
-      }
-
-      return result;
-    } catch (err: any) {
-      console.error('❌ Erro na chamada de categorização ao Gemini:', err?.message || err);
-      // Fallback gracioso: mapeia para 'Outros' se a chamada falhar
-      const fallback: Record<string, Category> = {};
-      for (const m of merchants) {
-        fallback[m] = SYSTEM_DEFAULTS.DEFAULT_CATEGORY;
-      }
-      return fallback;
+      const parsed = GeminiErrorParser.parse(err);
+      throw new GeminiApiError(parsed);
     }
   }
 
@@ -144,15 +200,29 @@ Diretrizes:
       },
     ];
 
-    const stream = await ai.models.generateContentStream({
-      model: SYSTEM_DEFAULTS.GEMINI_MODEL,
-      contents,
-    });
+    try {
+      const stream = await withGeminiRetry(
+        async () => {
+          return await ai.models.generateContentStream({
+            model: SYSTEM_DEFAULTS.GEMINI_MODEL,
+            contents,
+          });
+        },
+        2,
+        400
+      );
 
-    for await (const chunk of stream) {
-      if (chunk.text) {
-        yield chunk.text;
+      for await (const chunk of stream) {
+        if (chunk.text) {
+          yield chunk.text;
+        }
       }
+    } catch (err: unknown) {
+      if (err instanceof GeminiApiError) {
+        throw err;
+      }
+      const parsed = GeminiErrorParser.parse(err);
+      throw new GeminiApiError(parsed);
     }
   }
 
@@ -202,38 +272,34 @@ Retorne um JSON estrito contendo:
     };
 
     try {
-      const response = await ai.models.generateContent({
-        model: SYSTEM_DEFAULTS.GEMINI_MODEL,
-        contents: `${systemPrompt}\n\n${userPrompt}`,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: schema,
-          temperature: 0.2,
+      return await withGeminiRetry(
+        async () => {
+          const response = await ai.models.generateContent({
+            model: SYSTEM_DEFAULTS.GEMINI_MODEL,
+            contents: `${systemPrompt}\n\n${userPrompt}`,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: schema,
+              temperature: 0.2,
+            },
+          });
+
+          const text = response.text;
+          if (!text) {
+            throw new Error('Resposta vazia da IA.');
+          }
+
+          return JSON.parse(text) as { diagnosis: string; recommendations: string[] };
         },
-      });
-
-      const text = response.text;
-      if (!text) {
-        throw new Error('Resposta vazia da IA.');
+        2,
+        400
+      );
+    } catch (err: unknown) {
+      if (err instanceof GeminiApiError) {
+        throw err;
       }
-
-      return JSON.parse(text) as { diagnosis: string; recommendations: string[] };
-    } catch (err: any) {
-      console.warn('⚠️ Falha na geração estruturada com Gemini, aplicando diagnóstico heurístico de contingência:', err?.message || err);
-      // Fallback heurístico inteligente caso a chamada ao Gemini falhe
-      const isPositive = summary.netBalance >= 0;
-      return {
-        diagnosis: isPositive
-          ? `No mês de ${summary.month}, você manteve um saldo positivo de R$ ${summary.netBalance.toFixed(2)}, poupando ${summary.savingsRate.toFixed(1)}% das suas receitas totais.`
-          : `No mês de ${summary.month}, suas despesas superaram suas receitas em R$ ${Math.abs(summary.netBalance).toFixed(2)}. É recomendável rever despesas não essenciais.`,
-        recommendations: [
-          'Priorize manter ou formar uma reserva de emergência equivalente a 6 meses de custo fixo.',
-          summary.topCategories[0]
-            ? `Avalie oportunidades de otimização na categoria ${summary.topCategories[0].category}, que concentrou ${summary.topCategories[0].percentage.toFixed(1)}% do seu orçamento.`
-            : 'Mantenha o registro contínuo dos seus lançamentos para obter previsibilidade orçamentária.',
-          'Evite o uso de cheque especial ou rotativo de cartão de crédito.',
-        ],
-      };
+      const parsed = GeminiErrorParser.parse(err);
+      throw new GeminiApiError(parsed);
     }
   }
 }

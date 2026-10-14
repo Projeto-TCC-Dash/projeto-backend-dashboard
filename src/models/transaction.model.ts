@@ -47,7 +47,7 @@ const TransactionSchema = new Schema<ITransaction>(
     category: {
       type: String,
       enum: CANONICAL_CATEGORIES,
-      default: 'Outros',
+      default: 'Não Categorizado',
     },
     source: {
       type: String,

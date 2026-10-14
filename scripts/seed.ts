@@ -63,11 +63,11 @@ export function generateSyntheticTransactions(baseDate: Date = new Date()): Synt
   };
 
   // ==========================================
-  // MÊS ATUAL (M) : 20 transações realistas
+  // MÊS ATUAL (M) : 21 transações realistas
   // ==========================================
-  // Receitas (Outros)
-  addTx(currYear, currMonth, 2, 9, 30, 1, 'TED RECEBIDA TECH CORP SALARIO', 'TECH CORP SALARIO', 7500.0, 'Outros');
-  addTx(currYear, currMonth, 15, 14, 0, 2, 'PIX RECEBIDO JOAO SILVA FREELANCE', 'PIX RECEBIDO JOAO FREELANCE', 1200.0, 'Outros');
+  // Receitas
+  addTx(currYear, currMonth, 2, 9, 30, 1, 'TED RECEBIDA TECH CORP SALARIO', 'TECH CORP SALARIO', 7500.0, 'Receita');
+  addTx(currYear, currMonth, 15, 14, 0, 2, 'PIX RECEBIDO JOAO SILVA FREELANCE', 'PIX RECEBIDO JOAO FREELANCE', 1200.0, 'Receita');
 
   // Moradia
   addTx(currYear, currMonth, 5, 10, 0, 3, 'PAGTO BOLETO QUINTOANDAR ALUGUEL', 'QUINTOANDAR ALUGUEL', -2200.0, 'Moradia');
@@ -99,12 +99,15 @@ export function generateSyntheticTransactions(baseDate: Date = new Date()): Synt
   addTx(currYear, currMonth, 18, 14, 20, 19, 'ALURA CURSOS ONLINE TECNOLOGIA', 'ALURA CURSOS ONLINE', -110.0, 'Educação');
   addTx(currYear, currMonth, 22, 16, 40, 20, 'LIVRARIA DA VILA LIVROS', 'LIVRARIA DA VILA', -129.9, 'Educação');
 
+  // Outros
+  addTx(currYear, currMonth, 23, 11, 0, 21, 'TARIFA BANCARIA MANUTENCAO PACOTE', 'TARIFA BANCARIA PACOTE', -49.9, 'Outros');
+
   // ==========================================
-  // MÊS ANTERIOR (M-1) : 18 transações realistas
+  // MÊS ANTERIOR (M-1) : 19 transações realistas
   // ==========================================
-  // Receitas (Outros)
-  addTx(prevYear, prevMonth, 2, 9, 30, 101, 'TED RECEBIDA TECH CORP SALARIO', 'TECH CORP SALARIO', 7500.0, 'Outros');
-  addTx(prevYear, prevMonth, 25, 12, 0, 102, 'RENDIMENTO APLICACAO CDB LIQUIDO', 'RENDIMENTO CDB LIQUIDO', 285.5, 'Outros');
+  // Receitas
+  addTx(prevYear, prevMonth, 2, 9, 30, 101, 'TED RECEBIDA TECH CORP SALARIO', 'TECH CORP SALARIO', 7500.0, 'Receita');
+  addTx(prevYear, prevMonth, 25, 12, 0, 102, 'RENDIMENTO APLICACAO CDB LIQUIDO', 'RENDIMENTO CDB LIQUIDO', 285.5, 'Receita');
 
   // Moradia
   addTx(prevYear, prevMonth, 5, 10, 0, 103, 'PAGTO BOLETO QUINTOANDAR ALUGUEL', 'QUINTOANDAR ALUGUEL', -2200.0, 'Moradia');
@@ -133,6 +136,9 @@ export function generateSyntheticTransactions(baseDate: Date = new Date()): Synt
 
   // Educação
   addTx(prevYear, prevMonth, 18, 16, 0, 118, 'CURSO INGLES ONLINE PLATAFORMA', 'CURSO INGLES ONLINE', -250.0, 'Educação');
+
+  // Outros
+  addTx(prevYear, prevMonth, 23, 11, 0, 119, 'TARIFA BANCARIA MANUTENCAO PACOTE', 'TARIFA BANCARIA PACOTE', -49.9, 'Outros');
 
   return transactions;
 }

@@ -7,7 +7,9 @@ export const CANONICAL_CATEGORIES = [
   "Saúde",
   "Lazer",
   "Educação",
+  "Receita",
   "Outros",
+  "Não Categorizado",
 ] as const;
 
 export const CategoryEnum = z.enum(CANONICAL_CATEGORIES);
@@ -20,6 +22,6 @@ export type TransactionSource = z.infer<typeof TransactionSourceEnum>;
 export const SYSTEM_DEFAULTS = {
   MAX_FILE_SIZE_BYTES: 10 * 1024 * 1024, // 10MB
   MAX_CHAT_HISTORY_MESSAGES: 20,
-  DEFAULT_CATEGORY: "Outros" as Category,
+  DEFAULT_CATEGORY: "Não Categorizado" as Category,
   GEMINI_MODEL: "gemini-3.8-flash",
 } as const;

@@ -1,10 +1,49 @@
 import mongoose from 'mongoose';
 import { Category, SYSTEM_DEFAULTS } from '../config/constants.js';
 import { ITransaction, TransactionModel } from '../models/transaction.model.js';
-import { ListTransactionsQuery, UploadTransactionsResponse } from '../schemas/transaction.schemas.js';
+import {
+  ListTransactionsQuery,
+  UpdateTransactionBody,
+  UploadTransactionsResponse,
+} from '../schemas/transaction.schemas.js';
 import { ParsedTransaction } from './parser.service.js';
 
 export class TransactionService {
+  /**
+   * Atualiza parcialmente uma transação garantindo isolamento multi-tenant estrito por userId.
+   * Retorna a transação atualizada ou null caso o documento não pertença ao usuário ou não exista.
+   */
+  public static async updateTransaction(
+    userId: string,
+    transactionId: string,
+    updateData: UpdateTransactionBody
+  ): Promise<ITransaction | null> {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const transactionObjectId = new mongoose.Types.ObjectId(transactionId);
+
+    const updateFields: { category?: Category; cleanDescription?: string } = {};
+    if (updateData.category !== undefined) {
+      updateFields.category = updateData.category;
+    }
+    if (updateData.cleanDescription !== undefined) {
+      updateFields.cleanDescription = updateData.cleanDescription;
+    }
+
+    return TransactionModel.findOneAndUpdate(
+      {
+        _id: transactionObjectId,
+        userId: userObjectId,
+      },
+      {
+        $set: updateFields,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).exec();
+  }
+
   /**
    * Importa um lote de transações de forma estritamente idempotente utilizando bulkWrite.
    * Transações já existentes com a combinação (userId, externalId) são ignoradas.
@@ -87,7 +126,7 @@ export class TransactionService {
 
   /**
    * Extrai e deduplica em memória os nomes únicos de estabelecimentos comerciais
-   * que estão com categoria pendente ('Outros') para minimização extrema de tokens antes do envio ao Gemini.
+   * que estão com categoria pendente ('Não Categorizado') para minimização extrema de tokens antes do envio ao Gemini.
    */
   public static async getUniqueUncategorizedMerchants(userId: string): Promise<string[]> {
     const transactions = await TransactionModel.find(
@@ -178,7 +217,7 @@ export class TransactionService {
       }
 
       const cat = t.category || SYSTEM_DEFAULTS.DEFAULT_CATEGORY;
-      categoryTotals[cat] = (categoryTotals[cat] || 0) + Math.abs(t.amount);
+      categoryTotals[cat] = Math.round(((categoryTotals[cat] || 0) + Math.abs(t.amount)) * 100) / 100;
     }
 
     const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;

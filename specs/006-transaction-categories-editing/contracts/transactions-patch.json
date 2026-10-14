@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PatchTransactionContract",
+  "description": "Especificação de contrato OpenAPI/JSON Schema para a rota de atualização parcial de transação",
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/transactions/{id}": {
+      "patch": {
+        "summary": "Atualização manual de transação",
+        "description": "Permite ao usuário autenticado atualizar parcialmente sua própria transação bancária (categoria e/ou descrição limpa)",
+        "operationId": "updateTransaction",
+        "tags": ["Transactions"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador único da transação (ObjectId de 24 caracteres hexadecimais)",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "Alimentação",
+                      "Transporte",
+                      "Moradia",
+                      "Saúde",
+                      "Lazer",
+                      "Educação",
+                      "Receita",
+                      "Outros",
+                      "Não Categorizado"
+                    ],
+                    "description": "Nova categoria canônica atribuída à transação"
+                  },
+                  "cleanDescription": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "description": "Nova descrição amigável/higienizada para o lançamento"
+                  }
+                },
+                "additionalProperties": false,
+                "anyOf": [
+                  { "required": ["category"] },
+                  { "required": ["cleanDescription"] }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transação atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "externalId",
+                    "rawDescription",
+                    "cleanDescription",
+                    "amount",
+                    "date",
+                    "category",
+                    "source"
+                  ],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "externalId": { "type": "string" },
+                    "rawDescription": { "type": "string" },
+                    "cleanDescription": { "type": "string" },
+                    "amount": { "type": "number" },
+                    "date": { "type": "string", "format": "date-time" },
+                    "category": { "type": "string" },
+                    "source": { "type": "string", "enum": ["OFX", "CSV", "SEED"] }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados da requisição inválidos (ObjectId malformado, payload vazio ou categoria inexistente)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": { "type": "integer", "example": 400 },
+                    "error": { "type": "string", "example": "Bad Request" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT ausente ou expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": { "type": "integer", "example": 401 },
+                    "error": { "type": "string", "example": "Unauthorized" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transação não encontrada ou pertencente a outro usuário (Isolamento Multi-tenant)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": { "type": "integer", "example": 404 },
+                    "error": { "type": "string", "example": "Not Found" },
+                    "message": { "type": "string", "example": "Transação não encontrada ou acesso não autorizado" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -10,6 +10,7 @@ import {
   SEED_CONFIG,
   SyntheticTransaction,
 } from '../../scripts/seed.js';
+import { AnalysisService } from '../../src/services/analysis.service.js';
 
 describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
   it('deve possuir constantes e gerador de transações sintéticas com 35+ transações nas 7 categorias', () => {
@@ -35,9 +36,19 @@ describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
       monthsFound.add(monthKey);
     }
 
-    // Valida cobertura das 7 categorias canônicas
-    for (const canonical of CANONICAL_CATEGORIES) {
-      expect(categoriesFound.has(canonical)).toBe(true);
+    // Valida cobertura das categorias canônicas presentes no seed sintético (incluindo Receita e Outros)
+    const expectedSeedCategories = [
+      'Alimentação',
+      'Transporte',
+      'Moradia',
+      'Saúde',
+      'Lazer',
+      'Educação',
+      'Receita',
+      'Outros',
+    ];
+    for (const cat of expectedSeedCategories) {
+      expect(categoriesFound.has(cat)).toBe(true);
     }
 
     // Valida presença de pelo menos 2 meses distintos (M e M-1)
@@ -55,6 +66,14 @@ describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
 
     if (mongoAvailable) {
       try {
+        vi.spyOn(AnalysisService, 'getAnalysis').mockResolvedValue({
+          month: '2026-10',
+          overview: 'Overview de teste',
+          insights: [],
+          cached: false,
+          generatedAt: new Date(),
+        } as any);
+
         // Execução 1: Deve criar usuário e importar transações
         const run1 = await runSeed();
         expect(run1.email).toBe(SEED_CONFIG.EMAIL);
@@ -91,6 +110,39 @@ describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
       mockConnect.mockRestore();
       mockFindOne.mockRestore();
       mockBulkWrite.mockRestore();
+    }
+  }, 25000);
+
+  it('deve concluir o seed com sucesso mesmo sem GOOGLE_GENERATIVE_AI_API_KEY configurada', async () => {
+    const originalKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+
+    try {
+      const mockConnect = vi.spyOn(mongoose, 'connect').mockResolvedValue(mongoose as any);
+      const mockFindOne = vi.spyOn(UserModel, 'findOne').mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: new mongoose.Types.ObjectId(),
+          email: SEED_CONFIG.EMAIL,
+          hasAiKey: () => false,
+          save: vi.fn().mockResolvedValue(true),
+        }),
+      } as any);
+      const mockBulkWrite = vi.spyOn(TransactionModel, 'bulkWrite').mockResolvedValue({
+        upsertedCount: 0,
+        modifiedCount: 0,
+      } as any);
+
+      const result = await runSeed();
+      expect(result.email).toBe(SEED_CONFIG.EMAIL);
+      expect(result.hasAiKey).toBe(false);
+
+      mockConnect.mockRestore();
+      mockFindOne.mockRestore();
+      mockBulkWrite.mockRestore();
+    } finally {
+      if (originalKey !== undefined) {
+        process.env.GOOGLE_GENERATIVE_AI_API_KEY = originalKey;
+      }
     }
   });
 });

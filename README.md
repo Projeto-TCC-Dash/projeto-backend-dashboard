@@ -214,14 +214,16 @@ flowchart TD
 - Endpoint dedicado `PUT /api/user/ai-key` para configuração da chave do Gemini, com ping ativo antes da aceitação.
 - Criptografia com algoritmo autenticado `aes-256-gcm` (vetor de inicialização de 12 bytes e tag de autenticação de 16 bytes).
 
-### 2. Ingestão de Extratos Bancários (OFX & CSV)
+### 2. Ingestão de Extratos Bancários (OFX & CSV) e Edição Manual
 - Upload de arquivos via `multipart/form-data` (`POST /api/transactions/upload`).
 - Parser resiliente de arquivos **OFX SGML** e **CSV** (suporte para separadores `;` ou `,` e detecção de charset Windows-1252 / UTF-8).
-- Deduplicação determinística no banco baseada na combinação única `{ userId, externalId }`.
+- Novas transações importadas recebem por padrão o status inicial **Não Categorizado**, sinalizando pendência de classificação.
+- Edição manual parcial via `PATCH /api/transactions/:id` protegida por JWT, permitindo ao usuário atualizar a categoria (restrita ao catálogo canônico) e a descrição amigável (`cleanDescription`) com estrito isolamento multi-tenant (retorna 404 se pertencer a outro usuário).
+- Deduplicação determinística no banco baseada na combinação única `{ userId, externalId }`, preservando edições prévias do usuário.
 
 ### 3. Categorização Inteligente Pré-LLM
-- `POST /api/transactions/categorize`: Extrai estabelecimentos únicos não classificados (`Outros`).
-- Envia apenas a lista deduplicada de nomes para o Gemini com JSON Schema estrito nas 7 categorias canônicas: **Alimentação**, **Transporte**, **Moradia**, **Saúde**, **Lazer**, **Educação** e **Outros**.
+- `POST /api/transactions/categorize`: Extrai estabelecimentos únicos pendentes de categorização (`Não Categorizado`).
+- Envia apenas a lista deduplicada de nomes para o Gemini com JSON Schema estrito nas categorias canônicas da plataforma: **Alimentação**, **Transporte**, **Moradia**, **Saúde**, **Lazer**, **Educação**, **Receita**, **Outros** e **Não Categorizado**.
 - Reassociação em massa no MongoDB via `bulkWrite`.
 
 ### 4. Consultoria Financeira Conversacional (Chatbot SSE)
@@ -326,7 +328,7 @@ npm run seed
 - **E-mail de Teste**: `teste.usuario@exemplo.com`
 - **Senha**: `SenhaForte#123`
 - **Chave do Gemini**: Criptografada e vinculada a partir de `GOOGLE_GENERATIVE_AI_API_KEY` do `.env`.
-- **Transações Sintéticas**: 35+ transações brasileiras autênticas cobrindo o mês atual e anterior em todas as 7 categorias canônicas (`Alimentação`, `Transporte`, `Moradia`, `Saúde`, `Lazer`, `Educação`, `Outros`).
+- **Transações Sintéticas**: 40+ transações brasileiras autênticas cobrindo o mês atual e anterior em todas as categorias canônicas vigentes (`Alimentação`, `Transporte`, `Moradia`, `Saúde`, `Lazer`, `Educação`, `Receita`, `Outros`).
 - **Análise Pré-aquecida**: Diagnóstico mensal já persistido no cache do MongoDB (`cached: true`).
 
 ---
@@ -342,6 +344,7 @@ npm run seed
 | `PUT` | `/api/user/ai-key` | **JWT** | Cadastro/atualização de chave Gemini BYOK com validação ativa |
 | `POST` | `/api/transactions/upload` | **JWT** | Upload e processamento de extrato em lote (OFX ou CSV) |
 | `GET` | `/api/transactions` | **JWT** | Listagem de transações com filtros por mês, categoria e origem |
+| `PATCH` | `/api/transactions/:id` | **JWT** | Atualização manual de transação (`category` e `cleanDescription`) com isolamento multi-tenant |
 | `POST` | `/api/transactions/categorize` | **JWT + BYOK** | Categorização em lote via IA com minimização de tokens |
 | `POST` | `/api/chat/stream` | **JWT + BYOK** | Consultoria financeira conversacional em streaming via SSE |
 | `GET` | `/api/analysis/:month` | **JWT + BYOK** | Diagnóstico orçamentário mensal com cache de 24h e TTL |
@@ -358,6 +361,9 @@ npm test
 
 # Executa testes em modo interativo (watch)
 npm run test:watch
+
+# Verificação estática de tipos estritos (TypeScript sem any)
+npm run typecheck
 
 # Executa o teste de fluxo automatizado ponta a ponta (E2E)
 npm run test:flow

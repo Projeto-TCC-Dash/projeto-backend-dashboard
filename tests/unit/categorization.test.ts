@@ -22,10 +22,11 @@ describe('Categorization Logic (Token Minimization & Reassociation)', () => {
     expect(reductionPercent).toBe(50);
   });
 
-  it('deve reassociar categorias e aplicar fallback seguro para Outros', () => {
+  it('deve reassociar categorias e aplicar fallback seguro para Não Categorizado', () => {
     const aiCategoryResult: Record<string, string> = {
       'SUPERMERCADO EXTRA': 'Alimentação',
       'POSTO IPIRANGA': 'Transporte',
+      'TED RECEBIDA SALARIO': 'Receita',
       'PAGAMENTO DESCONHECIDO': 'CategoriaInvalidaNaoExiste',
     };
 
@@ -40,6 +41,7 @@ describe('Categorization Logic (Token Minimization & Reassociation)', () => {
 
     expect(validatedResult['SUPERMERCADO EXTRA']).toBe('Alimentação');
     expect(validatedResult['POSTO IPIRANGA']).toBe('Transporte');
-    expect(validatedResult['PAGAMENTO DESCONHECIDO']).toBe('Outros');
+    expect(validatedResult['TED RECEBIDA SALARIO']).toBe('Receita');
+    expect(validatedResult['PAGAMENTO DESCONHECIDO']).toBe('Não Categorizado');
   });
 });

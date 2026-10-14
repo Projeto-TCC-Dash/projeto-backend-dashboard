@@ -86,7 +86,7 @@ export class GeminiService {
     const ai = new GoogleGenAI({ apiKey });
 
     const systemPrompt = `Você é um motor de categorização financeira de alta precisão.
-Sua tarefa é analisar nomes de estabelecimentos comerciais extraídos de extratos bancários brasileiros e classificá-los EXCLUSIVAMENTE em uma das 7 categorias permitidas:
+Sua tarefa é analisar nomes de estabelecimentos comerciais e transações extraídos de extratos bancários brasileiros e classificá-los EXCLUSIVAMENTE em uma das categorias permitidas:
 ${CANONICAL_CATEGORIES.join(', ')}.
 
 Diretrizes:
@@ -96,7 +96,9 @@ Diretrizes:
 - Farmácias, drogarias, hospitais, clínicas, consultas, exames, planos de saúde -> Saúde
 - Cinema, streaming, jogos, bares, eventos, viagens a lazer, compras supérfluas -> Lazer
 - Cursos, escolas, faculdades, livros técnicos, treinamentos -> Educação
-- Qualquer despesa que não se encaixe com clareza nas opções acima -> Outros`;
+- Salários, proventos, reembolsos, rendimentos, transferências de entrada -> Receita
+- Qualquer despesa identificável que não se encaixe nas opções acima -> Outros
+- Lançamentos com informações insuficientes ou não identificáveis -> Não Categorizado`;
 
     const jsonSchema = {
       type: 'object',

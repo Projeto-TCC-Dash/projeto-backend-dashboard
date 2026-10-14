@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { requireAiKey, requireAuth } from '../plugins/auth.plugin.js';
 import {
   ListTransactionsQuerySchema,
+  TransactionIdParamSchema,
   TransactionItemSchema,
+  UpdateTransactionBodySchema,
   UploadTransactionsResponseSchema,
 } from '../schemas/transaction.schemas.js';
 import { AuthService } from '../services/auth.service.js';
@@ -101,6 +103,53 @@ export const transactionRoutes: FastifyPluginAsyncZod = async (fastify) => {
           source: t.source,
         }))
       );
+    }
+  );
+
+  // PATCH /api/transactions/:id
+  fastify.patch(
+    '/api/transactions/:id',
+    {
+      preHandler: [requireAuth],
+      schema: {
+        description: 'Atualização manual de transação (categoria e descrição limpa)',
+        tags: ['Transactions'],
+        security: [{ bearerAuth: [] }],
+        params: TransactionIdParamSchema,
+        body: UpdateTransactionBodySchema,
+        response: {
+          200: TransactionItemSchema,
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          404: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const updated = await TransactionService.updateTransaction(
+        request.user.id,
+        request.params.id,
+        request.body
+      );
+
+      if (!updated) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Transação não encontrada ou acesso não autorizado',
+        });
+      }
+
+      return reply.status(200).send({
+        id: updated._id.toString(),
+        externalId: updated.externalId,
+        rawDescription: updated.rawDescription,
+        cleanDescription: updated.cleanDescription,
+        amount: updated.amount,
+        date: updated.date,
+        category: updated.category,
+        source: updated.source,
+      });
     }
   );
 

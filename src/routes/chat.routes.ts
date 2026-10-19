@@ -36,12 +36,14 @@ export const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
       // 3. Montar instruções de sistema com o resumo financeiro mensal injetado
       const systemInstruction = await ChatService.buildSystemInstruction(userId);
 
-      // 4. Configurar headers para Server-Sent Events (SSE)
+      const origin = request.headers.origin || '*';
       reply.raw.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
         'X-Accel-Buffering': 'no',
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept',
       });
 
       let isClientConnected = true;

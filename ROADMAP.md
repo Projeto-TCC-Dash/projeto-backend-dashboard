@@ -6,7 +6,7 @@ Este documento detalha o ciclo de evolução do backend (`projeto-backend-dashbo
 
 ## 🎯 Visão Geral da Versão 1.1.0
 
-A versão 1.1.0 introduz o suporte nativo a **Múltiplas Contas Bancárias e Cartões**, **Exclusão de Transações**, **Novas Categorias Financeiras** e tratamento contábil inteligente de faturas de cartão.
+A versão 1.1.0 introduz o suporte nativo a **Múltiplas Contas Bancárias e Cartões**, **Exclusão de Transações**, **Novas Categorias Financeiras**, **Tratamento Contábil Inteligente de Faturas** e **Perfil Financeiro do Usuário (Onboarding Contextual para IA)**.
 
 ```mermaid
 flowchart TD
@@ -14,9 +14,10 @@ flowchart TD
         F007["Feature 007: Gestão de Contas (Accounts CRUD)"]
         F008["Feature 008: Novas Categorias & Exclusão de Transações"]
         F009["Feature 009: Tratamento Contábil de Faturas na IA & Análises"]
+        F010["Feature 010: Perfil Financeiro, Regime de Renda e Metas (Onboarding IA)"]
     end
-    F007 --> F008 --> F009
-    F009 --> Release["Release v1.1.0 (Merge develop -> main)"]
+    F007 --> F008 --> F009 --> F010
+    F010 --> Release["Release v1.1.0 (Merge develop -> main)"]
 ```
 
 ---
@@ -80,6 +81,32 @@ flowchart TD
 - **Regra Contábil**:
   - Transações na categoria `"Pagamento de Fatura"` não somam como despesa primária nos gráficos de distribuição de gastos (pois os itens individuais da fatura já foram somados como alimentação, transporte, etc.).
   - A IA Assistente deve reconhecer pagamentos de fatura como transferências de liquidação entre contas.
+- **Etapas Spec-Kit**:
+  1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
+
+---
+
+### 👤 Feature 010: Perfil Financeiro, Regime de Renda e Metas do Usuário (`specs/010-user-financial-profile`)
+**Objetivo**: Permitir ao usuário cadastrar voluntariamente informações contextuais sobre seu regime de trabalho, renda mensal estimada e objetivos financeiros prioritários, alimentando a IA Gemini com contexto de alta precisão para geração de relatórios personalizados e planejamento estratégico de reservas.
+
+- **Contrato de Domínio & Modelagem**:
+  - Modelo `User` no MongoDB estendido com subdocumento opcional `financialProfile`:
+    ```typescript
+    interface IFinancialProfile {
+      incomeType?: 'CLT' | 'PJ_AUTONOMO' | 'PUBLIC_SERVANT' | 'ENTREPRENEUR' | 'STUDENT' | 'RETIRED' | 'OTHER';
+      declaredMonthlyIncome?: number; // Valor numérico decimal opcional
+      goals?: Array<'RESERVA_EMERGENCIA' | 'QUITAR_DIVIDAS' | 'COMPRAR_IMOVEL' | 'INVESTIR_LONGO_PRAZO' | 'CONTROLE_GASTOS'>;
+      riskProfile?: 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE';
+      updatedAt?: Date;
+    }
+    ```
+- **Endpoints REST**:
+  - `GET /api/user/profile`: Retornar perfil cadastral e financeiro do usuário autenticado.
+  - `PUT /api/user/profile`: Atualizar ou preencher regime de renda, valor declarado e metas financeiras.
+- **Integração com IA (Gemini)**:
+  - Injeção de contexto no prompt de análise mensal (`AnalysisService`) e no assistente de chat (`ChatService`), calibrando o cálculo ideal da reserva de emergência (ex: 3 a 6 meses para CLT vs. 6 a 12 meses para PJ) e priorizando metas do usuário.
+- **Conformidade LGPD**:
+  - Preenchimento 100% facultativo (voluntário) pelo usuário com finalidade estrita de PFM (Personal Financial Management), sem fins de scoring punitivo ou compartilhamento externo.
 - **Etapas Spec-Kit**:
   1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
 

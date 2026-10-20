@@ -89,12 +89,12 @@
 
 ### Tests for User Story 3 (TDD) ⚠️
 
-- [ ] T014 [P] [US3] Escrever teste de integração em `tests/integration/transactions.test.ts` para filtros de listagem por `"Pagamento de Fatura"` e `"Investimentos"`
+- [X] T014 [P] [US3] Escrever teste de integração em `tests/integration/transactions.test.ts` para filtros de listagem por `"Pagamento de Fatura"` e `"Investimentos"`
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Assegurar que `ListTransactionsQuerySchema` e o pipeline de agregação/busca em `src/services/transaction.service.ts` aceitam e filtram perfeitamente as 11 categorias canônicas
-- [ ] T016 [US3] Executar e validar aprovação dos testes de US3 com `npm test -- tests/integration/transactions.test.ts`
+- [X] T015 [US3] Assegurar que `ListTransactionsQuerySchema` e o pipeline de agregação/busca em `src/services/transaction.service.ts` aceitam e filtram perfeitamente as 11 categorias canônicas
+- [X] T016 [US3] Executar e validar aprovação dos testes de US3 com `npm test -- tests/integration/transactions.test.ts`
 
 **Checkpoint**: Todas as histórias de usuário (US1, US2, US3) funcionais e integradas
 

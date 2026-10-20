@@ -193,6 +193,34 @@ describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering'
     expect(body[0].category).toBe('Receita');
   });
 
+  it('GET /api/transactions?category=... deve filtrar por Pagamento de Fatura e Investimentos', async () => {
+    const listSpy = vi.spyOn(TransactionService, 'listTransactions').mockResolvedValue([]);
+
+    const resFatura = await app.inject({
+      method: 'GET',
+      url: '/api/transactions?category=Pagamento%20de%20Fatura',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(resFatura.statusCode).toBe(200);
+    expect(listSpy).toHaveBeenCalledWith(
+      testUserId,
+      expect.objectContaining({ category: 'Pagamento de Fatura' })
+    );
+
+    const resInvest = await app.inject({
+      method: 'GET',
+      url: '/api/transactions?category=Investimentos',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(resInvest.statusCode).toBe(200);
+    expect(listSpy).toHaveBeenCalledWith(
+      testUserId,
+      expect.objectContaining({ category: 'Investimentos' })
+    );
+  });
+
   it('PATCH /api/transactions/:id deve aceitar atualização do campo accountId', async () => {
     const targetAccountId = '507f1f77bcf86cd799439099';
     const mockUpdatedDoc: any = {

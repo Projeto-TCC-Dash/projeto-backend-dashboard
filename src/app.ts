@@ -12,6 +12,7 @@ import {
 } from 'fastify-type-provider-zod';
 import { env } from './config/env.js';
 import { setupErrorHandler } from './plugins/error-handler.plugin.js';
+import { accountsRoutes } from './routes/accounts.routes.js';
 import { analysisRoutes } from './routes/analysis.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
@@ -76,6 +77,9 @@ export function buildApp(): FastifyInstance {
 
   // Auth & User routes
   app.register(authRoutes);
+
+  // Accounts CRUD routes
+  app.register(accountsRoutes);
 
   // Transactions routes
   app.register(transactionRoutes);

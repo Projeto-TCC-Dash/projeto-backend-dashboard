@@ -142,5 +142,53 @@ describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering'
     expect(body).toHaveLength(1);
     expect(body[0].category).toBe('Receita');
   });
+
+  it('PATCH /api/transactions/:id deve aceitar atualização do campo accountId', async () => {
+    const targetAccountId = '507f1f77bcf86cd799439099';
+    const mockUpdatedDoc: any = {
+      _id: testTransactionId,
+      accountId: targetAccountId,
+      externalId: 'ext-123',
+      rawDescription: 'TED SALARIO',
+      cleanDescription: 'Salário Mensal',
+      amount: 5000,
+      date: new Date('2026-10-13T10:00:00Z'),
+      category: 'Receita',
+      source: 'OFX',
+    };
+
+    const updateSpy = vi.spyOn(TransactionService, 'updateTransaction').mockResolvedValueOnce(mockUpdatedDoc);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/transactions/${testTransactionId}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { accountId: targetAccountId },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(updateSpy).toHaveBeenCalledWith(
+      testUserId,
+      testTransactionId,
+      expect.objectContaining({ accountId: targetAccountId })
+    );
+  });
+
+  it('GET /api/transactions?accountId=... deve filtrar por conta específica', async () => {
+    const targetAccountId = '507f1f77bcf86cd799439099';
+    const listSpy = vi.spyOn(TransactionService, 'listTransactions').mockResolvedValueOnce([]);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/transactions?accountId=${targetAccountId}`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(listSpy).toHaveBeenCalledWith(
+      testUserId,
+      expect.objectContaining({ accountId: targetAccountId })
+    );
+  });
 });
 

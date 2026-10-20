@@ -1,11 +1,13 @@
 import mongoose from 'mongoose';
 import { Category, SYSTEM_DEFAULTS } from '../config/constants.js';
+import { AccountModel } from '../models/account.model.js';
 import { ITransaction, TransactionModel } from '../models/transaction.model.js';
 import {
   ListTransactionsQuery,
   UpdateTransactionBody,
   UploadTransactionsResponse,
 } from '../schemas/transaction.schemas.js';
+import { AccountNotFoundError, AccountService } from './account.service.js';
 import { ParsedTransaction } from './parser.service.js';
 
 export class TransactionService {
@@ -21,12 +23,23 @@ export class TransactionService {
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const transactionObjectId = new mongoose.Types.ObjectId(transactionId);
 
-    const updateFields: { category?: Category; cleanDescription?: string } = {};
+    const updateFields: { category?: Category; cleanDescription?: string; accountId?: mongoose.Types.ObjectId } = {};
     if (updateData.category !== undefined) {
       updateFields.category = updateData.category;
     }
     if (updateData.cleanDescription !== undefined) {
       updateFields.cleanDescription = updateData.cleanDescription;
+    }
+    if (updateData.accountId !== undefined) {
+      const targetAccount = await AccountModel.findOne({
+        _id: new mongoose.Types.ObjectId(updateData.accountId),
+        userId: userObjectId,
+      }).exec();
+
+      if (!targetAccount) {
+        return null;
+      }
+      updateFields.accountId = targetAccount._id;
     }
 
     return TransactionModel.findOneAndUpdate(
@@ -50,13 +63,30 @@ export class TransactionService {
    */
   public static async importTransactions(
     userId: string,
-    transactions: ParsedTransaction[]
+    transactions: ParsedTransaction[],
+    accountId?: string
   ): Promise<UploadTransactionsResponse> {
     if (transactions.length === 0) {
       return { totalExtracted: 0, imported: 0, duplicatesIgnored: 0 };
     }
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    let targetAccountId: mongoose.Types.ObjectId;
+    if (accountId) {
+      const account = await AccountModel.findOne({
+        _id: new mongoose.Types.ObjectId(accountId),
+        userId: userObjectId,
+      }).exec();
+
+      if (!account) {
+        throw new AccountNotFoundError('Conta informada para importação não encontrada.');
+      }
+      targetAccountId = account._id;
+    } else {
+      const defaultAccount = await AccountService.getOrCreateDefaultAccount(userId);
+      targetAccountId = defaultAccount._id;
+    }
 
     const operations = transactions.map((t) => ({
       updateOne: {
@@ -67,6 +97,7 @@ export class TransactionService {
         update: {
           $setOnInsert: {
             userId: userObjectId,
+            accountId: targetAccountId,
             externalId: t.externalId,
             rawDescription: t.rawDescription,
             cleanDescription: t.cleanDescription,
@@ -101,6 +132,10 @@ export class TransactionService {
     filters: ListTransactionsQuery
   ): Promise<ITransaction[]> {
     const query: any = { userId: new mongoose.Types.ObjectId(userId) };
+
+    if (filters.accountId) {
+      query.accountId = new mongoose.Types.ObjectId(filters.accountId);
+    }
 
     if (filters.category) {
       query.category = filters.category;

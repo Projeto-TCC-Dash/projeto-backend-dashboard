@@ -67,12 +67,12 @@
 
 ### Tests for User Story 2 (TDD) ⚠️
 
-- [ ] T008 [P] [US2] Escrever testes unitários em `tests/unit/categorization.test.ts` validando a inclusão de diretrizes contábeis de faturas no prompt de diagnóstico gerado por `GeminiService`
+- [X] T008 [P] [US2] Escrever testes unitários em `tests/unit/categorization.test.ts` validando a inclusão de diretrizes contábeis de faturas no prompt de diagnóstico gerado por `GeminiService`
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Atualizar o prompt de sistema e resumo financeiro em `GeminiService.generateFinancialDiagnosis` em `src/services/gemini.service.ts` incorporando as instruções contábeis de faturas
-- [ ] T010 [US2] Executar e validar aprovação dos testes de US2 com `npm test -- tests/unit/categorization.test.ts`
+- [X] T009 [US2] Atualizar o prompt de sistema e resumo financeiro em `GeminiService.generateFinancialDiagnosis` em `src/services/gemini.service.ts` incorporando as instruções contábeis de faturas
+- [X] T010 [US2] Executar e validar aprovação dos testes de US2 com `npm test -- tests/unit/categorization.test.ts`
 
 **Checkpoint**: User Stories 1 e 2 plenamente funcionais e independentes
 

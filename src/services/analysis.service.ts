@@ -174,6 +174,7 @@ export class AnalysisService {
       month,
       totalIncome: metrics.totalIncome,
       totalExpenses: metrics.totalExpenses,
+      invoiceSettlements: metrics.invoiceSettlements,
       netBalance: metrics.netBalance,
       savingsRate: metrics.savingsRate,
       topCategories: metrics.topCategories,

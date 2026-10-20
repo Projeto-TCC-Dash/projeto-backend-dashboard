@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Transactions Upload Contract with Account Resolution",
+  "description": "Upload multipart de extratos (.ofx e .csv) associados a uma conta",
+  "paths": {
+    "/api/transactions/upload": {
+      "post": {
+        "summary": "Upload de extrato bancário com vinculação a conta",
+        "tags": ["Transactions"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "query",
+            "required": false,
+            "description": "Identificador da conta de destino. Se omitido, vincula automaticamente à Conta Principal padrão.",
+            "schema": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": { "type": "string", "format": "binary" },
+                  "accountId": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Extrato importado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["totalExtracted", "imported", "duplicatesIgnored"],
+                  "properties": {
+                    "totalExtracted": { "type": "integer" },
+                    "imported": { "type": "integer" },
+                    "duplicatesIgnored": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Formato de arquivo inválido ou ID de conta inválido" },
+          "401": { "description": "Não autenticado" },
+          "404": { "description": "Conta informada não encontrada" }
+        }
+      }
+    }
+  }
+}

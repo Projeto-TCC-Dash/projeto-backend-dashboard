@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Transactions PATCH API Contract",
+  "description": "Atualização parcial de transações com suporte a troca de conta (accountId)",
+  "paths": {
+    "/api/transactions/{id}": {
+      "patch": {
+        "summary": "Edição manual de transação",
+        "tags": ["Transactions"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "Alimentação",
+                      "Transporte",
+                      "Moradia",
+                      "Saúde",
+                      "Lazer",
+                      "Educação",
+                      "Receita",
+                      "Outros",
+                      "Não Categorizado"
+                    ]
+                  },
+                  "cleanDescription": { "type": "string", "minLength": 1 },
+                  "accountId": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Transação atualizada com sucesso" },
+          "400": { "description": "Conta inválida, corpo vazio ou erro de validação" },
+          "401": { "description": "Não autenticado" },
+          "404": { "description": "Transação não encontrada ou conta informada não encontrada" }
+        }
+      }
+    }
+  }
+}

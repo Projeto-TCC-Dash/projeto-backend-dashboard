@@ -47,7 +47,7 @@ export class ChatService {
     const summary = await TransactionService.getMonthlyFinancialSummary(userId);
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    const user = await UserModel.findById(userObjectId).select('financialProfile').exec();
+    const user = await UserModel.findById(userObjectId).exec();
     const profile = user?.financialProfile;
 
     const categoriesFormatted = Object.entries(summary.categoryTotals)

@@ -170,7 +170,7 @@ export class AnalysisService {
 
     // 5. Cache miss ou invalidação: obter chave BYOK do usuário e gerar com Gemini
     const apiKey = await AuthService.getDecryptedApiKey(userId);
-    const user = await UserModel.findById(userObjectId).select('financialProfile').exec();
+    const user = await UserModel.findById(userObjectId).exec();
 
     const aiResult = await GeminiService.generateFinancialDiagnosis(
       apiKey,

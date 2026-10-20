@@ -92,9 +92,7 @@ describe('TransactionService.deleteTransaction - Unit Tests', () => {
 
       vi.spyOn(TransactionService, 'getMonthlyFinancialSummary').mockResolvedValue(mockSummary);
       vi.spyOn(UserModel, 'findById').mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          exec: vi.fn().mockResolvedValue(null),
-        }),
+        exec: vi.fn().mockResolvedValue(null),
       } as any);
 
       const instruction = await ChatService.buildSystemInstruction(userId);
@@ -116,15 +114,13 @@ describe('TransactionService.deleteTransaction - Unit Tests', () => {
 
       vi.spyOn(TransactionService, 'getMonthlyFinancialSummary').mockResolvedValue(mockSummary);
       vi.spyOn(UserModel, 'findById').mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          exec: vi.fn().mockResolvedValue({
-            financialProfile: {
-              incomeType: 'CLT',
-              declaredMonthlyIncome: 8000,
-              goals: ['COMPRAR_IMOVEL', 'INVESTIR_LONGO_PRAZO'],
-              riskProfile: 'CONSERVATIVE',
-            },
-          }),
+        exec: vi.fn().mockResolvedValue({
+          financialProfile: {
+            incomeType: 'CLT',
+            declaredMonthlyIncome: 8000,
+            goals: ['COMPRAR_IMOVEL', 'INVESTIR_LONGO_PRAZO'],
+            riskProfile: 'CONSERVATIVE',
+          },
         }),
       } as any);
 
@@ -150,9 +146,7 @@ describe('TransactionService.deleteTransaction - Unit Tests', () => {
 
       vi.spyOn(TransactionService, 'getMonthlyFinancialSummary').mockResolvedValue(mockSummary);
       vi.spyOn(UserModel, 'findById').mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          exec: vi.fn().mockResolvedValue(null),
-        }),
+        exec: vi.fn().mockResolvedValue(null),
       } as any);
 
       const instruction = await ChatService.buildSystemInstruction(userId);

@@ -104,9 +104,9 @@
 
 **Purpose**: Verificação global de regressão, conformidade estrita de tipagem e integridade da documentação
 
-- [ ] T017 [P] Executar checagem estrita de tipos do TypeScript em `tsconfig.json` com `npx tsc --noEmit`
-- [ ] T018 Executar a suíte completa de testes com `npm test` garantindo 100% dos testes verdes e zero regressões em funcionalidades legadas
-- [ ] T019 Validar cenários do guia rápido descritos em `specs/010-user-financial-profile/quickstart.md`
+- [X] T017 [P] Executar checagem estrita de tipos do TypeScript em `tsconfig.json` com `npx tsc --noEmit`
+- [X] T018 Executar a suíte completa de testes com `npm test` garantindo 100% dos testes verdes e zero regressões em funcionalidades legadas
+- [X] T019 Validar cenários do guia rápido descritos em `specs/010-user-financial-profile/quickstart.md`
 
 ---
 

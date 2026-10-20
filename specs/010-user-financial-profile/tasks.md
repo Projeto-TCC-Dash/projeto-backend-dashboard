@@ -89,12 +89,12 @@
 
 ### Tests for User Story 3 (TDD) ⚠️
 
-- [ ] T014 [P] [US3] Escrever teste unitário em `tests/unit/transaction-service.test.ts` validando a injeção do perfil financeiro nas diretrizes de sistema de `ChatService.buildSystemInstruction`
+- [X] T014 [P] [US3] Escrever teste unitário em `tests/unit/transaction-service.test.ts` validando a injeção do perfil financeiro nas diretrizes de sistema de `ChatService.buildSystemInstruction`
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Atualizar `ChatService.buildSystemInstruction` em `src/services/chat.service.ts` para buscar o perfil financeiro do usuário no MongoDB e injetá-lo no bloco de diretrizes da persona
-- [ ] T016 [US3] Executar e validar aprovação dos testes de US3 com `npm test -- tests/unit/transaction-service.test.ts tests/integration/chat.routes.test.ts`
+- [X] T015 [US3] Atualizar `ChatService.buildSystemInstruction` em `src/services/chat.service.ts` para buscar o perfil financeiro do usuário no MongoDB e injetá-lo no bloco de diretrizes da persona
+- [X] T016 [US3] Executar e validar aprovação dos testes de US3 com `npm test -- tests/unit/transaction-service.test.ts tests/integration/chat.routes.test.ts`
 
 **Checkpoint**: Todas as histórias de usuário (US1, US2, US3) funcionais e integradas
 

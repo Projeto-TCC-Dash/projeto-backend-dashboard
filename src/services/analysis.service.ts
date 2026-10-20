@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import { FinancialAnalysisModel, IFinancialMetrics } from '../models/analysis.model.js';
 import { TransactionModel } from '../models/transaction.model.js';
+import { UserModel } from '../models/user.model.js';
 import { FinancialAnalysisResponse } from '../schemas/analysis.schemas.js';
 import { AuthService } from './auth.service.js';
 import { GeminiService } from './gemini.service.js';
@@ -169,16 +170,21 @@ export class AnalysisService {
 
     // 5. Cache miss ou invalidação: obter chave BYOK do usuário e gerar com Gemini
     const apiKey = await AuthService.getDecryptedApiKey(userId);
+    const user = await UserModel.findById(userObjectId).select('financialProfile').exec();
 
-    const aiResult = await GeminiService.generateFinancialDiagnosis(apiKey, {
-      month,
-      totalIncome: metrics.totalIncome,
-      totalExpenses: metrics.totalExpenses,
-      invoiceSettlements: metrics.invoiceSettlements,
-      netBalance: metrics.netBalance,
-      savingsRate: metrics.savingsRate,
-      topCategories: metrics.topCategories,
-    });
+    const aiResult = await GeminiService.generateFinancialDiagnosis(
+      apiKey,
+      {
+        month,
+        totalIncome: metrics.totalIncome,
+        totalExpenses: metrics.totalExpenses,
+        invoiceSettlements: metrics.invoiceSettlements,
+        netBalance: metrics.netBalance,
+        savingsRate: metrics.savingsRate,
+        topCategories: metrics.topCategories,
+      },
+      user?.financialProfile
+    );
 
     const generatedAt = new Date();
     const expiresAt = new Date(generatedAt.getTime() + 24 * 60 * 60 * 1000); // 24h TTL

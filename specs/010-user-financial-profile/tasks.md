@@ -69,13 +69,13 @@
 
 ### Tests for User Story 2 (TDD) ⚠️
 
-- [ ] T010 [P] [US2] Escrever testes unitários em `tests/unit/categorization.test.ts` validando a inclusão de dados do perfil e das heurísticas de reserva e metas em `GeminiService.buildFinancialDiagnosisPrompts`
+- [X] T010 [P] [US2] Escrever testes unitários em `tests/unit/categorization.test.ts` validando a inclusão de dados do perfil e das heurísticas de reserva e metas em `GeminiService.buildFinancialDiagnosisPrompts`
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Atualizar método `GeminiService.buildFinancialDiagnosisPrompts` e `GeminiService.generateFinancialDiagnosis` em `src/services/gemini.service.ts` para receber e formatar os campos de `financialProfile`
-- [ ] T012 [US2] Atualizar `AnalysisService.getAnalysis` em `src/services/analysis.service.ts` para carregar o perfil do usuário no MongoDB e repassá-lo na chamada do Gemini
-- [ ] T013 [US2] Executar e validar aprovação dos testes de US2 com `npm test -- tests/unit/categorization.test.ts tests/integration/analysis.routes.test.ts`
+- [X] T011 [US2] Atualizar método `GeminiService.buildFinancialDiagnosisPrompts` e `GeminiService.generateFinancialDiagnosis` em `src/services/gemini.service.ts` para receber e formatar os campos de `financialProfile`
+- [X] T012 [US2] Atualizar `AnalysisService.getAnalysis` em `src/services/analysis.service.ts` para carregar o perfil do usuário no MongoDB e repassá-lo na chamada do Gemini
+- [X] T013 [US2] Executar e validar aprovação dos testes de US2 com `npm test -- tests/unit/categorization.test.ts tests/integration/analysis.routes.test.ts`
 
 **Checkpoint**: User Stories 1 e 2 plenamente funcionais e integradas
 

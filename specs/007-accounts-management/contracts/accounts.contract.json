@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Accounts API Contracts",
+  "description": "Endpoints para gestão de contas bancárias e cartões (CRUD)",
+  "paths": {
+    "/api/accounts": {
+      "get": {
+        "summary": "Listar contas do usuário com saldo consolidado e contagem de transações",
+        "tags": ["Accounts"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Lista de contas retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["accounts", "totalAccounts", "netWorth"],
+                  "properties": {
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "userId", "name", "type", "initialBalance", "balance", "transactionCount", "createdAt", "updatedAt"],
+                        "properties": {
+                          "id": { "type": "string" },
+                          "userId": { "type": "string" },
+                          "name": { "type": "string" },
+                          "type": { "type": "string", "enum": ["CHECKING", "CREDIT_CARD", "INVESTMENT", "CASH", "OTHER"] },
+                          "initialBalance": { "type": "number" },
+                          "institution": { "type": "string" },
+                          "color": { "type": "string" },
+                          "balance": { "type": "number" },
+                          "transactionCount": { "type": "integer" },
+                          "createdAt": { "type": "string", "format": "date-time" },
+                          "updatedAt": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    },
+                    "totalAccounts": { "type": "integer" },
+                    "netWorth": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Não autenticado" }
+        }
+      },
+      "post": {
+        "summary": "Criar nova conta financeira manual",
+        "tags": ["Accounts"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "type"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+                  "type": { "type": "string", "enum": ["CHECKING", "CREDIT_CARD", "INVESTMENT", "CASH", "OTHER"] },
+                  "initialBalance": { "type": "number", "default": 0 },
+                  "institution": { "type": "string", "maxLength": 100 },
+                  "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conta criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/paths/~1api~1accounts/get/responses/200/content/application~1json/schema/properties/accounts/items"
+                }
+              }
+            }
+          },
+          "400": { "description": "Erro de validação de payload" },
+          "401": { "description": "Não autenticado" },
+          "409": { "description": "Nome de conta já existente para este usuário" }
+        }
+      }
+    },
+    "/api/accounts/{id}": {
+      "patch": {
+        "summary": "Atualizar propriedades de uma conta",
+        "tags": ["Accounts"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+                  "type": { "type": "string", "enum": ["CHECKING", "CREDIT_CARD", "INVESTMENT", "CASH", "OTHER"] },
+                  "initialBalance": { "type": "number" },
+                  "institution": { "type": "string", "maxLength": 100 },
+                  "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Conta atualizada com sucesso" },
+          "400": { "description": "Requisição inválida ou corpo vazio" },
+          "401": { "description": "Não autenticado" },
+          "404": { "description": "Conta não encontrada" },
+          "409": { "description": "Conflito: nome já em uso" }
+        }
+      },
+      "delete": {
+        "summary": "Excluir conta financeira",
+        "tags": ["Accounts"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" } },
+          { "name": "cascade", "in": "query", "required": false, "schema": { "type": "string", "enum": ["true", "false"], "default": "false" } }
+        ],
+        "responses": {
+          "200": { "description": "Conta e transações excluídas com sucesso (quando cascade=true)" },
+          "204": { "description": "Conta excluída com sucesso (quando sem transações vinculadas)" },
+          "400": { "description": "Tentativa de exclusão da única conta ativa do usuário" },
+          "401": { "description": "Não autenticado" },
+          "404": { "description": "Conta não encontrada" },
+          "409": { "description": "Conflito: a conta possui transações e cascade=false" }
+        }
+      }
+    }
+  }
+}

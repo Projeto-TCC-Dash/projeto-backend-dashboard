@@ -3,6 +3,7 @@ import { buildApp } from '../../src/app.js';
 import { SYSTEM_DEFAULTS } from '../../src/config/constants.js';
 import { TransactionModel } from '../../src/models/transaction.model.js';
 import { UserModel } from '../../src/models/user.model.js';
+import { AccountService } from '../../src/services/account.service.js';
 import { TransactionService } from '../../src/services/transaction.service.js';
 
 describe('Categorization Routes & Initial Default Category (HTTP Inject & BYOK Guard)', () => {
@@ -71,6 +72,11 @@ describe('Categorization Routes & Initial Default Category (HTTP Inject & BYOK G
   });
 
   it('TransactionService.importTransactions deve definir category padrão como Não Categorizado no $setOnInsert', async () => {
+    const defaultAccountId = '507f1f77bcf86cd799439088';
+    vi.spyOn(AccountService, 'getOrCreateDefaultAccount').mockResolvedValueOnce({
+      _id: defaultAccountId,
+    } as any);
+
     const bulkWriteSpy = vi.spyOn(TransactionModel, 'bulkWrite').mockResolvedValueOnce({
       upsertedCount: 1,
     } as any);

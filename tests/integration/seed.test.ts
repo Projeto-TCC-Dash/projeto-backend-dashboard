@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 import { CANONICAL_CATEGORIES } from '../../src/config/constants.js';
 import { env } from '../../src/config/env.js';
+import { AccountModel } from '../../src/models/account.model.js';
 import { TransactionModel } from '../../src/models/transaction.model.js';
 import { UserModel } from '../../src/models/user.model.js';
 import {
@@ -102,6 +103,15 @@ describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
         upsertedCount: 0,
         modifiedCount: 0,
       } as any);
+      const mockAccountFindOne = vi.spyOn(AccountModel, 'findOne').mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: new mongoose.Types.ObjectId(),
+          name: 'Conta Principal',
+        }),
+      } as any);
+      const mockUpdateMany = vi.spyOn(TransactionModel, 'updateMany').mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
+      } as any);
 
       const result = await runSeed();
       expect(result.email).toBe(SEED_CONFIG.EMAIL);
@@ -110,6 +120,8 @@ describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
       mockConnect.mockRestore();
       mockFindOne.mockRestore();
       mockBulkWrite.mockRestore();
+      mockAccountFindOne.mockRestore();
+      mockUpdateMany.mockRestore();
     }
   }, 25000);
 
@@ -131,6 +143,15 @@ describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
         upsertedCount: 0,
         modifiedCount: 0,
       } as any);
+      const mockAccountFindOne = vi.spyOn(AccountModel, 'findOne').mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: new mongoose.Types.ObjectId(),
+          name: 'Conta Principal',
+        }),
+      } as any);
+      const mockUpdateMany = vi.spyOn(TransactionModel, 'updateMany').mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
+      } as any);
 
       const result = await runSeed();
       expect(result.email).toBe(SEED_CONFIG.EMAIL);
@@ -139,6 +160,8 @@ describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
       mockConnect.mockRestore();
       mockFindOne.mockRestore();
       mockBulkWrite.mockRestore();
+      mockAccountFindOne.mockRestore();
+      mockUpdateMany.mockRestore();
     } finally {
       if (originalKey !== undefined) {
         process.env.GOOGLE_GENERATIVE_AI_API_KEY = originalKey;

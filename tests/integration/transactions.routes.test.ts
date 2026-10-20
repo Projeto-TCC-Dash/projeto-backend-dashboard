@@ -113,6 +113,56 @@ describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering'
     expect(body.amount).toBe(5000);
   });
 
+  it('PATCH /api/transactions/:id deve aceitar as novas categorias Pagamento de Fatura e Investimentos', async () => {
+    const mockFaturaDoc: any = {
+      _id: testTransactionId,
+      externalId: 'ext-fat-1',
+      rawDescription: 'PAGTO FATURA CARTAO',
+      cleanDescription: 'Pagamento Fatura Cartão',
+      amount: -1250.8,
+      date: new Date('2026-10-15T12:00:00Z'),
+      category: 'Pagamento de Fatura',
+      source: 'OFX',
+    };
+
+    vi.spyOn(TransactionService, 'updateTransaction').mockResolvedValueOnce(mockFaturaDoc);
+
+    const resFatura = await app.inject({
+      method: 'PATCH',
+      url: `/api/transactions/${testTransactionId}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { category: 'Pagamento de Fatura' },
+    });
+
+    expect(resFatura.statusCode).toBe(200);
+    const bodyFatura = JSON.parse(resFatura.body);
+    expect(bodyFatura.category).toBe('Pagamento de Fatura');
+
+    const mockInvestDoc: any = {
+      _id: testTransactionId,
+      externalId: 'ext-inv-1',
+      rawDescription: 'APORTE TESOURO DIRETO',
+      cleanDescription: 'Aporte Tesouro Direto',
+      amount: -3000,
+      date: new Date('2026-10-16T15:00:00Z'),
+      category: 'Investimentos',
+      source: 'OFX',
+    };
+
+    vi.spyOn(TransactionService, 'updateTransaction').mockResolvedValueOnce(mockInvestDoc);
+
+    const resInvest = await app.inject({
+      method: 'PATCH',
+      url: `/api/transactions/${testTransactionId}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { category: 'Investimentos' },
+    });
+
+    expect(resInvest.statusCode).toBe(200);
+    const bodyInvest = JSON.parse(resInvest.body);
+    expect(bodyInvest.category).toBe('Investimentos');
+  });
+
   it('GET /api/transactions?category=Receita deve aceitar e filtrar pela categoria Receita', async () => {
     const mockTx: any = {
       _id: testTransactionId,

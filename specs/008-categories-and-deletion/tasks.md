@@ -68,14 +68,14 @@
 
 ### Tests for User Story 2 (TDD) ⚠️
 
-- [ ] T009 [P] [US2] Escrever testes unitários em `tests/unit/categorization.test.ts` verificando validação das 11 categorias canônicas em `CategoryEnum` e presença das diretrizes de fatura e investimentos no prompt de sistema do Gemini
-- [ ] T010 [P] [US2] Escrever teste de integração em `tests/integration/transactions.test.ts` validando a mutação de categoria via `PATCH /api/transactions/:id` para `"Pagamento de Fatura"` e `"Investimentos"`
+- [X] T009 [P] [US2] Escrever testes unitários em `tests/unit/categorization.test.ts` verificando validação das 11 categorias canônicas em `CategoryEnum` e presença das diretrizes de fatura e investimentos no prompt de sistema do Gemini
+- [X] T010 [P] [US2] Escrever teste de integração em `tests/integration/transactions.test.ts` validando a mutação de categoria via `PATCH /api/transactions/:id` para `"Pagamento de Fatura"` e `"Investimentos"`
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Calibrar o prompt do sistema em `src/services/gemini.service.ts` com diretrizes explícitas para liquidação de faturas de cartão ("Pagamento de Fatura") e aportes/títulos/ações ("Investimentos")
-- [ ] T012 [US2] Validar suporte integral às 11 categorias no fluxo de edição manual `PATCH /api/transactions/:id` em `src/routes/transactions.routes.ts` e `src/services/transaction.service.ts`
-- [ ] T013 [US2] Executar e validar aprovação dos testes de US2 com `npm test -- tests/unit/categorization.test.ts tests/integration/transactions.test.ts`
+- [X] T011 [US2] Calibrar o prompt do sistema em `src/services/gemini.service.ts` com diretrizes explícitas para liquidação de faturas de cartão ("Pagamento de Fatura") e aportes/títulos/ações ("Investimentos")
+- [X] T012 [US2] Validar suporte integral às 11 categorias no fluxo de edição manual `PATCH /api/transactions/:id` em `src/routes/transactions.routes.ts` e `src/services/transaction.service.ts`
+- [X] T013 [US2] Executar e validar aprovação dos testes de US2 com `npm test -- tests/unit/categorization.test.ts tests/integration/transactions.test.ts`
 
 **Checkpoint**: User Stories 1 e 2 plenamente funcionais e independentes
 

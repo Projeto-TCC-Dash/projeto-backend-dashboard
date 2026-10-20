@@ -1,7 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { CANONICAL_CATEGORIES, Category, SYSTEM_DEFAULTS } from '../../src/config/constants.js';
+import { CANONICAL_CATEGORIES, Category, CategoryEnum, SYSTEM_DEFAULTS } from '../../src/config/constants.js';
+import { GeminiService } from '../../src/services/gemini.service.js';
 
 describe('Categorization Logic (Token Minimization & Reassociation)', () => {
+  it('deve conter exatamente 11 categorias canônicas incluindo Pagamento de Fatura e Investimentos', () => {
+    expect(CANONICAL_CATEGORIES).toHaveLength(11);
+    expect(CANONICAL_CATEGORIES).toContain('Pagamento de Fatura');
+    expect(CANONICAL_CATEGORIES).toContain('Investimentos');
+
+    expect(CategoryEnum.safeParse('Pagamento de Fatura').success).toBe(true);
+    expect(CategoryEnum.safeParse('Investimentos').success).toBe(true);
+    expect(CategoryEnum.safeParse('CategoriaInexistente').success).toBe(false);
+  });
+
+  it('deve conter as diretrizes de Pagamento de Fatura e Investimentos no prompt do sistema do Gemini', () => {
+    const prompt = GeminiService.buildCategorizationSystemPrompt();
+    expect(prompt).toContain('Pagamento de Fatura');
+    expect(prompt).toContain('Investimentos');
+    expect(prompt).toContain('fatura de cartão de crédito');
+    expect(prompt).toContain('corretoras');
+  });
+
   it('deve deduplicar em memória estabelecimentos repetidos', () => {
     const rawDescriptions = [
       'SUPERMERCADO EXTRA',

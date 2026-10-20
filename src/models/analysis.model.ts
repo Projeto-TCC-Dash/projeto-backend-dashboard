@@ -9,6 +9,7 @@ export interface ICategoryMetric {
 export interface IFinancialMetrics {
   totalIncome: number;
   totalExpenses: number;
+  invoiceSettlements: number;
   netBalance: number;
   savingsRate: number;
   topCategories: ICategoryMetric[];
@@ -41,6 +42,7 @@ const FinancialMetricsSubschema = new Schema<IFinancialMetrics>(
   {
     totalIncome: { type: Number, required: true },
     totalExpenses: { type: Number, required: true },
+    invoiceSettlements: { type: Number, default: 0 },
     netBalance: { type: Number, required: true },
     savingsRate: { type: Number, required: true },
     topCategories: { type: [CategoryMetricSubschema], default: [] },

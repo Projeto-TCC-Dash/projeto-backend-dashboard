@@ -172,6 +172,42 @@ export const transactionRoutes: FastifyPluginAsyncZod = async (fastify) => {
     }
   );
 
+  // DELETE /api/transactions/:id
+  fastify.delete(
+    '/api/transactions/:id',
+    {
+      preHandler: [requireAuth],
+      schema: {
+        description: 'Exclui permanentemente uma transação individual e invalida o cache de análises',
+        tags: ['Transactions'],
+        security: [{ bearerAuth: [] }],
+        params: TransactionIdParamSchema,
+        response: {
+          204: z.null().describe('Transação excluída com sucesso'),
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          404: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const deleted = await TransactionService.deleteTransaction(
+        request.user.id,
+        request.params.id
+      );
+
+      if (!deleted) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Transação não encontrada ou acesso não autorizado',
+        });
+      }
+
+      return reply.status(204).send();
+    }
+  );
+
   // POST /api/transactions/categorize (Protegida por requireAiKey - HTTP 403 se sem chave)
   fastify.post(
     '/api/transactions/categorize',

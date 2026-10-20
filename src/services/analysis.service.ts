@@ -200,4 +200,16 @@ export class AnalysisService {
       expiresAt: saved.expiresAt,
     };
   }
+
+  /**
+   * Invalida todas as análises em cache do usuário autenticado no MongoDB.
+   * Retorna a quantidade de registros de análise removidos.
+   */
+  public static async invalidate(userId: string): Promise<number> {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const result = await FinancialAnalysisModel.deleteMany({
+      userId: userObjectId,
+    }).exec();
+    return result.deletedCount;
+  }
 }

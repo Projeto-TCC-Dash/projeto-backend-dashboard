@@ -73,6 +73,28 @@ export class GeminiService {
   }
 
   /**
+   * Constrói o prompt do sistema para categorização financeira determinística via Gemini.
+   */
+  public static buildCategorizationSystemPrompt(): string {
+    return `Você é um motor de categorização financeira de alta precisão.
+Sua tarefa é analisar nomes de estabelecimentos comerciais e transações extraídos de extratos bancários brasileiros e classificá-los EXCLUSIVAMENTE em uma das categorias permitidas:
+${CANONICAL_CATEGORIES.join(', ')}.
+
+Diretrizes:
+- Supermercados, restaurantes, padarias, lanchonetes, delivery de comida -> Alimentação
+- Combustível, postos, uber, 99, táxi, metrô, ônibus, pedágio, passagens -> Transporte
+- Aluguel, condomínio, luz, energia, água, gás, internet residencial -> Moradia
+- Farmácias, drogarias, hospitais, clínicas, consultas, exames, planos de saúde -> Saúde
+- Cinema, streaming, jogos, bares, eventos, viagens a lazer, compras supérfluas -> Lazer
+- Cursos, escolas, faculdades, livros técnicos, treinamentos -> Educação
+- Salários, proventos, reembolsos, rendimentos, transferências de entrada -> Receita
+- Pagamentos de fatura de cartão de crédito, liquidação de fatura -> Pagamento de Fatura
+- Aportes em investimentos, corretoras (ex: NuInvest, Rico, XP, Clear), tesouro direto, ações, fundos de investimento, criptoativos -> Investimentos
+- Qualquer despesa identificável que não se encaixe nas opções acima -> Outros
+- Lançamentos com informações insuficientes ou não identificáveis -> Não Categorizado`;
+  }
+
+  /**
    * Categoriza uma lista de estabelecimentos comerciais únicos utilizando Structured Outputs (JSON Schema estrito).
    */
   public static async categorizeMerchants(
@@ -85,20 +107,7 @@ export class GeminiService {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    const systemPrompt = `Você é um motor de categorização financeira de alta precisão.
-Sua tarefa é analisar nomes de estabelecimentos comerciais e transações extraídos de extratos bancários brasileiros e classificá-los EXCLUSIVAMENTE em uma das categorias permitidas:
-${CANONICAL_CATEGORIES.join(', ')}.
-
-Diretrizes:
-- Supermercados, restaurantes, padarias, lanchonetes, delivery de comida -> Alimentação
-- Combustível, postos, uber, 99, táxi, metrô, ônibus, pedágio, passagens -> Transporte
-- Aluguel, condomínio, luz, energia, água, gás, internet residencial -> Moradia
-- Farmácias, drogarias, hospitais, clínicas, consultas, exames, planos de saúde -> Saúde
-- Cinema, streaming, jogos, bares, eventos, viagens a lazer, compras supérfluas -> Lazer
-- Cursos, escolas, faculdades, livros técnicos, treinamentos -> Educação
-- Salários, proventos, reembolsos, rendimentos, transferências de entrada -> Receita
-- Qualquer despesa identificável que não se encaixe nas opções acima -> Outros
-- Lançamentos com informações insuficientes ou não identificáveis -> Não Categorizado`;
+    const systemPrompt = this.buildCategorizationSystemPrompt();
 
     const jsonSchema = {
       type: 'object',

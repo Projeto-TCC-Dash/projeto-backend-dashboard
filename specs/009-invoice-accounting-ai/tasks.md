@@ -86,13 +86,13 @@
 
 ### Tests for User Story 3 (TDD) ⚠️
 
-- [ ] T011 [P] [US3] Escrever testes unitários para `TransactionService.getMonthlyFinancialSummary` e `ChatService.buildSystemInstruction` em `tests/unit/transaction-service.test.ts`
+- [X] T011 [P] [US3] Escrever testes unitários para `TransactionService.getMonthlyFinancialSummary` e `ChatService.buildSystemInstruction` em `tests/unit/transaction-service.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T012 [US3] Atualizar `TransactionService.getMonthlyFinancialSummary` em `src/services/transaction.service.ts` para segregar `invoiceSettlements` de `totalExpenses`
-- [ ] T013 [US3] Atualizar `ChatService.buildSystemInstruction` em `src/services/chat.service.ts` instruindo a persona a diferenciar gastos de consumo de pagamentos de fatura
-- [ ] T014 [US3] Executar e validar aprovação dos testes de US3 com `npm test -- tests/unit/transaction-service.test.ts tests/integration/chat.routes.test.ts`
+- [X] T012 [US3] Atualizar `TransactionService.getMonthlyFinancialSummary` em `src/services/transaction.service.ts` para segregar `invoiceSettlements` de `totalExpenses`
+- [X] T013 [US3] Atualizar `ChatService.buildSystemInstruction` em `src/services/chat.service.ts` instruindo a persona a diferenciar gastos de consumo de pagamentos de fatura
+- [X] T014 [US3] Executar e validar aprovação dos testes de US3 com `npm test -- tests/unit/transaction-service.test.ts tests/integration/chat.routes.test.ts`
 
 **Checkpoint**: Todas as histórias de usuário (US1, US2, US3) funcionais e integradas
 

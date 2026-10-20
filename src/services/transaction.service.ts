@@ -242,7 +242,8 @@ export class TransactionService {
   }
 
   /**
-   * Agrega o resumo financeiro consolidado do mês do usuário para injeção de contexto no chatbot.
+   * Agrega o resumo financeiro consolidado do mês do usuário para injeção de contexto no chatbot,
+   * segregando pagamentos de fatura das despesas operacionais primárias.
    */
   public static async getMonthlyFinancialSummary(
     userId: string,
@@ -251,6 +252,7 @@ export class TransactionService {
     month: string;
     totalIncome: number;
     totalExpenses: number;
+    invoiceSettlements: number;
     netBalance: number;
     categoryTotals: Record<string, number>;
   }> {
@@ -268,17 +270,23 @@ export class TransactionService {
 
     let totalIncome = 0;
     let totalExpenses = 0;
+    let invoiceSettlements = 0;
     const categoryTotals: Record<string, number> = {};
 
     for (const t of transactions) {
       if (t.amount > 0) {
         totalIncome += t.amount;
       } else {
-        totalExpenses += Math.abs(t.amount);
-      }
+        const absVal = Math.abs(t.amount);
+        const cat = t.category || SYSTEM_DEFAULTS.DEFAULT_CATEGORY;
 
-      const cat = t.category || SYSTEM_DEFAULTS.DEFAULT_CATEGORY;
-      categoryTotals[cat] = Math.round(((categoryTotals[cat] || 0) + Math.abs(t.amount)) * 100) / 100;
+        if (cat === 'Pagamento de Fatura') {
+          invoiceSettlements += absVal;
+        } else {
+          totalExpenses += absVal;
+        }
+        categoryTotals[cat] = Math.round(((categoryTotals[cat] || 0) + absVal) * 100) / 100;
+      }
     }
 
     const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -287,6 +295,7 @@ export class TransactionService {
       month: monthStr,
       totalIncome: Math.round(totalIncome * 100) / 100,
       totalExpenses: Math.round(totalExpenses * 100) / 100,
+      invoiceSettlements: Math.round(invoiceSettlements * 100) / 100,
       netBalance: Math.round((totalIncome - totalExpenses) * 100) / 100,
       categoryTotals,
     };

@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TransactionModel } from '../../src/models/transaction.model.js';
 import { AnalysisService } from '../../src/services/analysis.service.js';
+import { ChatService } from '../../src/services/chat.service.js';
 import { TransactionService } from '../../src/services/transaction.service.js';
 
 describe('TransactionService.deleteTransaction - Unit Tests', () => {
@@ -51,5 +52,50 @@ describe('TransactionService.deleteTransaction - Unit Tests', () => {
       userId: new mongoose.Types.ObjectId(userId),
     });
     expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+
+  describe('getMonthlyFinancialSummary - Invoice Segregation', () => {
+    it('deve segregar Pagamento de Fatura de totalExpenses no resumo financeiro mensal', async () => {
+      const mockTransactions = [
+        { amount: 5000, category: 'Receita' },
+        { amount: -800, category: 'Alimentação' },
+        { amount: -400, category: 'Transporte' },
+        { amount: -2000, category: 'Pagamento de Fatura' },
+      ];
+
+      vi.spyOn(TransactionModel, 'find').mockReturnValue({
+        exec: vi.fn().mockResolvedValue(mockTransactions),
+      } as any);
+
+      const summary = await TransactionService.getMonthlyFinancialSummary(userId, new Date('2026-10-15T12:00:00Z'));
+
+      expect(summary.totalIncome).toBe(5000);
+      expect(summary.totalExpenses).toBe(1200); // 800 + 400 (NÃO 3200!)
+      expect(summary.invoiceSettlements).toBe(2000);
+      expect(summary.netBalance).toBe(3800);
+      expect(summary.categoryTotals['Pagamento de Fatura']).toBe(2000);
+      expect(summary.categoryTotals['Alimentação']).toBe(800);
+    });
+  });
+
+  describe('ChatService.buildSystemInstruction - Persona Context', () => {
+    it('deve conter orientações de segregação de faturas no prompt de sistema do chat', async () => {
+      const mockSummary = {
+        month: '2026-10',
+        totalIncome: 6000,
+        totalExpenses: 2500,
+        invoiceSettlements: 1800,
+        netBalance: 3500,
+        categoryTotals: { Alimentação: 1500, Lazer: 1000, 'Pagamento de Fatura': 1800 },
+      };
+
+      vi.spyOn(TransactionService, 'getMonthlyFinancialSummary').mockResolvedValue(mockSummary);
+
+      const instruction = await ChatService.buildSystemInstruction(userId);
+
+      expect(instruction).toContain('Despesas Operacionais (Consumo): R$ 2500.00');
+      expect(instruction).toContain('Quitação de Faturas de Cartão: R$ 1800.00');
+      expect(instruction).toContain('Diferencie despesas operacionais primárias');
+    });
   });
 });

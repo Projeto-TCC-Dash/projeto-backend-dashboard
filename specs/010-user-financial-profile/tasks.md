@@ -48,14 +48,14 @@
 
 > **NOTE: Escrever estes testes primeiro e garantir que falhem antes da implementação**
 
-- [ ] T005 [P] [US1] Escrever testes unitários em `tests/unit/user-service.test.ts` cobrindo `UserService.getProfile` e `UserService.updateFinancialProfile` (persistência, validações e disparo de `AnalysisService.invalidate`)
-- [ ] T006 [P] [US1] Escrever testes de integração em `tests/integration/user-profile.routes.test.ts` cobrindo `GET /api/user/profile` (200, 401) e `PUT /api/user/profile` (200 com payload válido, 400 para renda negativa, 400 para enum inválido, 401 sem token)
+- [X] T005 [P] [US1] Escrever testes unitários em `tests/unit/user-service.test.ts` cobrindo `UserService.getProfile` e `UserService.updateFinancialProfile` (persistência, validações e disparo de `AnalysisService.invalidate`)
+- [X] T006 [P] [US1] Escrever testes de integração em `tests/integration/user-profile.routes.test.ts` cobrindo `GET /api/user/profile` (200, 401) e `PUT /api/user/profile` (200 com payload válido, 400 para renda negativa, 400 para enum inválido, 401 sem token)
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Implementar classe de serviço `UserService` em `src/services/user.service.ts` com métodos `getProfile(userId)` e `updateFinancialProfile(userId, updateData)` disparando `AnalysisService.invalidate(userId)`
-- [ ] T008 [US1] Criar rotas de perfil de usuário em `src/routes/user.routes.ts` com autenticação `requireAuth`, validação de body via `fastify-type-provider-zod` e registrá-las no Fastify em `src/app.ts`
-- [ ] T009 [US1] Executar e validar aprovação de todos os testes de US1 com `npm test -- tests/unit/user-service.test.ts tests/integration/user-profile.routes.test.ts`
+- [X] T007 [US1] Implementar classe de serviço `UserService` em `src/services/user.service.ts` com métodos `getProfile(userId)` e `updateFinancialProfile(userId, updateData)` disparando `AnalysisService.invalidate(userId)`
+- [X] T008 [US1] Criar rotas de perfil de usuário em `src/routes/user.routes.ts` com autenticação `requireAuth`, validação de body via `fastify-type-provider-zod` e registrá-las no Fastify em `src/app.ts`
+- [X] T009 [US1] Executar e validar aprovação de todos os testes de US1 com `npm test -- tests/unit/user-service.test.ts tests/integration/user-profile.routes.test.ts`
 
 **Checkpoint**: User Story 1 (MVP) 100% funcional e testável de forma autônoma
 

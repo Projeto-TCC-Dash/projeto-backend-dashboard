@@ -63,4 +63,24 @@ describe('Categorization Logic (Token Minimization & Reassociation)', () => {
     expect(validatedResult['TED RECEBIDA SALARIO']).toBe('Receita');
     expect(validatedResult['PAGAMENTO DESCONHECIDO']).toBe('Não Categorizado');
   });
+
+  it('deve conter as instruções contábeis de faturas no prompt de diagnóstico gerado pelo GeminiService', () => {
+    const summary = {
+      month: '2026-10',
+      totalIncome: 5000,
+      totalExpenses: 2000,
+      invoiceSettlements: 1500,
+      netBalance: 3000,
+      savingsRate: 60,
+      topCategories: [{ category: 'Alimentação', amount: 2000, percentage: 100 }],
+    };
+
+    const { systemPrompt, userPrompt } = GeminiService.buildFinancialDiagnosisPrompts(summary);
+
+    expect(systemPrompt).toContain('Princípios Contábeis Importantes');
+    expect(systemPrompt).toContain('Pagamento de Fatura');
+    expect(systemPrompt).toContain('liquidação de passivo');
+    expect(userPrompt).toContain('Quitação de Faturas de Cartão: R$ 1500.00');
+    expect(userPrompt).toContain('Total de Despesas Primárias (Consumo): R$ 2000.00');
+  });
 });

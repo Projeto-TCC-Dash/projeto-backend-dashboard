@@ -238,6 +238,47 @@ Diretrizes:
   }
 
   /**
+   * Constrói os prompts de diagnóstico financeiro incorporando diretrizes contábeis de faturas.
+   */
+  public static buildFinancialDiagnosisPrompts(summary: {
+    month: string;
+    totalIncome: number;
+    totalExpenses: number;
+    invoiceSettlements?: number;
+    netBalance: number;
+    savingsRate: number;
+    topCategories: Array<{ category: string; amount: number; percentage: number }>;
+  }): { systemPrompt: string; userPrompt: string } {
+    const systemPrompt = `Você é um especialista em planejamento financeiro pessoal de alto nível.
+Analise os números consolidados do mês do usuário e produza um diagnóstico executivo com tom construtivo, empático e prático, acompanhado de recomendações acionáveis.
+
+Princípios Contábeis Importantes:
+- O total de despesas informado reflete os gastos operacionais primários (consumo real: alimentação, transporte, moradia, etc.).
+- Lançamentos em 'Pagamento de Fatura' representam liquidação de passivo financeiro / transferências para quitação de cartão de crédito. Não devem ser tratados como novas compras supérfluas ou despesas duplicadas, pois os itens individuais do cartão já compõem as despesas primárias.`;
+
+    const userPrompt = `DADOS FINANCEIROS CONSOLIDADOS DO MÊS (${summary.month}):
+- Total de Receitas: R$ ${summary.totalIncome.toFixed(2)}
+- Total de Despesas Primárias (Consumo): R$ ${summary.totalExpenses.toFixed(2)}
+- Quitação de Faturas de Cartão: R$ ${(summary.invoiceSettlements ?? 0).toFixed(2)}
+- Saldo Líquido: R$ ${summary.netBalance.toFixed(2)}
+- Taxa de Poupança: ${summary.savingsRate.toFixed(1)}%
+- Maiores Gastos:
+${
+  summary.topCategories.length > 0
+    ? summary.topCategories
+        .map((c) => `  * ${c.category}: R$ ${c.amount.toFixed(2)} (${c.percentage.toFixed(1)}%)`)
+        .join('\n')
+    : '  (Nenhum gasto por categoria registrado)'
+}
+
+Retorne um JSON estrito contendo:
+- "diagnosis": texto analítico da saúde financeira do mês (máx 3 parágrafos curtos).
+- "recommendations": lista com 3 a 5 ações concretas e priorizadas para melhorar o orçamento.`;
+
+    return { systemPrompt, userPrompt };
+  }
+
+  /**
    * Gera diagnóstico e recomendações financeiras detalhadas para um mês utilizando Structured Outputs.
    */
   public static async generateFinancialDiagnosis(
@@ -246,6 +287,7 @@ Diretrizes:
       month: string;
       totalIncome: number;
       totalExpenses: number;
+      invoiceSettlements?: number;
       netBalance: number;
       savingsRate: number;
       topCategories: Array<{ category: string; amount: number; percentage: number }>;
@@ -253,22 +295,7 @@ Diretrizes:
   ): Promise<{ diagnosis: string; recommendations: string[] }> {
     const ai = new GoogleGenAI({ apiKey });
 
-    const systemPrompt = `Você é um especialista em planejamento financeiro pessoal de alto nível.
-Analise os números consolidados do mês do usuário e produza um diagnóstico executivo com tom construtivo, empático e prático, acompanhado de recomendações acionáveis.`;
-
-    const userPrompt = `DADOS FINANCEIROS CONSOLIDADOS DO MÊS (${summary.month}):
-- Total de Receitas: R$ ${summary.totalIncome.toFixed(2)}
-- Total de Despesas: R$ ${summary.totalExpenses.toFixed(2)}
-- Saldo Líquido: R$ ${summary.netBalance.toFixed(2)}
-- Taxa de Poupança: ${summary.savingsRate.toFixed(1)}%
-- Maiores Gastos:
-${summary.topCategories
-  .map((c) => `  * ${c.category}: R$ ${c.amount.toFixed(2)} (${c.percentage.toFixed(1)}%)`)
-  .join('\n')}
-
-Retorne um JSON estrito contendo:
-- "diagnosis": texto analítico da saúde financeira do mês (máx 3 parágrafos curtos).
-- "recommendations": lista com 3 a 5 ações concretas e priorizadas para melhorar o orçamento.`;
+    const { systemPrompt, userPrompt } = this.buildFinancialDiagnosisPrompts(summary);
 
     const schema = {
       type: 'object',

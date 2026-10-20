@@ -10,6 +10,8 @@ export const CANONICAL_CATEGORIES = [
   "Receita",
   "Outros",
   "Não Categorizado",
+  "Pagamento de Fatura",
+  "Investimentos",
 ] as const;
 
 export const CategoryEnum = z.enum(CANONICAL_CATEGORIES);

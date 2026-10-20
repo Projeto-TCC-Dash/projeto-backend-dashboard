@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import mongoose from 'mongoose';
+import { FinancialAnalysisModel } from '../../src/models/analysis.model.js';
 import { AnalysisService } from '../../src/services/analysis.service.js';
 
 describe('AnalysisService - Unit Tests', () => {
@@ -132,6 +134,24 @@ describe('AnalysisService - Unit Tests', () => {
       expect(metrics.netBalance).toBe(3500);
       expect(metrics.savingsRate).toBe(100);
       expect(metrics.topCategories).toEqual([]);
+    });
+  });
+
+  describe('invalidate', () => {
+    it('deve chamar deleteMany com o userId correto e retornar a quantidade de registros excluídos', async () => {
+      const mockUserId = '507f1f77bcf86cd799439011';
+      const deleteManySpy = vi.spyOn(FinancialAnalysisModel, 'deleteMany').mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ deletedCount: 3 }),
+      } as any);
+
+      const count = await AnalysisService.invalidate(mockUserId);
+
+      expect(deleteManySpy).toHaveBeenCalledWith({
+        userId: new mongoose.Types.ObjectId(mockUserId),
+      });
+      expect(count).toBe(3);
+
+      deleteManySpy.mockRestore();
     });
   });
 });

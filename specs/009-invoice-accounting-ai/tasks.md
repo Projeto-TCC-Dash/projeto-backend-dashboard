@@ -47,13 +47,13 @@
 
 > **NOTE: Escrever estes testes primeiro e garantir que falhem antes da implementação**
 
-- [ ] T004 [P] [US1] Escrever testes unitários em `tests/unit/analysis.service.test.ts` cobrindo segregação de faturas, isolamento de `totalExpenses`, integridade de `topCategories` e taxa de poupança sem duplicação
-- [ ] T005 [P] [US1] Escrever teste de integração em `tests/integration/analysis.routes.test.ts` validando a presença e exatidão de `invoiceSettlements` no retorno da rota `GET /api/analysis/:month`
+- [X] T004 [P] [US1] Escrever testes unitários em `tests/unit/analysis.service.test.ts` cobrindo segregação de faturas, isolamento de `totalExpenses`, integridade de `topCategories` e taxa de poupança sem duplicação
+- [X] T005 [P] [US1] Escrever teste de integração em `tests/integration/analysis.routes.test.ts` validando a presença e exatidão de `invoiceSettlements` no retorno da rota `GET /api/analysis/:month`
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implementar segregação de `"Pagamento de Fatura"` no método `AnalysisService.calculateMetrics` em `src/services/analysis.service.ts`
-- [ ] T007 [US1] Executar e validar a aprovação de todos os testes de US1 com `npm test -- tests/unit/analysis.service.test.ts tests/integration/analysis.routes.test.ts`
+- [X] T006 [US1] Implementar segregação de `"Pagamento de Fatura"` no método `AnalysisService.calculateMetrics` em `src/services/analysis.service.ts`
+- [X] T007 [US1] Executar e validar a aprovação de todos os testes de US1 com `npm test -- tests/unit/analysis.service.test.ts tests/integration/analysis.routes.test.ts`
 
 **Checkpoint**: User Story 1 (MVP) 100% funcional e testável de forma autônoma
 

@@ -59,6 +59,7 @@ export class AnalysisService {
   ): IFinancialMetrics {
     let totalIncome = 0;
     let totalExpenses = 0;
+    let invoiceSettlements = 0;
     const catExpenses: Record<string, number> = {};
 
     for (const t of transactions) {
@@ -66,14 +67,20 @@ export class AnalysisService {
         totalIncome += t.amount;
       } else {
         const absVal = Math.abs(t.amount);
-        totalExpenses += absVal;
         const cat = t.category || 'Outros';
-        catExpenses[cat] = (catExpenses[cat] || 0) + absVal;
+
+        if (cat === 'Pagamento de Fatura') {
+          invoiceSettlements += absVal;
+        } else {
+          totalExpenses += absVal;
+          catExpenses[cat] = (catExpenses[cat] || 0) + absVal;
+        }
       }
     }
 
     const roundedIncome = Math.round(totalIncome * 100) / 100;
     const roundedExpenses = Math.round(totalExpenses * 100) / 100;
+    const roundedInvoices = Math.round(invoiceSettlements * 100) / 100;
     const netBalance = Math.round((roundedIncome - roundedExpenses) * 100) / 100;
 
     let savingsRate = 0;
@@ -93,6 +100,7 @@ export class AnalysisService {
     return {
       totalIncome: roundedIncome,
       totalExpenses: roundedExpenses,
+      invoiceSettlements: roundedInvoices,
       netBalance,
       savingsRate,
       topCategories,

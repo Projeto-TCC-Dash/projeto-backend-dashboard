@@ -8,6 +8,7 @@ import {
   UploadTransactionsResponse,
 } from '../schemas/transaction.schemas.js';
 import { AccountNotFoundError, AccountService } from './account.service.js';
+import { AnalysisService } from './analysis.service.js';
 import { ParsedTransaction } from './parser.service.js';
 
 export class TransactionService {
@@ -55,6 +56,31 @@ export class TransactionService {
         runValidators: true,
       }
     ).exec();
+  }
+
+  /**
+   * Exclui permanentemente uma transação individual garantindo isolamento multi-tenant por userId.
+   * Ao excluir, invalida o cache de análises financeiras do usuário.
+   * Retorna true se a transação foi encontrada e excluída, ou false caso não pertença ao usuário ou não exista.
+   */
+  public static async deleteTransaction(
+    userId: string,
+    transactionId: string
+  ): Promise<boolean> {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const transactionObjectId = new mongoose.Types.ObjectId(transactionId);
+
+    const deleted = await TransactionModel.findOneAndDelete({
+      _id: transactionObjectId,
+      userId: userObjectId,
+    }).exec();
+
+    if (!deleted) {
+      return false;
+    }
+
+    await AnalysisService.invalidate(userId);
+    return true;
   }
 
   /**

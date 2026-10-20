@@ -190,5 +190,57 @@ describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering'
       expect.objectContaining({ accountId: targetAccountId })
     );
   });
+
+  describe('DELETE /api/transactions/:id', () => {
+    it('deve retornar 401 se não autenticado', async () => {
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/api/transactions/${testTransactionId}`,
+      });
+
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('deve retornar 400 se id da transação for malformado', async () => {
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/transactions/invalid-id-xyz',
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body);
+      expect(body.statusCode).toBe(400);
+      expect(body.error).toBe('Bad Request');
+    });
+
+    it('deve retornar 404 se transação não for encontrada ou pertencer a outro usuário', async () => {
+      vi.spyOn(TransactionService, 'deleteTransaction').mockResolvedValueOnce(false);
+
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/api/transactions/${testTransactionId}`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(404);
+      const body = JSON.parse(res.body);
+      expect(body.message).toBe('Transação não encontrada ou acesso não autorizado');
+    });
+
+    it('deve excluir transação com sucesso e retornar 204 No Content', async () => {
+      const deleteSpy = vi.spyOn(TransactionService, 'deleteTransaction').mockResolvedValueOnce(true);
+
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/api/transactions/${testTransactionId}`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(204);
+      expect(res.body).toBe('');
+      expect(deleteSpy).toHaveBeenCalledWith(testUserId, testTransactionId);
+    });
+  });
 });
 

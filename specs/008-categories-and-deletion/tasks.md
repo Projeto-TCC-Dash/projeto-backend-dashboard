@@ -47,14 +47,14 @@
 
 > **NOTE: Escrever estes testes primeiro e garantir que falhem antes da implementação do endpoint**
 
-- [ ] T004 [P] [US1] Escrever testes de integração para `DELETE /api/transactions/:id` em `tests/integration/transactions.test.ts` cobrindo cenários 204 (sucesso), 404 (transação inexistente), 404 (transação de outro usuário - isolamento multi-tenant), 400 (ID de transação malformado) e 401 (sem token)
-- [ ] T005 [P] [US1] Escrever teste unitário para `TransactionService.deleteTransaction` e invalidação em `tests/unit/transaction-service.test.ts`
+- [X] T004 [P] [US1] Escrever testes de integração para `DELETE /api/transactions/:id` em `tests/integration/transactions.test.ts` cobrindo cenários 204 (sucesso), 404 (transação inexistente), 404 (transação de outro usuário - isolamento multi-tenant), 400 (ID de transação malformado) e 401 (sem token)
+- [X] T005 [P] [US1] Escrever teste unitário para `TransactionService.deleteTransaction` e invalidação em `tests/unit/transaction-service.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implementar método `TransactionService.deleteTransaction(userId: string, transactionId: string): Promise<boolean>` em `src/services/transaction.service.ts` utilizando `TransactionModel.findOneAndDelete` e disparando `AnalysisService.invalidate(userId)`
-- [ ] T007 [US1] Registrar a rota `DELETE /api/transactions/:id` em `src/routes/transactions.routes.ts` com autenticação `requireAuth`, validação com `TransactionIdParamSchema` e respostas HTTP 204, 400, 401 e 404
-- [ ] T008 [US1] Executar e validar a aprovação de todos os testes de US1 com `npm test -- tests/integration/transactions.test.ts tests/unit/transaction-service.test.ts`
+- [X] T006 [US1] Implementar método `TransactionService.deleteTransaction(userId: string, transactionId: string): Promise<boolean>` em `src/services/transaction.service.ts` utilizando `TransactionModel.findOneAndDelete` e disparando `AnalysisService.invalidate(userId)`
+- [X] T007 [US1] Registrar a rota `DELETE /api/transactions/:id` em `src/routes/transactions.routes.ts` com autenticação `requireAuth`, validação com `TransactionIdParamSchema` e respostas HTTP 204, 400, 401 e 404
+- [X] T008 [US1] Executar e validar a aprovação de todos os testes de US1 com `npm test -- tests/integration/transactions.test.ts tests/unit/transaction-service.test.ts`
 
 **Checkpoint**: User Story 1 (MVP) 100% funcional e testável de forma autônoma
 

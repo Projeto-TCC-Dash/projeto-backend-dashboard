@@ -83,4 +83,53 @@ describe('Categorization Logic (Token Minimization & Reassociation)', () => {
     expect(userPrompt).toContain('Quitação de Faturas de Cartão: R$ 1500.00');
     expect(userPrompt).toContain('Total de Despesas Primárias (Consumo): R$ 2000.00');
   });
+
+  it('deve incluir o perfil financeiro e diretrizes de calibragem de reserva/metas no prompt de diagnóstico', () => {
+    const summary = {
+      month: '2026-10',
+      totalIncome: 15000,
+      totalExpenses: 7000,
+      invoiceSettlements: 2000,
+      netBalance: 8000,
+      savingsRate: 53.3,
+      topCategories: [{ category: 'Moradia', amount: 3500, percentage: 50 }],
+    };
+
+    const financialProfile = {
+      incomeType: 'PJ_AUTONOMO' as const,
+      declaredMonthlyIncome: 15000,
+      goals: ['RESERVA_EMERGENCIA' as const, 'QUITAR_DIVIDAS' as const],
+      riskProfile: 'MODERATE' as const,
+    };
+
+    const { systemPrompt, userPrompt } = GeminiService.buildFinancialDiagnosisPrompts(summary, financialProfile);
+
+    // Verificação de diretrizes de calibragem no system prompt
+    expect(systemPrompt).toContain('Reserva de Emergência');
+    expect(systemPrompt).toContain('3 a 6 meses');
+    expect(systemPrompt).toContain('6 a 12 meses');
+    expect(systemPrompt).toContain('PJ_AUTONOMO');
+    expect(systemPrompt).toContain('CLT');
+
+    // Verificação dos dados específicos no user prompt
+    expect(userPrompt).toContain('PERFIL FINANCEIRO DO USUÁRIO');
+    expect(userPrompt).toContain('Regime de Renda: PJ_AUTONOMO');
+    expect(userPrompt).toContain('Renda Mensal Declarada: R$ 15000.00');
+    expect(userPrompt).toContain('RESERVA_EMERGENCIA, QUITAR_DIVIDAS');
+    expect(userPrompt).toContain('MODERATE');
+  });
+
+  it('deve aplicar fallback elegante no user prompt quando o perfil financeiro não for informado', () => {
+    const summary = {
+      month: '2026-10',
+      totalIncome: 5000,
+      totalExpenses: 2000,
+      netBalance: 3000,
+      savingsRate: 60,
+      topCategories: [],
+    };
+
+    const { userPrompt } = GeminiService.buildFinancialDiagnosisPrompts(summary, undefined);
+    expect(userPrompt).toContain('PERFIL FINANCEIRO DO USUÁRIO: Não informado');
+  });
 });

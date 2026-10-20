@@ -1,4 +1,20 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import {
+  FINANCIAL_GOALS,
+  FinancialGoal,
+  INCOME_TYPES,
+  IncomeType,
+  RISK_PROFILES,
+  RiskProfile,
+} from '../config/constants.js';
+
+export interface IFinancialProfile {
+  incomeType?: IncomeType;
+  declaredMonthlyIncome?: number;
+  goals?: FinancialGoal[];
+  riskProfile?: RiskProfile;
+  updatedAt?: Date;
+}
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
@@ -7,10 +23,22 @@ export interface IUser extends Document {
   encryptedApiKey?: string | null;
   iv?: string | null;
   authTag?: string | null;
+  financialProfile?: IFinancialProfile;
   createdAt: Date;
   updatedAt: Date;
   hasAiKey(): boolean;
 }
+
+const FinancialProfileSubschema = new Schema<IFinancialProfile>(
+  {
+    incomeType: { type: String, enum: INCOME_TYPES },
+    declaredMonthlyIncome: { type: Number, min: 0 },
+    goals: { type: [String], enum: FINANCIAL_GOALS, default: [] },
+    riskProfile: { type: String, enum: RISK_PROFILES },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
 
 const UserSchema = new Schema<IUser>(
   {
@@ -37,6 +65,10 @@ const UserSchema = new Schema<IUser>(
     authTag: {
       type: String,
       default: null,
+    },
+    financialProfile: {
+      type: FinancialProfileSubschema,
+      default: () => ({}),
     },
   },
   {

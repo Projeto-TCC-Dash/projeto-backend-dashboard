@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { CANONICAL_CATEGORIES, Category, SYSTEM_DEFAULTS } from '../config/constants.js';
+import { IFinancialProfile } from '../models/user.model.js';
 import {
   GeminiApiError,
   GeminiErrorParser,
@@ -238,23 +239,51 @@ Diretrizes:
   }
 
   /**
-   * Constrói os prompts de diagnóstico financeiro incorporando diretrizes contábeis de faturas.
+   * Constrói os prompts de diagnóstico financeiro incorporando diretrizes contábeis de faturas
+   * e calibração contextual com base no perfil financeiro do usuário.
    */
-  public static buildFinancialDiagnosisPrompts(summary: {
-    month: string;
-    totalIncome: number;
-    totalExpenses: number;
-    invoiceSettlements?: number;
-    netBalance: number;
-    savingsRate: number;
-    topCategories: Array<{ category: string; amount: number; percentage: number }>;
-  }): { systemPrompt: string; userPrompt: string } {
+  public static buildFinancialDiagnosisPrompts(
+    summary: {
+      month: string;
+      totalIncome: number;
+      totalExpenses: number;
+      invoiceSettlements?: number;
+      netBalance: number;
+      savingsRate: number;
+      topCategories: Array<{ category: string; amount: number; percentage: number }>;
+    },
+    profile?: IFinancialProfile | null
+  ): { systemPrompt: string; userPrompt: string } {
     const systemPrompt = `Você é um especialista em planejamento financeiro pessoal de alto nível.
 Analise os números consolidados do mês do usuário e produza um diagnóstico executivo com tom construtivo, empático e prático, acompanhado de recomendações acionáveis.
 
 Princípios Contábeis Importantes:
 - O total de despesas informado reflete os gastos operacionais primários (consumo real: alimentação, transporte, moradia, etc.).
-- Lançamentos em 'Pagamento de Fatura' representam liquidação de passivo financeiro / transferências para quitação de cartão de crédito. Não devem ser tratados como novas compras supérfluas ou despesas duplicadas, pois os itens individuais do cartão já compõem as despesas primárias.`;
+- Lançamentos em 'Pagamento de Fatura' representam liquidação de passivo financeiro / transferências para quitação de cartão de crédito. Não devem ser tratados como novas compras supérfluas ou despesas duplicadas, pois os itens individuais do cartão já compõem as despesas primárias.
+
+Diretrizes de Calibração Conforme o Perfil do Usuário:
+- Reserva de Emergência:
+  * Para CLT ou Servidor Público (PUBLIC_SERVANT), calibre a recomendação da meta de reserva de emergência para 3 a 6 meses do custo de vida.
+  * Para PJ, Autônomo (PJ_AUTONOMO) ou Empreendedor (ENTREPRENEUR), calibre a recomendação da meta de reserva de emergência para 6 a 12 meses do custo de vida, devido à maior volatilidade de renda.
+  * Caso o regime não seja informado, sugira 6 meses como média de prudência.
+- Metas e Prioridades:
+  * Alinhe o tom e priorize as recomendações de acordo com as metas declaradas pelo usuário (ex: se 'QUITAR_DIVIDAS', priorize amortização de dívidas com juros altos antes de sugerir novos investimentos; se 'RESERVA_EMERGENCIA', priorize segurança e liquidez imediata; se 'COMPRAR_IMOVEL', foque em consistência de poupança; se 'INVESTIR_LONGO_PRAZO', sugira aportes estruturados; se 'CONTROLE_GASTOS', aponte cortes nos maiores centros de custo).
+  * Considere o perfil de risco (CONSERVATIVE, MODERATE, AGGRESSIVE) ao sugerir destinação de eventuais sobras financeiras.`;
+
+    const hasProfileData =
+      profile &&
+      (profile.incomeType ||
+        profile.declaredMonthlyIncome !== undefined ||
+        (profile.goals && profile.goals.length > 0) ||
+        profile.riskProfile);
+
+    const profileBlock = hasProfileData
+      ? `PERFIL FINANCEIRO DO USUÁRIO:
+- Regime de Renda: ${profile.incomeType || 'Não informado'}
+- Renda Mensal Declarada: ${profile.declaredMonthlyIncome !== undefined ? `R$ ${profile.declaredMonthlyIncome.toFixed(2)}` : 'Não informada'}
+- Metas Prioritárias: ${profile.goals && profile.goals.length > 0 ? profile.goals.join(', ') : 'Não informadas'}
+- Perfil de Risco: ${profile.riskProfile || 'Não informado'}`
+      : 'PERFIL FINANCEIRO DO USUÁRIO: Não informado (adote parâmetros padrão gerais de mercado).';
 
     const userPrompt = `DADOS FINANCEIROS CONSOLIDADOS DO MÊS (${summary.month}):
 - Total de Receitas: R$ ${summary.totalIncome.toFixed(2)}
@@ -270,6 +299,8 @@ ${
         .join('\n')
     : '  (Nenhum gasto por categoria registrado)'
 }
+
+${profileBlock}
 
 Retorne um JSON estrito contendo:
 - "diagnosis": texto analítico da saúde financeira do mês (máx 3 parágrafos curtos).
@@ -291,11 +322,12 @@ Retorne um JSON estrito contendo:
       netBalance: number;
       savingsRate: number;
       topCategories: Array<{ category: string; amount: number; percentage: number }>;
-    }
+    },
+    profile?: IFinancialProfile | null
   ): Promise<{ diagnosis: string; recommendations: string[] }> {
     const ai = new GoogleGenAI({ apiKey });
 
-    const { systemPrompt, userPrompt } = this.buildFinancialDiagnosisPrompts(summary);
+    const { systemPrompt, userPrompt } = this.buildFinancialDiagnosisPrompts(summary, profile);
 
     const schema = {
       type: 'object',

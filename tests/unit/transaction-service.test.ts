@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TransactionModel } from '../../src/models/transaction.model.js';
+import { UserModel } from '../../src/models/user.model.js';
 import { AnalysisService } from '../../src/services/analysis.service.js';
 import { ChatService } from '../../src/services/chat.service.js';
 import { TransactionService } from '../../src/services/transaction.service.js';
@@ -90,12 +91,67 @@ describe('TransactionService.deleteTransaction - Unit Tests', () => {
       };
 
       vi.spyOn(TransactionService, 'getMonthlyFinancialSummary').mockResolvedValue(mockSummary);
+      vi.spyOn(UserModel, 'findById').mockReturnValue({
+        exec: vi.fn().mockResolvedValue(null),
+      } as any);
 
       const instruction = await ChatService.buildSystemInstruction(userId);
 
       expect(instruction).toContain('Despesas Operacionais (Consumo): R$ 2500.00');
       expect(instruction).toContain('Quitação de Faturas de Cartão: R$ 1800.00');
       expect(instruction).toContain('Diferencie despesas operacionais primárias');
+    });
+
+    it('deve injetar o perfil financeiro do usuário nas instruções de sistema da persona do chat', async () => {
+      const mockSummary = {
+        month: '2026-10',
+        totalIncome: 10000,
+        totalExpenses: 4000,
+        invoiceSettlements: 1000,
+        netBalance: 6000,
+        categoryTotals: { Alimentação: 2000, Moradia: 2000 },
+      };
+
+      vi.spyOn(TransactionService, 'getMonthlyFinancialSummary').mockResolvedValue(mockSummary);
+      vi.spyOn(UserModel, 'findById').mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          financialProfile: {
+            incomeType: 'CLT',
+            declaredMonthlyIncome: 8000,
+            goals: ['COMPRAR_IMOVEL', 'INVESTIR_LONGO_PRAZO'],
+            riskProfile: 'CONSERVATIVE',
+          },
+        }),
+      } as any);
+
+      const instruction = await ChatService.buildSystemInstruction(userId);
+
+      expect(instruction).toContain('PERFIL FINANCEIRO DO USUÁRIO');
+      expect(instruction).toContain('Regime de Renda: CLT');
+      expect(instruction).toContain('Renda Mensal Declarada: R$ 8000.00');
+      expect(instruction).toContain('COMPRAR_IMOVEL, INVESTIR_LONGO_PRAZO');
+      expect(instruction).toContain('CONSERVATIVE');
+      expect(instruction).toContain('Personalize seu aconselhamento');
+    });
+
+    it('deve aplicar fallback elegante nas instruções do chat quando o perfil financeiro não for informado', async () => {
+      const mockSummary = {
+        month: '2026-10',
+        totalIncome: 5000,
+        totalExpenses: 2000,
+        invoiceSettlements: 0,
+        netBalance: 3000,
+        categoryTotals: {},
+      };
+
+      vi.spyOn(TransactionService, 'getMonthlyFinancialSummary').mockResolvedValue(mockSummary);
+      vi.spyOn(UserModel, 'findById').mockReturnValue({
+        exec: vi.fn().mockResolvedValue(null),
+      } as any);
+
+      const instruction = await ChatService.buildSystemInstruction(userId);
+
+      expect(instruction).toContain('PERFIL FINANCEIRO DO USUÁRIO: Não informado');
     });
   });
 });

@@ -18,6 +18,7 @@ import { authRoutes } from './routes/auth.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { transactionRoutes } from './routes/transactions.routes.js';
+import { userRoutes } from './routes/user.routes.js';
 
 export function buildApp(): FastifyInstance {
   const app = fastify({
@@ -77,6 +78,7 @@ export function buildApp(): FastifyInstance {
 
   // Auth & User routes
   app.register(authRoutes);
+  app.register(userRoutes);
 
   // Accounts CRUD routes
   app.register(accountsRoutes);

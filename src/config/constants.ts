@@ -33,6 +33,36 @@ export type AccountType = z.infer<typeof AccountTypeEnum>;
 
 export const DEFAULT_ACCOUNT_NAME = "Conta Principal";
 
+export const INCOME_TYPES = [
+  'CLT',
+  'PJ_AUTONOMO',
+  'PUBLIC_SERVANT',
+  'ENTREPRENEUR',
+  'STUDENT',
+  'RETIRED',
+  'OTHER',
+] as const;
+export const IncomeTypeEnum = z.enum(INCOME_TYPES);
+export type IncomeType = z.infer<typeof IncomeTypeEnum>;
+
+export const FINANCIAL_GOALS = [
+  'RESERVA_EMERGENCIA',
+  'QUITAR_DIVIDAS',
+  'COMPRAR_IMOVEL',
+  'INVESTIR_LONGO_PRAZO',
+  'CONTROLE_GASTOS',
+] as const;
+export const FinancialGoalEnum = z.enum(FINANCIAL_GOALS);
+export type FinancialGoal = z.infer<typeof FinancialGoalEnum>;
+
+export const RISK_PROFILES = [
+  'CONSERVATIVE',
+  'MODERATE',
+  'AGGRESSIVE',
+] as const;
+export const RiskProfileEnum = z.enum(RISK_PROFILES);
+export type RiskProfile = z.infer<typeof RiskProfileEnum>;
+
 export const SYSTEM_DEFAULTS = {
   MAX_FILE_SIZE_BYTES: 10 * 1024 * 1024, // 10MB
   MAX_CHAT_HISTORY_MESSAGES: 20,

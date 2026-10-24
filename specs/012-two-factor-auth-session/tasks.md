@@ -104,13 +104,13 @@ Conforme orientação do usuário, o ciclo de desenvolvimento adota branches ded
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T017 [P] [US3] Create integration test suite for 2FA enable/confirm, disable with password, and resend cooldown in `tests/integration/auth-2fa-management.test.ts`
+- [X] T017 [P] [US3] Create integration test suite for 2FA enable/confirm, disable with password, and resend cooldown in `tests/integration/auth-2fa-management.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T018 [P] [US3] Define Zod schemas for OTP resend (`Resend2FARequestSchema`) and 2FA deactivation (`Disable2FARequestSchema`) in `src/schemas/auth.schemas.ts`
-- [ ] T019 [US3] Implement `resendOtp`, `initiateEnable2FA`, `confirmEnable2FA`, and `disable2FA` in `src/services/auth.service.ts`
-- [ ] T020 [US3] Register endpoints `POST /api/auth/2fa/enable`, `POST /api/auth/2fa/confirm-enable`, `POST /api/auth/2fa/disable`, and `POST /api/auth/2fa/resend` in `src/routes/auth.routes.ts`
+- [X] T018 [P] [US3] Define Zod schemas for OTP resend (`Resend2FARequestSchema`) and 2FA deactivation (`Disable2FARequestSchema`) in `src/schemas/auth.schemas.ts`
+- [X] T019 [US3] Implement `resendOtp`, `initiateEnable2FA`, `confirmEnable2FA`, and `disable2FA` in `src/services/auth.service.ts`
+- [X] T020 [US3] Register endpoints `POST /api/auth/2fa/enable`, `POST /api/auth/2fa/confirm-enable`, `POST /api/auth/2fa/disable`, and `POST /api/auth/2fa/resend` in `src/routes/auth.routes.ts`
 
 **Checkpoint**: Todas as três histórias de usuário implementadas e validadas.
 

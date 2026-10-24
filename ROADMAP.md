@@ -10,7 +10,7 @@ Este documento detalha o ciclo de evolução do backend (`projeto-backend-dashbo
 |---|---|---|---|
 | **v1.0.0** | ✅ Concluída em Produção | Tag `v1.0.0` / Branch `main` | Testes unitários e de integração verdes |
 | **v1.1.0** | ✅ Concluída no Código (Pronta para Release) | Branch `develop` (Aguardando merge para `main` e Tag `v1.1.0`) | 81 testes de especificações verdes (F007-F010) |
-| **v1.2.0** | 🚧 Em Andamento (F011 e F012 Concluídas) | Branches `feature/011-*` a `014-*` | 177 testes unitários e de integração verdes |
+| **v1.2.0** | 🚧 Em Andamento (F011, F012 e F013 Concluídas) | Branches `feature/011-*` a `014-*` | 198 testes unitários e de integração verdes |
 
 ---
 
@@ -28,7 +28,7 @@ flowchart TD
     subgraph v120 ["Ciclo v1.2.0 (Em Andamento — Integração com Frontend Feature 009)"]
         F011["Feature 011: Perfil de Usuário, Nome e Foto de Perfil (Avatar) ✅"]
         F012["Feature 012: Segurança de Acesso, 2FA via E-mail e Logout ✅"]
-        F013["Feature 013: Vínculo de Contas Sociais (Google OAuth 2.0)"]
+        F013["Feature 013: Vínculo de Contas Sociais (Google OAuth 2.0) ✅"]
         F014["Feature 014: Central de Exportação de Dados (CSV, XLSX e PDF)"]
     end
 
@@ -90,31 +90,20 @@ flowchart TD
   - `POST /api/auth/2fa/resend`: Reenvio de OTP com respeito ao cooldown de 60s.
   - `POST /api/auth/logout`: Revogação da sessão ativa ou de todas as sessões do usuário (`allDevices`).
 
+### 🔗 Feature 013: Vínculo de Contas Sociais — Google OAuth 2.0 (`specs/013-google-auth-linking`) ✅
+- **Status**: Concluída (22/22 tarefas).
+- **Objetivo**: Permitir que usuários vinculem ou desvinculem sua conta Google ao perfil existente, prevenindo desvinculação acidental caso o Google seja o único método de autenticação da conta, além de autenticação social com suporte a 2FA.
+- **Endpoints REST**:
+  - `POST /api/auth/google/link`: Validação do idToken do Google e vinculação de `googleId` e `googleEmail` ao perfil do usuário autenticado.
+  - `DELETE /api/auth/google/unlink`: Desvinculação da conta Google com regra de guarda (rejeita com `400 Bad Request` se não houver senha local).
+  - `POST /api/auth/google`: Login social via Google com emissão de sessão JWT e interceptação de 2FA.
+  - `GET /api/user/profile`: Retorno dos metadados de vínculo social no subobjeto `security` (`googleLinked`, `googleEmail`, `googleLinkedAt`).
+
 ---
 
 ## 🚀 Features Planejadas (Ciclo v1.2.0 — Integração Frontend Feature 009)
 
 As features abaixo espelham as necessidades e contratos formalizados no frontend (`specs/009-profile-security-export`), garantindo suporte integral a gerenciamento de identidade, segurança de sessão e central de relatórios financeiros.
-
----
-
-### 🔗 Feature 013: Vínculo de Contas Sociais — Google OAuth 2.0 (`specs/013-google-auth-linking`)
-**Objetivo**: Permitir que usuários vinculem ou desvinculem sua conta Google ao perfil existente, prevenindo desvinculação acidental caso o Google seja o único método de autenticação da conta.
-
-- **Contrato de Domínio & Modelagem**:
-  - Subdocumento no modelo `User`:
-    ```typescript
-    interface IGoogleAccount {
-      googleId?: string;
-      googleEmail?: string;
-      linkedAt?: Date;
-    }
-    ```
-- **Endpoints REST**:
-  - `POST /api/auth/google/link`: Validação do idToken do Google e vinculação do `googleId` e `googleEmail` à conta do usuário autenticado.
-  - `DELETE /api/auth/google/unlink`: Desvinculação da conta Google com validação de guarda (rejeita com `400 Bad Request` se o usuário não possuir senha local cadastrada).
-- **Etapas Spec-Kit**:
-  1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
 
 ---
 

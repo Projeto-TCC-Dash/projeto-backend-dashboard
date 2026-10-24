@@ -7,6 +7,8 @@ import { UserModel } from '../models/user.model.js';
 import {
   AuthResponse,
   Disable2FARequest,
+  GoogleLinkResponse,
+  GoogleUnlinkResponse,
   Login2FAResponse,
   LoginRequest,
   RegisterRequest,
@@ -15,7 +17,46 @@ import {
 import { CryptoService } from './crypto.service.js';
 import { EmailService } from './email.service.js';
 import { GeminiService, KeyValidationResult } from './gemini.service.js';
+import { GoogleOAuthService, InvalidGoogleTokenError } from './google-auth.service.js';
 import { SessionService } from './session.service.js';
+import { UserService } from './user.service.js';
+import { env } from '../config/env.js';
+
+export class GoogleAccountConflictError extends Error {
+  public statusCode = 409;
+  constructor(message = 'Esta conta Google já está vinculada a outro perfil cadastrado.') {
+    super(message);
+    this.name = 'GoogleAccountConflictError';
+  }
+}
+
+export class GoogleAccountNotLinkedError extends Error {
+  public statusCode = 400;
+  constructor(message = 'Nenhuma conta Google vinculada a este perfil.') {
+    super(message);
+    this.name = 'GoogleAccountNotLinkedError';
+  }
+}
+
+export class CannotUnlinkGoogleWithoutPasswordError extends Error {
+  public statusCode = 400;
+  constructor(
+    message = 'Não é possível desvincular a conta Google pois ela é o único método de autenticação da conta. Cadastre uma senha antes de desvincular.'
+  ) {
+    super(message);
+    this.name = 'CannotUnlinkGoogleWithoutPasswordError';
+  }
+}
+
+export class GoogleUserNotFoundError extends Error {
+  public statusCode = 401;
+  constructor(
+    message = 'Nenhuma conta vinculada a este perfil Google. Faça login com suas credenciais para vincular.'
+  ) {
+    super(message);
+    this.name = 'GoogleUserNotFoundError';
+  }
+}
 
 export class ResendCooldownError extends Error {
   public retryAfterSeconds: number;
@@ -445,5 +486,166 @@ export class AuthService {
     }
 
     return CryptoService.decrypt(user.encryptedApiKey, user.iv, user.authTag);
+  }
+
+  /**
+   * Vincula a conta Google ao usuário autenticado após validar o idToken
+   * Em ambiente de desenvolvimento, permite simulação quando nenhum token for enviado.
+   */
+  public static async linkGoogleAccount(
+    userId: string,
+    idToken?: string
+  ): Promise<GoogleLinkResponse> {
+    const user = await UserModel.findById(userId).exec();
+    if (!user) {
+      throw new Error('Usuário não encontrado.');
+    }
+
+    let googleId: string;
+    let googleEmail: string;
+
+    if (idToken) {
+      const payload = await GoogleOAuthService.verifyIdToken(idToken);
+      googleId = payload.googleId;
+      googleEmail = payload.googleEmail;
+    } else {
+      const isProd = (process.env.NODE_ENV ?? env.NODE_ENV) === 'production';
+      if (isProd) {
+        throw new InvalidGoogleTokenError('O token do Google é obrigatório em ambiente de produção.');
+      }
+      // Ambiente de desenvolvimento: gera vínculo de simulação seguro com o e-mail do próprio usuário
+      googleId = user.googleAccount?.googleId || `google_dev_${user._id.toString()}`;
+      googleEmail = user.email;
+    }
+
+    const existingWithGoogle = await UserModel.findOne({
+      'googleAccount.googleId': googleId,
+      _id: { $ne: new mongoose.Types.ObjectId(userId) },
+    }).exec();
+
+    if (existingWithGoogle) {
+      throw new GoogleAccountConflictError(
+        'Esta conta Google já está vinculada a outro perfil cadastrado.'
+      );
+    }
+
+    const linkedAt = new Date();
+    user.googleAccount = {
+      googleId,
+      googleEmail,
+      linkedAt,
+    };
+
+    await user.save();
+
+    const profile = await UserService.getProfile(userId);
+
+    return {
+      ...profile,
+      success: true,
+      message: 'Conta Google vinculada com sucesso.',
+      googleAccount: {
+        googleEmail,
+        linkedAt,
+      },
+    };
+  }
+
+  /**
+   * Desvincula a conta Google com validação de guarda contra lock-out (exige senha local)
+   */
+  public static async unlinkGoogleAccount(userId: string): Promise<GoogleUnlinkResponse> {
+    const user = await UserModel.findById(userId).exec();
+    if (!user) {
+      throw new Error('Usuário não encontrado.');
+    }
+
+    if (!user.googleAccount?.googleId) {
+      throw new GoogleAccountNotLinkedError('Nenhuma conta Google vinculada a este perfil.');
+    }
+
+    const hasLocalPassword = Boolean(user.passwordHash && user.passwordHash.length > 0);
+    if (!hasLocalPassword) {
+      throw new CannotUnlinkGoogleWithoutPasswordError(
+        'Não é possível desvincular a conta Google pois ela é o único método de autenticação da conta. Cadastre uma senha antes de desvincular.'
+      );
+    }
+
+    user.googleAccount = null;
+    await user.save();
+
+    const profile = await UserService.getProfile(userId);
+
+    return {
+      ...profile,
+      success: true,
+      message: 'Conta Google desvinculada com sucesso.',
+    };
+  }
+
+  /**
+   * Autentica usuário via Google. Se o usuário tiver 2FA ativo, intercepta com desafio de verificação.
+   */
+  public static async loginWithGoogle(
+    idToken: string,
+    jwtSigner: (payload: { id: string; email: string; sessionId?: string }) => string,
+    metadata?: { userAgent?: string; ip?: string }
+  ): Promise<AuthResponse | Login2FAResponse> {
+    const payload = await GoogleOAuthService.verifyIdToken(idToken);
+
+    const user = await UserModel.findOne({
+      'googleAccount.googleId': payload.googleId,
+    }).exec();
+
+    if (!user) {
+      throw new GoogleUserNotFoundError(
+        'Nenhuma conta vinculada a este perfil Google. Faça login com suas credenciais para vincular.'
+      );
+    }
+
+    // Interceptação 2FA se habilitado
+    if (user.isTwoFactorEnabled) {
+      const otp = this.generateOtp();
+      const otpHash = this.hashOtp(otp);
+      const expiresAt = new Date(Date.now() + TWO_FACTOR_CONFIG.OTP_TTL_MS);
+
+      await TwoFactorChallengeModel.updateMany(
+        { userId: user._id, type: 'LOGIN', status: 'PENDING' },
+        { status: 'EXPIRED' }
+      ).exec();
+
+      const challenge = await TwoFactorChallengeModel.create({
+        userId: user._id,
+        type: 'LOGIN',
+        otpHash,
+        attempts: 0,
+        maxAttempts: TWO_FACTOR_CONFIG.MAX_ATTEMPTS,
+        status: 'PENDING',
+        lastSentAt: new Date(),
+        expiresAt,
+      });
+
+      await EmailService.sendOtpEmail(user.email, otp, 'LOGIN');
+
+      return {
+        requires2FA: true,
+        challengeId: challenge._id.toString(),
+        message: 'Código de verificação enviado para o seu e-mail cadastrado.',
+      };
+    }
+
+    // Sem 2FA: emissão direta da sessão
+    const session = await SessionService.createSession(user._id, metadata);
+    const token = jwtSigner({ id: user._id.toString(), email: user.email, sessionId: session._id });
+
+    return {
+      token,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        hasAiKey: user.hasAiKey(),
+        isTwoFactorEnabled: false,
+      },
+    };
   }
 }

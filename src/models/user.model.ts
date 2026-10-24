@@ -20,6 +20,8 @@ export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   email: string;
   passwordHash: string;
+  name?: string;
+  avatarUrl?: string | null;
   encryptedApiKey?: string | null;
   iv?: string | null;
   authTag?: string | null;
@@ -53,6 +55,15 @@ const UserSchema = new Schema<IUser>(
     passwordHash: {
       type: String,
       required: true,
+    },
+    name: {
+      type: String,
+      trim: true,
+      default: undefined,
+    },
+    avatarUrl: {
+      type: String,
+      default: null,
     },
     encryptedApiKey: {
       type: String,

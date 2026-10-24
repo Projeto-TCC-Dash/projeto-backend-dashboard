@@ -64,13 +64,13 @@ Conforme orientação do usuário, o ciclo de desenvolvimento adota branches ded
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T009 [P] [US1] Create integration test suite for 2FA login interception, challenge issuance, and OTP verification in `tests/integration/auth-2fa-login.test.ts`
+- [X] T009 [P] [US1] Create integration test suite for 2FA login interception, challenge issuance, and OTP verification in `tests/integration/auth-2fa-login.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Define Zod schemas for login 2FA response (`Login2FAResponseSchema`) and OTP verification (`Verify2FARequestSchema`) in `src/schemas/auth.schemas.ts`
-- [ ] T011 [US1] Implement 2FA challenge creation, OTP generation (`crypto.randomInt`), SHA-256 hashing, email dispatch, and timing-safe code verification in `src/services/auth.service.ts`
-- [ ] T012 [US1] Update `POST /api/auth/login` to intercept when 2FA is active and register `POST /api/auth/2fa/verify` endpoint in `src/routes/auth.routes.ts`
+- [X] T010 [P] [US1] Define Zod schemas for login 2FA response (`Login2FAResponseSchema`) and OTP verification (`Verify2FARequestSchema`) in `src/schemas/auth.schemas.ts`
+- [X] T011 [US1] Implement 2FA challenge creation, OTP generation (`crypto.randomInt`), SHA-256 hashing, email dispatch, and timing-safe code verification in `src/services/auth.service.ts`
+- [X] T012 [US1] Update `POST /api/auth/login` to intercept when 2FA is active and register `POST /api/auth/2fa/verify` endpoint in `src/routes/auth.routes.ts`
 
 **Checkpoint**: História de Usuário 1 (MVP) completamente funcional e testável de forma independente.
 

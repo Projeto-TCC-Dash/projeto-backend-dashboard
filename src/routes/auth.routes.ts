@@ -3,15 +3,21 @@ import { z } from 'zod';
 import { requireAuth } from '../plugins/auth.plugin.js';
 import {
   AuthResponseSchema,
+  Disable2FARequestSchema,
+  Login2FAResponseSchema,
   LoginRequestSchema,
+  LogoutRequestSchema,
   RegisterRequestSchema,
+  Resend2FARequestSchema,
   SetApiKeyRequestSchema,
   SetApiKeyResponseSchema,
+  Verify2FARequestSchema,
 } from '../schemas/auth.schemas.js';
-import { AuthService } from '../services/auth.service.js';
+import { AuthService, ResendCooldownError } from '../services/auth.service.js';
+import { SessionService } from '../services/session.service.js';
 
 export const authRoutes: FastifyPluginAsyncZod = async (fastify) => {
-  // POST /api/auth/register
+  // POST /api/auth/register - Registro de usuário
   fastify.post(
     '/api/auth/register',
     {
@@ -27,8 +33,13 @@ export const authRoutes: FastifyPluginAsyncZod = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const result = await AuthService.register(request.body, (payload) =>
-          fastify.jwt.sign(payload)
+        const result = await AuthService.register(
+          request.body,
+          (payload) => fastify.jwt.sign(payload),
+          {
+            userAgent: request.headers['user-agent'],
+            ip: request.ip,
+          }
         );
         return reply.status(201).send(result);
       } catch (err: any) {
@@ -41,24 +52,29 @@ export const authRoutes: FastifyPluginAsyncZod = async (fastify) => {
     }
   );
 
-  // POST /api/auth/login
+  // POST /api/auth/login - Login com interceptação de 2FA
   fastify.post(
     '/api/auth/login',
     {
       schema: {
-        description: 'Login de usuário e emissão de JWT',
+        description: 'Login de usuário com interceptação para verificação em dois fatores (2FA)',
         tags: ['Auth'],
         body: LoginRequestSchema,
         response: {
-          200: AuthResponseSchema,
+          200: z.union([AuthResponseSchema, Login2FAResponseSchema]),
           401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
         },
       },
     },
     async (request, reply) => {
       try {
-        const result = await AuthService.login(request.body, (payload) =>
-          fastify.jwt.sign(payload)
+        const result = await AuthService.login(
+          request.body,
+          (payload) => fastify.jwt.sign(payload),
+          {
+            userAgent: request.headers['user-agent'],
+            ip: request.ip,
+          }
         );
         return reply.status(200).send(result);
       } catch (err: any) {
@@ -66,6 +82,233 @@ export const authRoutes: FastifyPluginAsyncZod = async (fastify) => {
           statusCode: 401,
           error: 'Unauthorized',
           message: err?.message || 'Credenciais inválidas.',
+        });
+      }
+    }
+  );
+
+  // POST /api/auth/2fa/verify - Validação do código OTP de login
+  fastify.post(
+    '/api/auth/2fa/verify',
+    {
+      schema: {
+        description: 'Validação do código OTP de 6 dígitos para login e emissão de sessão',
+        tags: ['Auth'],
+        body: Verify2FARequestSchema,
+        response: {
+          200: AuthResponseSchema,
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          404: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const result = await AuthService.verify2FA(
+          request.body,
+          (payload) => fastify.jwt.sign(payload),
+          {
+            userAgent: request.headers['user-agent'],
+            ip: request.ip,
+          }
+        );
+        return reply.status(200).send(result);
+      } catch (err: any) {
+        const message = err?.message || 'Erro ao validar código 2FA.';
+        if (message.includes('não encontrado') || message.includes('expirado')) {
+          return reply.status(404).send({
+            statusCode: 404,
+            error: 'Not Found',
+            message,
+          });
+        }
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message,
+        });
+      }
+    }
+  );
+
+  // POST /api/auth/2fa/resend - Reenvio de código OTP com cooldown
+  fastify.post(
+    '/api/auth/2fa/resend',
+    {
+      schema: {
+        description: 'Reenvio de novo código OTP respeitando o cooldown de 60 segundos',
+        tags: ['Auth'],
+        body: Resend2FARequestSchema,
+        response: {
+          200: z.object({ success: z.boolean(), message: z.string() }),
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          429: z.object({
+            statusCode: z.number(),
+            error: z.string(),
+            message: z.string(),
+            retryAfterSeconds: z.number(),
+          }),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const result = await AuthService.resendOtp(request.body.challengeId);
+        return reply.status(200).send(result);
+      } catch (err: any) {
+        if (err instanceof ResendCooldownError) {
+          return reply.status(429).send({
+            statusCode: 429,
+            error: 'Too Many Requests',
+            message: err.message,
+            retryAfterSeconds: err.retryAfterSeconds,
+          });
+        }
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: err?.message || 'Erro ao reenviar código.',
+        });
+      }
+    }
+  );
+
+  // POST /api/auth/2fa/enable - Iniciar ativação de 2FA
+  fastify.post(
+    '/api/auth/2fa/enable',
+    {
+      preHandler: [requireAuth],
+      schema: {
+        description: 'Inicia a ativação da autenticação em dois fatores enviando código de confirmação',
+        tags: ['Auth'],
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: z.object({ challengeId: z.string(), message: z.string() }),
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const result = await AuthService.initiateEnable2FA(request.user.id);
+        return reply.status(200).send(result);
+      } catch (err: any) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: err?.message || 'Erro ao iniciar ativação de 2FA.',
+        });
+      }
+    }
+  );
+
+  // POST /api/auth/2fa/confirm-enable - Confirmar ativação de 2FA
+  fastify.post(
+    '/api/auth/2fa/confirm-enable',
+    {
+      preHandler: [requireAuth],
+      schema: {
+        description: 'Confirma a ativação do 2FA validando o código de 6 dígitos enviado por e-mail',
+        tags: ['Auth'],
+        security: [{ bearerAuth: [] }],
+        body: Verify2FARequestSchema,
+        response: {
+          200: z.object({
+            success: z.boolean(),
+            isTwoFactorEnabled: z.boolean(),
+            message: z.string(),
+          }),
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const result = await AuthService.confirmEnable2FA(request.user.id, request.body);
+        return reply.status(200).send(result);
+      } catch (err: any) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: err?.message || 'Erro ao confirmar ativação de 2FA.',
+        });
+      }
+    }
+  );
+
+  // POST /api/auth/2fa/disable - Desativar 2FA com confirmação de senha
+  fastify.post(
+    '/api/auth/2fa/disable',
+    {
+      preHandler: [requireAuth],
+      schema: {
+        description: 'Desativa a autenticação em dois fatores mediante confirmação de senha',
+        tags: ['Auth'],
+        security: [{ bearerAuth: [] }],
+        body: Disable2FARequestSchema,
+        response: {
+          200: z.object({
+            success: z.boolean(),
+            isTwoFactorEnabled: z.boolean(),
+            message: z.string(),
+          }),
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const result = await AuthService.disable2FA(request.user.id, request.body);
+        return reply.status(200).send(result);
+      } catch (err: any) {
+        const statusCode = err?.message?.includes('Senha incorreta') ? 401 : 400;
+        return reply.status(statusCode).send({
+          statusCode,
+          error: statusCode === 401 ? 'Unauthorized' : 'Bad Request',
+          message: err?.message || 'Erro ao desativar 2FA.',
+        });
+      }
+    }
+  );
+
+  // POST /api/auth/logout - Logout seguro com revogação no servidor
+  fastify.post(
+    '/api/auth/logout',
+    {
+      preHandler: [requireAuth],
+      schema: {
+        description: 'Encerramento seguro de sessão e revogação imediata no servidor',
+        tags: ['Auth'],
+        security: [{ bearerAuth: [] }],
+        body: LogoutRequestSchema.optional(),
+        response: {
+          200: z.object({ success: z.boolean(), message: z.string() }),
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const allDevices = request.body?.allDevices ?? false;
+        if (allDevices) {
+          await SessionService.revokeAllUserSessions(request.user.id);
+        } else if (request.user.sessionId) {
+          await SessionService.revokeSession(request.user.sessionId);
+        }
+        return reply.status(200).send({
+          success: true,
+          message: 'Sessão encerrada com sucesso.',
+        });
+      } catch (err: any) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: err?.message || 'Erro ao realizar logout.',
         });
       }
     }

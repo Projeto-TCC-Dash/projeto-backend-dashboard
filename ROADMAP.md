@@ -10,7 +10,7 @@ Este documento detalha o ciclo de evolução do backend (`projeto-backend-dashbo
 |---|---|---|---|
 | **v1.0.0** | ✅ Concluída em Produção | Tag `v1.0.0` / Branch `main` | Testes unitários e de integração verdes |
 | **v1.1.0** | ✅ Concluída no Código (Pronta para Release) | Branch `develop` (Aguardando merge para `main` e Tag `v1.1.0`) | 81 testes de especificações verdes (F007-F010) |
-| **v1.2.0** | 📋 Planejada (Alinhada com Frontend) | Branches `feature/011-*` a `014-*` | Planejamento de contratos e schemas Zod |
+| **v1.2.0** | 🚧 Em Andamento (F011 e F012 Concluídas) | Branches `feature/011-*` a `014-*` | 177 testes unitários e de integração verdes |
 
 ---
 
@@ -25,9 +25,9 @@ flowchart TD
         F010["Feature 010: Perfil Financeiro, Regime de Renda e Metas ✅"]
     end
 
-    subgraph v120 ["Ciclo v1.2.0 (Planejado — Integração com Frontend Feature 009)"]
-        F011["Feature 011: Perfil de Usuário, Nome e Foto de Perfil (Avatar)"]
-        F012["Feature 012: Segurança de Acesso, 2FA via E-mail e Logout"]
+    subgraph v120 ["Ciclo v1.2.0 (Em Andamento — Integração com Frontend Feature 009)"]
+        F011["Feature 011: Perfil de Usuário, Nome e Foto de Perfil (Avatar) ✅"]
+        F012["Feature 012: Segurança de Acesso, 2FA via E-mail e Logout ✅"]
         F013["Feature 013: Vínculo de Contas Sociais (Google OAuth 2.0)"]
         F014["Feature 014: Central de Exportação de Dados (CSV, XLSX e PDF)"]
     end
@@ -67,57 +67,34 @@ flowchart TD
 
 ---
 
+## 📦 Features Entregues no Ciclo v1.2.0
+
+### 🖼️ Feature 011: Perfil de Usuário, Nome e Foto de Perfil (`specs/011-user-avatar-identity`) ✅
+- **Status**: Concluída (12/12 tarefas).
+- **Objetivo**: Permitir ao usuário atualizar seu nome de exibição, realizar upload de foto de perfil (avatar) com validação de formato e tamanho, e excluir a foto restaurando o fallback de iniciais.
+- **Endpoints REST**:
+  - `GET /api/user/profile`: Retorno completo dos dados cadastrais (`id`, `email`, `name`, `avatarUrl`, `hasAiKey`, `security`, `financialProfile`, `createdAt`).
+  - `PATCH /api/user/profile`: Atualização de dados cadastrais (nome de 2 a 100 caracteres).
+  - `POST /api/user/avatar`: Upload de avatar em `multipart/form-data` (máx. 5MB, jpeg/png/webp) com persistência em disco e URL servida.
+  - `DELETE /api/user/avatar`: Remoção do avatar e retorno ao fallback `null`.
+
+### 🛡️ Feature 012: Segurança de Acesso, 2FA via E-mail e Logout Seguro (`specs/012-two-factor-auth-session`) ✅
+- **Status**: Concluída (23/23 tarefas).
+- **Objetivo**: Proteger os dados financeiros com 2FA via OTP (6 dígitos) enviado por e-mail, desafio de interceptação no login e gerenciamento de sessões com revogação imediata (logout).
+- **Endpoints REST**:
+  - `POST /api/auth/login`: Interceptação para emissão de desafio `{ requires2FA: true, challengeId }` quando 2FA estiver ativo.
+  - `POST /api/auth/2fa/verify`: Validação do OTP de 6 dígitos e emissão do JWT com claim de `sessionId`.
+  - `POST /api/auth/2fa/enable`: Disparo do desafio para ativação de 2FA.
+  - `POST /api/auth/2fa/confirm-enable`: Validação do código e ativação definitiva.
+  - `POST /api/auth/2fa/disable`: Desativação de 2FA confirmada por senha local.
+  - `POST /api/auth/2fa/resend`: Reenvio de OTP com respeito ao cooldown de 60s.
+  - `POST /api/auth/logout`: Revogação da sessão ativa ou de todas as sessões do usuário (`allDevices`).
+
+---
+
 ## 🚀 Features Planejadas (Ciclo v1.2.0 — Integração Frontend Feature 009)
 
 As features abaixo espelham as necessidades e contratos formalizados no frontend (`specs/009-profile-security-export`), garantindo suporte integral a gerenciamento de identidade, segurança de sessão e central de relatórios financeiros.
-
----
-
-### 🖼️ Feature 011: Perfil de Usuário, Nome e Foto de Perfil (`specs/011-user-avatar-identity`)
-**Objetivo**: Permitir ao usuário atualizar seu nome de exibição, realizar upload de foto de perfil (avatar) com validação de formato e tamanho, e excluir a foto restaurando o fallback de iniciais.
-
-- **Contrato de Domínio & Modelagem**:
-  - Modelo `User` estendido:
-    ```typescript
-    interface IUser {
-      // ... campos existentes
-      name?: string;
-      avatarUrl?: string | null;
-      updatedAt: Date;
-    }
-    ```
-- **Endpoints REST**:
-  - `GET /api/user/profile`: Retornar dados cadastrais completos (`id`, `email`, `name`, `avatarUrl`, `hasAiKey`, `security`, `financialProfile`, `createdAt`).
-  - `PATCH /api/user/profile`: Atualização parcial de dados cadastrais (ex: `{ name: string }`, 2 a 100 caracteres).
-  - `POST /api/user/avatar`: Upload de avatar em `multipart/form-data` (máx. 5MB, formatos permitidos: `image/jpeg`, `image/png`, `image/webp`), armazenando com chave segura e retornando `{ avatarUrl: string }`.
-  - `DELETE /api/user/avatar`: Remoção da foto de perfil com expurgo do armazenamento e atualização de `avatarUrl: null`.
-- **Etapas Spec-Kit**:
-  1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
-
----
-
-### 🛡️ Feature 012: Segurança de Acesso, 2FA via E-mail e Logout Seguro (`specs/012-security-2fa-logout`)
-**Objetivo**: Proteger os dados financeiros sensíveis com autenticação em dois fatores (2FA) baseada em envio de código OTP de 6 dígitos por e-mail, desafio de 2FA no login e encerramento de sessão confiável no servidor.
-
-- **Contrato de Domínio & Modelagem**:
-  - Modelo `User` estendido com subdocumento de segurança e controle de OTP:
-    ```typescript
-    interface IUserSecurity {
-      twoFactorEnabled: boolean;
-      twoFactorSecret?: string; // Código OTP com hash/salt
-      twoFactorExpiresAt?: Date;
-      hasLocalPassword: boolean;
-      lastLogoutAt?: Date; // Invalidação de tokens anteriores
-    }
-    ```
-- **Endpoints REST**:
-  - `POST /api/auth/2fa/request-enable`: Disparo de código de segurança de 6 dígitos com expiração de 10 minutos para o e-mail cadastrado.
-  - `POST /api/auth/2fa/confirm-enable`: Validação do código de 6 dígitos informado pelo usuário e ativação definitiva do 2FA (`twoFactorEnabled: true`).
-  - `POST /api/auth/2fa/disable`: Desativação do 2FA mediante conferência prévia de senha ou código de confirmação.
-  - Atualização do `POST /api/auth/login`: Se `twoFactorEnabled: true`, retornar status transitório `200` com `{ requires2FA: true, tempToken: string }`, exigindo envio do código OTP para emissão do JWT final.
-  - `POST /api/auth/logout`: Revogação da sessão atual com expurgo de tokens ou atualização de `lastLogoutAt` para rejeição de tokens legados pelo middleware `requireAuth`.
-- **Etapas Spec-Kit**:
-  1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
 
 ---
 

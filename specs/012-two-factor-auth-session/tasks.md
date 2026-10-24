@@ -120,9 +120,9 @@ Conforme orientação do usuário, o ciclo de desenvolvimento adota branches ded
 
 **Purpose**: Documentação da API, conformidade com a Constituição e garantia de qualidade estática.
 
-- [ ] T021 [P] Update Swagger/OpenAPI documentation schemas and descriptions for all 2FA and logout routes in `src/routes/auth.routes.ts`
-- [ ] T022 Execute full test suite and TypeScript strict verification with zero errors (`npm test && npm run typecheck`)
-- [ ] T023 Run end-to-end quickstart validation scenarios from `specs/012-two-factor-auth-session/quickstart.md`
+- [X] T021 [P] Update Swagger/OpenAPI documentation schemas and descriptions for all 2FA and logout routes in `src/routes/auth.routes.ts`
+- [X] T022 Execute full test suite and TypeScript strict verification with zero errors (`npm test && npm run typecheck`)
+- [X] T023 Run end-to-end quickstart validation scenarios from `specs/012-two-factor-auth-session/quickstart.md`
 
 ---
 

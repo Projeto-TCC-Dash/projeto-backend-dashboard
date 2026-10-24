@@ -34,9 +34,9 @@ Conforme orientação do usuário, o ciclo de desenvolvimento adota branches ded
 
 **Purpose**: Configuração de constantes, tipagens globais e serviço base de mensageria de e-mail.
 
-- [ ] T001 Configure environment variables and constants for 2FA and Session management in `src/config/constants.ts` (OTP expiration: 10 min, max attempts: 5, resend cooldown: 60s, session TTL: 7 days)
-- [ ] T002 Update Fastify JWT TypeScript interface with `sessionId` claim in `src/@types/fastify.d.ts`
-- [ ] T003 [P] Create `EmailService` with modular local development logging and SMTP transport adapter in `src/services/email.service.ts`
+- [X] T001 Configure environment variables and constants for 2FA and Session management in `src/config/constants.ts` (OTP expiration: 10 min, max attempts: 5, resend cooldown: 60s, session TTL: 7 days)
+- [X] T002 Update Fastify JWT TypeScript interface with `sessionId` claim in `src/@types/fastify.d.ts`
+- [X] T003 [P] Create `EmailService` with modular local development logging and SMTP transport adapter in `src/services/email.service.ts`
 
 ---
 
@@ -46,11 +46,11 @@ Conforme orientação do usuário, o ciclo de desenvolvimento adota branches ded
 
 **⚠️ CRITICAL**: Nenhuma história de usuário pode ser finalizada antes da conclusão desta fundação.
 
-- [ ] T004 Extend `User` schema and interface with `isTwoFactorEnabled: boolean` (default: false) and `twoFactorConfirmedAt?: Date | null` in `src/models/user.model.ts`
-- [ ] T005 [P] Create `TwoFactorChallenge` Mongoose model with `userId`, `type` ('LOGIN' | 'ENABLE'), `otpHash`, `attempts`, `status`, `lastSentAt`, and TTL index on `expiresAt` in `src/models/two-factor-challenge.model.ts`
-- [ ] T006 [P] Create `Session` Mongoose model with `_id` (UUID), `userId`, `isRevoked`, `revokedAt`, `userAgent`, `ip`, `createdAt`, and TTL index on `expiresAt` in `src/models/session.model.ts`
-- [ ] T007 Implement `SessionService` for session creation, validation, and active status check in `src/services/session.service.ts`
-- [ ] T008 Update `requireAuth` preHandler in `src/plugins/auth.plugin.ts` to inspect `sessionId` and reject revoked or missing sessions with HTTP 401
+- [X] T004 Extend `User` schema and interface with `isTwoFactorEnabled: boolean` (default: false) and `twoFactorConfirmedAt?: Date | null` in `src/models/user.model.ts`
+- [X] T005 [P] Create `TwoFactorChallenge` Mongoose model with `userId`, `type` ('LOGIN' | 'ENABLE'), `otpHash`, `attempts`, `status`, `lastSentAt`, and TTL index on `expiresAt` in `src/models/two-factor-challenge.model.ts`
+- [X] T006 [P] Create `Session` Mongoose model with `_id` (UUID), `userId`, `isRevoked`, `revokedAt`, `userAgent`, `ip`, `createdAt`, and TTL index on `expiresAt` in `src/models/session.model.ts`
+- [X] T007 Implement `SessionService` for session creation, validation, and active status check in `src/services/session.service.ts`
+- [X] T008 Update `requireAuth` preHandler in `src/plugins/auth.plugin.ts` to inspect `sessionId` and reject revoked or missing sessions with HTTP 401
 
 **Checkpoint**: Fundação pronta - a implementação das histórias de usuário pode prosseguir.
 

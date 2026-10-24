@@ -26,6 +26,8 @@ export interface IUser extends Document {
   iv?: string | null;
   authTag?: string | null;
   financialProfile?: IFinancialProfile;
+  isTwoFactorEnabled: boolean;
+  twoFactorConfirmedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   hasAiKey(): boolean;
@@ -80,6 +82,15 @@ const UserSchema = new Schema<IUser>(
     financialProfile: {
       type: FinancialProfileSubschema,
       default: () => ({}),
+    },
+    isTwoFactorEnabled: {
+      type: Boolean,
+      default: false,
+      required: true,
+    },
+    twoFactorConfirmedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

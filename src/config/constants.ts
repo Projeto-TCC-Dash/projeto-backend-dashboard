@@ -69,3 +69,11 @@ export const SYSTEM_DEFAULTS = {
   DEFAULT_CATEGORY: "Não Categorizado" as Category,
   GEMINI_MODEL: "gemini-3.8-flash",
 } as const;
+
+export const AVATAR_CONFIG = {
+  MAX_SIZE_BYTES: 5 * 1024 * 1024, // 5MB
+  ALLOWED_MIME_TYPES: ['image/jpeg', 'image/png', 'image/webp'] as const,
+  UPLOAD_DIR: 'uploads/avatars',
+  URL_PREFIX: '/uploads/avatars',
+} as const;
+

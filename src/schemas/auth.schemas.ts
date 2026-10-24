@@ -49,9 +49,13 @@ export const Disable2FARequestSchema = z.object({
 });
 export type Disable2FARequest = z.infer<typeof Disable2FARequestSchema>;
 
-export const LogoutRequestSchema = z.object({
-  allDevices: z.boolean().optional().default(false),
-});
+export const LogoutRequestSchema = z
+  .object({
+    allDevices: z.boolean().optional().default(false),
+  })
+  .nullable()
+  .optional()
+  .default({});
 export type LogoutRequest = z.infer<typeof LogoutRequestSchema>;
 
 export const SetApiKeyRequestSchema = z.object({

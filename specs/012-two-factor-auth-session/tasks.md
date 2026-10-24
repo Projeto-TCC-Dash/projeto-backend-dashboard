@@ -84,13 +84,13 @@ Conforme orientação do usuário, o ciclo de desenvolvimento adota branches ded
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T013 [P] [US2] Create integration test suite for single session revocation and global logout in `tests/integration/auth-logout.test.ts`
+- [X] T013 [P] [US2] Create integration test suite for single session revocation and global logout in `tests/integration/auth-logout.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T014 [P] [US2] Define Zod schema for logout request (`LogoutRequestSchema` with optional `allDevices: boolean`) in `src/schemas/auth.schemas.ts`
-- [ ] T015 [US2] Implement `revokeSession(sessionId)` and `revokeAllUserSessions(userId)` methods in `src/services/session.service.ts`
-- [ ] T016 [US2] Register `POST /api/auth/logout` endpoint protected by `requireAuth` in `src/routes/auth.routes.ts`
+- [X] T014 [P] [US2] Define Zod schema for logout request (`LogoutRequestSchema` with optional `allDevices: boolean`) in `src/schemas/auth.schemas.ts`
+- [X] T015 [US2] Implement `revokeSession(sessionId)` and `revokeAllUserSessions(userId)` methods in `src/services/session.service.ts`
+- [X] T016 [US2] Register `POST /api/auth/logout` endpoint protected by `requireAuth` in `src/routes/auth.routes.ts`
 
 **Checkpoint**: Histórias de Usuário 1 e 2 plenamente funcionais e integradas.
 

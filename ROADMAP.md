@@ -1,112 +1,161 @@
-# 🗺️ Roadmap de Evolução — Backend (v1.1.0+)
+# 🗺️ Roadmap de Evolução — Backend (v1.1.0 & v1.2.0+)
 
-Este documento detalha o ciclo de evolução do backend (`projeto-backend-dashboard-sdd`), estruturado conforme os princípios de **Schema-Driven Development (SDD)** e os fluxos do **Spec-Kit**.
+Este documento detalha o ciclo de evolução do backend (`projeto-backend-dashboard`), estruturado conforme os princípios de **Schema-Driven Development (SDD)** e os fluxos do **Spec-Kit**, mantendo total paridade e sincronismo com o frontend (`projeto-frontend-dashboard`).
 
 ---
 
-## 🎯 Visão Geral da Versão 1.1.0
+## 📌 Status Atual do Backend
 
-A versão 1.1.0 introduz o suporte nativo a **Múltiplas Contas Bancárias e Cartões**, **Exclusão de Transações**, **Novas Categorias Financeiras**, **Tratamento Contábil Inteligente de Faturas** e **Perfil Financeiro do Usuário (Onboarding Contextual para IA)**.
+| Versão | Status | Branches / Tags | Cobertura de Testes |
+|---|---|---|---|
+| **v1.0.0** | ✅ Concluída em Produção | Tag `v1.0.0` / Branch `main` | Testes unitários e de integração verdes |
+| **v1.1.0** | ✅ Concluída no Código (Pronta para Release) | Branch `develop` (Aguardando merge para `main` e Tag `v1.1.0`) | 81 testes de especificações verdes (F007-F010) |
+| **v1.2.0** | 📋 Planejada (Alinhada com Frontend) | Branches `feature/011-*` a `014-*` | Planejamento de contratos e schemas Zod |
+
+---
+
+## 🎯 Visão Geral dos Ciclos v1.1.0 e v1.2.0
 
 ```mermaid
 flowchart TD
-    subgraph v1.1.0 ["Ciclo v1.1.0 (SDD & Spec-Kit)"]
-        F007["Feature 007: Gestão de Contas (Accounts CRUD)"]
-        F008["Feature 008: Novas Categorias & Exclusão de Transações"]
-        F009["Feature 009: Tratamento Contábil de Faturas na IA & Análises"]
-        F010["Feature 010: Perfil Financeiro, Regime de Renda e Metas (Onboarding IA)"]
+    subgraph v110 ["Ciclo v1.1.0 (Concluído no develop — 100% dos Testes Aprovados)"]
+        F007["Feature 007: Gestão de Contas (Accounts CRUD) ✅"]
+        F008["Feature 008: Novas Categorias & Exclusão de Transações ✅"]
+        F009["Feature 009: Tratamento Contábil de Faturas na IA & Análises ✅"]
+        F010["Feature 010: Perfil Financeiro, Regime de Renda e Metas ✅"]
     end
+
+    subgraph v120 ["Ciclo v1.2.0 (Planejado — Integração com Frontend Feature 009)"]
+        F011["Feature 011: Perfil de Usuário, Nome e Foto de Perfil (Avatar)"]
+        F012["Feature 012: Segurança de Acesso, 2FA via E-mail e Logout"]
+        F013["Feature 013: Vínculo de Contas Sociais (Google OAuth 2.0)"]
+        F014["Feature 014: Central de Exportação de Dados (CSV, XLSX e PDF)"]
+    end
+
     F007 --> F008 --> F009 --> F010
-    F010 --> Release["Release v1.1.0 (Merge develop -> main)"]
+    F010 --> Release110["Release v1.1.0 (Merge develop -> main & Tag v1.1.0)"]
+    Release110 --> F011
+    F011 --> F012
+    F012 --> F013
+    F013 --> F014
+    F014 --> Release120["Release v1.2.0 (Merge develop -> main & Tag v1.2.0)"]
 ```
 
 ---
 
-## 📋 Features Planejadas (Ciclo v1.1.0)
+## 📦 Features Entregues (Ciclo v1.1.0)
 
-### 🏦 Feature 007: Gestão de Contas Bancárias e Cartões (`specs/007-accounts-management`)
-**Objetivo**: Permitir ao usuário criar, renomear, listar e excluir contas financeiras (corrente, poupança, cartão de crédito, investimentos), associando transações e importações a contas específicas.
+### 🏦 Feature 007: Gestão de Contas Bancárias e Cartões (`specs/007-accounts-management`) ✅
+- **Status**: Concluída (26/26 tarefas).
+- **Endpoints**: `GET /api/accounts`, `POST /api/accounts`, `PATCH /api/accounts/:id`, `DELETE /api/accounts/:id`.
+- Suporte a múltiplas contas, agregação de saldos e vinculação automática de transações e importações OFX/CSV.
+
+### 🏷️ Feature 008: Novas Categorias Canônicas e Exclusão de Transações (`specs/008-categories-and-deletion`) ✅
+- **Status**: Concluída (19/19 tarefas).
+- **Endpoints**: `DELETE /api/transactions/:id`, `PATCH /api/transactions/:id`.
+- Expansão para 11 categorias canônicas (`"Pagamento de Fatura"` e `"Investimentos"`), suporte no prompt do Gemini e remoção atômica com invalidação de cache de análise.
+
+### 🧠 Feature 009: Tratamento Contábil Inteligente de Faturas (`specs/009-invoice-accounting-ai`) ✅
+- **Status**: Concluída (17/17 tarefas).
+- **Endpoints**: `GET /api/analysis/:month`.
+- Segregação de faturas de cartão para eliminar duplicidade de despesas em `totalExpenses`, rastreamento do indicador `invoiceSettlements` e calibração contábil no Gemini.
+
+### 👤 Feature 010: Perfil Financeiro, Regime de Renda e Metas (`specs/010-user-financial-profile`) ✅
+- **Status**: Concluída (19/19 tarefas).
+- **Endpoints**: `GET /api/user/profile`, `PUT /api/user/profile`.
+- Cadastro voluntário de regime de trabalho (CLT, PJ, etc.), renda mensal declarada, metas financeiras prioritárias e calibração da reserva de emergência pela IA.
+
+---
+
+## 🚀 Features Planejadas (Ciclo v1.2.0 — Integração Frontend Feature 009)
+
+As features abaixo espelham as necessidades e contratos formalizados no frontend (`specs/009-profile-security-export`), garantindo suporte integral a gerenciamento de identidade, segurança de sessão e central de relatórios financeiros.
+
+---
+
+### 🖼️ Feature 011: Perfil de Usuário, Nome e Foto de Perfil (`specs/011-user-avatar-identity`)
+**Objetivo**: Permitir ao usuário atualizar seu nome de exibição, realizar upload de foto de perfil (avatar) com validação de formato e tamanho, e excluir a foto restaurando o fallback de iniciais.
 
 - **Contrato de Domínio & Modelagem**:
-  - Modelo `Account` no MongoDB:
+  - Modelo `User` estendido:
     ```typescript
-    interface IAccount {
-      _id: Types.ObjectId;
-      userId: Types.ObjectId;
-      name: string; // Ex: "Nubank Principal", "Itaú Corrente"
-      type: 'CHECKING' | 'CREDIT_CARD' | 'INVESTMENT' | 'CASH' | 'OTHER';
-      institution?: string; // Código/Nome do banco (ex: "260 - Nu Pagamentos")
-      color?: string; // Hexadecimal para UI
-      createdAt: Date;
+    interface IUser {
+      // ... campos existentes
+      name?: string;
+      avatarUrl?: string | null;
       updatedAt: Date;
     }
     ```
-  - Migração/Compatibilidade: Transações sem `accountId` associadas a uma conta padrão ("Conta Principal").
-  - Atualização do `ITransaction` para incluir `accountId?: Types.ObjectId`.
 - **Endpoints REST**:
-  - `GET /api/accounts`: Listar contas do usuário com resumo de saldo e contagem de transações.
-  - `POST /api/accounts`: Criar nova conta manual.
-  - `PATCH /api/accounts/:id`: Renomear ou alterar propriedades da conta.
-  - `DELETE /api/accounts/:id`: Excluir conta com política segura (opção de cascata para transações ou bloqueio se houver transações ativas).
-- **Importação OFX / CSV**:
-  - Parâmetro `accountId` obrigatório ou opcional (auto-detectar/criar conta a partir de tags OFX `<BANKID>` e `<ACCTID>`).
-- **Etapas Spec-Kit**:
-  1. `specify`: Definição de requisitos e casos de erro (404, 409 conflito de nome, 400 conta não pertence ao usuário).
-  2. `plan`: Definição de schemas Zod, repositórios e serviços (`AccountService`).
-  3. `tasks`: Lista de tarefas com TDD (testes de unidade e integração).
-  4. `implement`: Execução e validação com 100% dos testes verdes.
-  5. `converge`: Auditoria de conformidade.
-
----
-
-### 🏷️ Feature 008: Novas Categorias Canônicas e Exclusão de Transações (`specs/008-categories-and-deletion`)
-**Objetivo**: Expandir as categorias canônicas para suportar faturas e investimentos, e permitir a exclusão pontual de lançamentos.
-
-- **Novas Categorias Canônicas**:
-  - Adição de `"Pagamento de Fatura"` e `"Investimentos"` ao `CANONICAL_CATEGORIES` em `src/config/constants.ts`.
-  - Atualização dos prompts de categorização da IA Gemini para reconhecer e classificar automaticamente liquidações de fatura e aportes de investimento.
-- **Exclusão de Transações**:
-  - Endpoint `DELETE /api/transactions/:id`:
-    - Validação de propriedade (`userId === transaction.userId`).
-    - Remoção atômica e invalidação do cache de análises (`AnalysisService.invalidate(userId)`).
-    - Status HTTP `204 No Content` ou `200 OK` com payload de confirmação.
+  - `GET /api/user/profile`: Retornar dados cadastrais completos (`id`, `email`, `name`, `avatarUrl`, `hasAiKey`, `security`, `financialProfile`, `createdAt`).
+  - `PATCH /api/user/profile`: Atualização parcial de dados cadastrais (ex: `{ name: string }`, 2 a 100 caracteres).
+  - `POST /api/user/avatar`: Upload de avatar em `multipart/form-data` (máx. 5MB, formatos permitidos: `image/jpeg`, `image/png`, `image/webp`), armazenando com chave segura e retornando `{ avatarUrl: string }`.
+  - `DELETE /api/user/avatar`: Remoção da foto de perfil com expurgo do armazenamento e atualização de `avatarUrl: null`.
 - **Etapas Spec-Kit**:
   1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
 
 ---
 
-### 🧠 Feature 009: Tratamento Contábil Inteligente (Fatura de Cartão na IA e Métricas)
-**Objetivo**: Evitar duplicidade de despesas nos relatórios quando o usuário importa tanto o extrato da conta corrente quanto a fatura do cartão.
-
-- **Regra Contábil**:
-  - Transações na categoria `"Pagamento de Fatura"` não somam como despesa primária nos gráficos de distribuição de gastos (pois os itens individuais da fatura já foram somados como alimentação, transporte, etc.).
-  - A IA Assistente deve reconhecer pagamentos de fatura como transferências de liquidação entre contas.
-- **Etapas Spec-Kit**:
-  1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
-
----
-
-### 👤 Feature 010: Perfil Financeiro, Regime de Renda e Metas do Usuário (`specs/010-user-financial-profile`)
-**Objetivo**: Permitir ao usuário cadastrar voluntariamente informações contextuais sobre seu regime de trabalho, renda mensal estimada e objetivos financeiros prioritários, alimentando a IA Gemini com contexto de alta precisão para geração de relatórios personalizados e planejamento estratégico de reservas.
+### 🛡️ Feature 012: Segurança de Acesso, 2FA via E-mail e Logout Seguro (`specs/012-security-2fa-logout`)
+**Objetivo**: Proteger os dados financeiros sensíveis com autenticação em dois fatores (2FA) baseada em envio de código OTP de 6 dígitos por e-mail, desafio de 2FA no login e encerramento de sessão confiável no servidor.
 
 - **Contrato de Domínio & Modelagem**:
-  - Modelo `User` no MongoDB estendido com subdocumento opcional `financialProfile`:
+  - Modelo `User` estendido com subdocumento de segurança e controle de OTP:
     ```typescript
-    interface IFinancialProfile {
-      incomeType?: 'CLT' | 'PJ_AUTONOMO' | 'PUBLIC_SERVANT' | 'ENTREPRENEUR' | 'STUDENT' | 'RETIRED' | 'OTHER';
-      declaredMonthlyIncome?: number; // Valor numérico decimal opcional
-      goals?: Array<'RESERVA_EMERGENCIA' | 'QUITAR_DIVIDAS' | 'COMPRAR_IMOVEL' | 'INVESTIR_LONGO_PRAZO' | 'CONTROLE_GASTOS'>;
-      riskProfile?: 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE';
-      updatedAt?: Date;
+    interface IUserSecurity {
+      twoFactorEnabled: boolean;
+      twoFactorSecret?: string; // Código OTP com hash/salt
+      twoFactorExpiresAt?: Date;
+      hasLocalPassword: boolean;
+      lastLogoutAt?: Date; // Invalidação de tokens anteriores
     }
     ```
 - **Endpoints REST**:
-  - `GET /api/user/profile`: Retornar perfil cadastral e financeiro do usuário autenticado.
-  - `PUT /api/user/profile`: Atualizar ou preencher regime de renda, valor declarado e metas financeiras.
-- **Integração com IA (Gemini)**:
-  - Injeção de contexto no prompt de análise mensal (`AnalysisService`) e no assistente de chat (`ChatService`), calibrando o cálculo ideal da reserva de emergência (ex: 3 a 6 meses para CLT vs. 6 a 12 meses para PJ) e priorizando metas do usuário.
-- **Conformidade LGPD**:
-  - Preenchimento 100% facultativo (voluntário) pelo usuário com finalidade estrita de PFM (Personal Financial Management), sem fins de scoring punitivo ou compartilhamento externo.
+  - `POST /api/auth/2fa/request-enable`: Disparo de código de segurança de 6 dígitos com expiração de 10 minutos para o e-mail cadastrado.
+  - `POST /api/auth/2fa/confirm-enable`: Validação do código de 6 dígitos informado pelo usuário e ativação definitiva do 2FA (`twoFactorEnabled: true`).
+  - `POST /api/auth/2fa/disable`: Desativação do 2FA mediante conferência prévia de senha ou código de confirmação.
+  - Atualização do `POST /api/auth/login`: Se `twoFactorEnabled: true`, retornar status transitório `200` com `{ requires2FA: true, tempToken: string }`, exigindo envio do código OTP para emissão do JWT final.
+  - `POST /api/auth/logout`: Revogação da sessão atual com expurgo de tokens ou atualização de `lastLogoutAt` para rejeição de tokens legados pelo middleware `requireAuth`.
+- **Etapas Spec-Kit**:
+  1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
+
+---
+
+### 🔗 Feature 013: Vínculo de Contas Sociais — Google OAuth 2.0 (`specs/013-google-auth-linking`)
+**Objetivo**: Permitir que usuários vinculem ou desvinculem sua conta Google ao perfil existente, prevenindo desvinculação acidental caso o Google seja o único método de autenticação da conta.
+
+- **Contrato de Domínio & Modelagem**:
+  - Subdocumento no modelo `User`:
+    ```typescript
+    interface IGoogleAccount {
+      googleId?: string;
+      googleEmail?: string;
+      linkedAt?: Date;
+    }
+    ```
+- **Endpoints REST**:
+  - `POST /api/auth/google/link`: Validação do idToken do Google e vinculação do `googleId` e `googleEmail` à conta do usuário autenticado.
+  - `DELETE /api/auth/google/unlink`: Desvinculação da conta Google com validação de guarda (rejeita com `400 Bad Request` se o usuário não possuir senha local cadastrada).
+- **Etapas Spec-Kit**:
+  1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
+
+---
+
+### 📊 Feature 014: Central de Exportação de Dados Financeiros (`specs/014-financial-data-export`)
+**Objetivo**: Fornecer endpoint unificado de exportação e download de extratos e relatórios financeiros em formatos CSV, XLSX e PDF com formatação localizada (BRL, datas em PT-BR) e filtros contextuais.
+
+- **Contrato de Requisição & Query Parameters**:
+  - `GET /api/transactions/export`:
+    - `format`: `"csv" | "xlsx" | "pdf"` (obrigatório).
+    - `month`: Formato `YYYY-MM` (opcional).
+    - `startDate`: Formato `YYYY-MM-DD` (opcional).
+    - `endDate`: Formato `YYYY-MM-DD` (opcional).
+    - `accountId`: ID da conta bancária (opcional).
+    - `category`: Categoria canônica (opcional).
+- **Formatos Gerados**:
+  - **CSV**: Codificação UTF-8 com BOM (`\uFEFF`) para compatibilidade nativa com Microsoft Excel no Brasil (delimitador `;` e vírgula decimal).
+  - **XLSX**: Planilha estruturada via `exceljs` com cabeçalhos destacados, tipos numéricos formatados em moeda (`R$ #,##0.00`) e largura automática de colunas.
+  - **PDF**: Relatório diagramado via `pdfkit` contendo cabeçalho institucional, sumário de KPIs (Receitas, Despesas, Saldo Líquido) e tabela de transações.
 - **Etapas Spec-Kit**:
   1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
 
@@ -137,9 +186,9 @@ sequenceDiagram
 
 ---
 
-## 🚀 Próximas Versões Futuras (Backlog v1.2.0+)
+## 🔮 Próximas Versões Futuras (Backlog v1.3.0+)
 
-- [ ] **Importação Open Finance / Pluggy em Produção**: Conexão bancária direta automática.
-- [ ] **Regras Customizadas de Categorização**: Regras do tipo "se descrição contém X, categorizar como Y".
-- [ ] **Transações Recorrentes e Orçamentos (Budgets)**: Limites de gastos por categoria e alertas automáticos.
-- [ ] **Exportação de Relatórios**: Exportação em CSV, PDF e XLSX formatados.
+- [ ] **Importação Open Finance / Pluggy em Produção**: Conexão bancária direta automática via webhooks.
+- [ ] **Regras Customizadas de Categorização**: Mecanismo de regras com prioridade e condições regex/substring.
+- [ ] **Transações Recorrentes e Orçamentos (Budgets)**: Metas de teto orçamentário por categoria e alertas pró-ativos.
+- [ ] **Notificações Push / Webhooks**: Avisos de vencimento de faturas e anomalias de consumo detectadas por IA.

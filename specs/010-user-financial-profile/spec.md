@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-19
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Feature 010: Perfil Financeiro, Regime de Renda e Metas do Usuário (specs/010-user-financial-profile) conforme o ROADMAP.md"
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-19
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Feature 009: Tratamento Contábil Inteligente de Faturas na IA & Métricas (specs/009-invoice-accounting-ai) conforme o ROADMAP.md"
 

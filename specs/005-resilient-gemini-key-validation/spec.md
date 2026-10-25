@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Implementar validação resiliente e semântica de erros na integração com o Gemini (BYOK). No endpoint de cadastro de chave (PUT /api/user/ai-key), se o Google retornar 503 UNAVAILABLE (alta demanda) ou 429 temporário, reconhecer a chave como autenticada pelo gateway do Google, salvá-la criptografada no banco e responder com sucesso (200 OK) e mensagem informativa, rejeitando com 400 Bad Request apenas quando houver erro explícito de autenticação (chave inválida ou revogada). Além disso, padronizar o tratamento de erros do Gemini em toda a API (categorização, chat e análise) para refletir códigos HTTP e mensagens coerentes."
 

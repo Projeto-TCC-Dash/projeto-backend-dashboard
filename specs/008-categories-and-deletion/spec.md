@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-19
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Feature 008: Novas Categorias Canônicas (\"Pagamento de Fatura\" e \"Investimentos\") e Exclusão Pontual de Transações (specs/008-categories-and-deletion) conforme o ROADMAP.md"
 

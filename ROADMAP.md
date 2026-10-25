@@ -10,7 +10,7 @@ Este documento detalha o ciclo de evolução do backend (`projeto-backend-dashbo
 |---|---|---|---|
 | **v1.0.0** | ✅ Concluída em Produção | Tag `v1.0.0` / Branch `main` | Testes unitários e de integração verdes |
 | **v1.1.0** | ✅ Concluída no Código (Pronta para Release) | Branch `develop` (Aguardando merge para `main` e Tag `v1.1.0`) | 81 testes de especificações verdes (F007-F010) |
-| **v1.2.0** | 🚧 Em Andamento (F011, F012 e F013 Concluídas) | Branches `feature/011-*` a `014-*` | 198 testes unitários e de integração verdes |
+| **v1.2.0** | 🚧 Em Andamento (F011, F012 e F013 Concluídas) | Branches `feature/011-*` a `014-*` | 202 testes unitários e de integração verdes |
 
 ---
 
@@ -18,6 +18,14 @@ Este documento detalha o ciclo de evolução do backend (`projeto-backend-dashbo
 
 ```mermaid
 flowchart TD
+    subgraph v100 ["Ciclo v1.0.0 (Concluído e Tagged — Base do Sistema)"]
+        F001["Feature 001: API REST, BYOK AES-256-GCM & Chat SSE ✅"]
+        F002["Feature 002: Cache de Análise com TTL 24h ✅"]
+        F004["Feature 004: Gerador Local Determinístico de Seed ✅"]
+        F005["Feature 005: Validação Resiliente de Chaves Gemini ✅"]
+        F006["Feature 006: Categorias Canônicas & Edição Manual ✅"]
+    end
+
     subgraph v110 ["Ciclo v1.1.0 (Concluído no develop — 100% dos Testes Aprovados)"]
         F007["Feature 007: Gestão de Contas (Accounts CRUD) ✅"]
         F008["Feature 008: Novas Categorias & Exclusão de Transações ✅"]
@@ -32,6 +40,8 @@ flowchart TD
         F014["Feature 014: Central de Exportação de Dados (CSV, XLSX e PDF)"]
     end
 
+    v100 --> Release100["Release v1.0.0 (Tag v1.0.0 / main)"]
+    Release100 --> F007
     F007 --> F008 --> F009 --> F010
     F010 --> Release110["Release v1.1.0 (Merge develop -> main & Tag v1.1.0)"]
     Release110 --> F011
@@ -40,6 +50,30 @@ flowchart TD
     F013 --> F014
     F014 --> Release120["Release v1.2.0 (Merge develop -> main & Tag v1.2.0)"]
 ```
+
+---
+
+## 📦 Features Entregues (Ciclo Inaugural v1.0.0)
+
+### 🏗️ Feature 001: API REST do Backend Financeiro (`specs/001-financial-backend-api`) ✅
+- **Status**: Concluída (47/47 tarefas).
+- **Entregas**: Autenticação JWT, proteção BYOK com criptografia AES-256-GCM para chave Gemini, upload multipart OFX/CSV, categorização inteligente com minimização de tokens e consultoria financeira em streaming SSE (`POST /api/chat/stream`).
+
+### ⚡ Feature 002: Cache de Análise com TTL 24h (`specs/002-seed-cache-analysis`) ✅
+- **Status**: Concluída (15/15 tarefas).
+- **Entregas**: Endpoint `GET /api/analysis/:month` com cache nativo no MongoDB, TTL de 24h e invalidação por hash de estado de transações.
+
+### 🎲 Feature 004: Gerador Local Autônomo de Dados Sintéticos (`specs/004-local-seed-generator`) ✅
+- **Status**: Concluída (10/10 tarefas).
+- **Entregas**: Script `npm run seed` 100% offline, gerando 40+ lançamentos brasileiros e contas padrão. Substituiu a integração externa Pluggy (Feature 003 descontinuada por aderência ao Princípio V da Constituição).
+
+### 🛡️ Feature 005: Validação Resiliente de Chaves Gemini (`specs/005-resilient-gemini-key-validation`) ✅
+- **Status**: Concluída (10/10 tarefas).
+- **Entregas**: Tratamento resiliente em `PUT /api/user/ai-key` (reconhece status 503/429 temporários como chave comprovadamente existente) e semântica unificada de erros.
+
+### ✏️ Feature 006: Edição Manual de Transações e Categorias (`specs/006-transaction-categories-editing`) ✅
+- **Status**: Concluída (19/19 tarefas).
+- **Entregas**: Endpoint `PATCH /api/transactions/:id` e filtros por mês/categoria em `GET /api/transactions`.
 
 ---
 

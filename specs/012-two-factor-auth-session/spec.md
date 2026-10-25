@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Criar especificação para Autenticação em Dois Fatores (2FA via E-mail com código OTP de 6 dígitos), interceptação no login e logout seguro com revogação de sessão."
 

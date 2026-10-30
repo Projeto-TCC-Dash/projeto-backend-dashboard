@@ -39,7 +39,7 @@ curl -X POST http://localhost:3000/api/auth/google \
   -H "Content-Type: application/json" \
   -d '{"idToken":"<GOOGLE_ID_TOKEN>"}'
 ```
-Se a conta possuir 2FA desativado, o token JWT completo é emitido. Se possuir 2FA ativado, o desafio `{ "requires2FA": true, "challengeId": "..." }` é retornado para verificação de OTP.
+O token JWT completo é emitido para a conta previamente vinculada.
 
 ---
 

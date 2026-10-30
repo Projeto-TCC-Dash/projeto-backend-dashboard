@@ -29,7 +29,6 @@ export const UpdateFinancialProfileRequestSchema = z.object({
 export type UpdateFinancialProfileRequest = z.infer<typeof UpdateFinancialProfileRequestSchema>;
 
 export const UserSecuritySettingsSchema = z.object({
-  twoFactorEnabled: z.boolean().default(false),
   hasLocalPassword: z.boolean().default(true),
   googleLinked: z.boolean().default(false),
   googleEmail: z.string().email().optional(),

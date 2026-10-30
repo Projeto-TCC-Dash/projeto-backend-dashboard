@@ -77,15 +77,6 @@ export const AVATAR_CONFIG = {
   URL_PREFIX: '/uploads/avatars',
 } as const;
 
-export const TWO_FACTOR_CONFIG = {
-  OTP_LENGTH: 6,
-  OTP_TTL_MS: 10 * 60 * 1000, // 10 minutos
-  OTP_TTL_SECONDS: 10 * 60, // 600 segundos
-  MAX_ATTEMPTS: 5,
-  RESEND_COOLDOWN_MS: 60 * 1000, // 60 segundos
-  RESEND_COOLDOWN_SECONDS: 60,
-} as const;
-
 export const SESSION_CONFIG = {
   SESSION_TTL_MS: 7 * 24 * 60 * 60 * 1000, // 7 dias
   SESSION_TTL_SECONDS: 7 * 24 * 60 * 60, // 604800 segundos

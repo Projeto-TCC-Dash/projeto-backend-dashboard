@@ -74,14 +74,13 @@ describe('User Story 3: Google Login & Profile Social Metadata', () => {
       expect(body.message).toContain('Nenhuma conta vinculada a este perfil Google');
     });
 
-    it('deve emitir token JWT diretamente quando 2FA estiver desativado', async () => {
+    it('deve emitir token JWT diretamente ao realizar login com sucesso', async () => {
       vi.spyOn(AuthService, 'loginWithGoogle').mockResolvedValueOnce({
         token: 'signed-session-jwt-token',
         user: {
           id: testUserId,
           email: 'usuario.social@gmail.com',
           hasAiKey: false,
-          isTwoFactorEnabled: false,
         },
       });
 
@@ -95,28 +94,6 @@ describe('User Story 3: Google Login & Profile Social Metadata', () => {
       const body = JSON.parse(res.body);
       expect(body.token).toBe('signed-session-jwt-token');
       expect(body.user.email).toBe('usuario.social@gmail.com');
-      expect(body.requires2FA).toBeUndefined();
-    });
-
-    it('deve retornar desafio de 2FA quando o usuário possuir autenticação em duas etapas ativada', async () => {
-      const challengeId = '507f1f77bcf86cd799439099';
-      vi.spyOn(AuthService, 'loginWithGoogle').mockResolvedValueOnce({
-        requires2FA: true,
-        challengeId,
-        message: 'Código de verificação enviado para o seu e-mail cadastrado.',
-      });
-
-      const res = await app.inject({
-        method: 'POST',
-        url: '/api/auth/google',
-        payload: { idToken: 'valid-google-token' },
-      });
-
-      expect(res.statusCode).toBe(200);
-      const body = JSON.parse(res.body);
-      expect(body.requires2FA).toBe(true);
-      expect(body.challengeId).toBe(challengeId);
-      expect(body.token).toBeUndefined();
     });
 
     it('deve aceitar login enviando { credential: "..." }', async () => {
@@ -126,7 +103,6 @@ describe('User Story 3: Google Login & Profile Social Metadata', () => {
           id: testUserId,
           email: 'usuario.credential@gmail.com',
           hasAiKey: false,
-          isTwoFactorEnabled: false,
         },
       });
 
@@ -155,7 +131,6 @@ describe('User Story 3: Google Login & Profile Social Metadata', () => {
         email: 'investidor@exemplo.com',
         hasAiKey: false,
         security: {
-          twoFactorEnabled: false,
           hasLocalPassword: true,
           googleLinked: true,
           googleEmail: 'investidor.social@gmail.com',

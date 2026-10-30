@@ -204,7 +204,6 @@ describe('User Profile Routes (HTTP Inject & Contracts)', () => {
         avatarUrl: null,
         hasAiKey: false,
         security: {
-          twoFactorEnabled: false,
           hasLocalPassword: true,
           googleLinked: false,
         },

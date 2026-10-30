@@ -73,16 +73,16 @@
 
 ## Phase 5: User Story 3 - Consulta do Estado de Vínculo e Login via Google (Priority: P3)
 
-**Goal**: Exibir status do vínculo no perfil e permitir login social por conta Google vinculada com suporte a 2FA
+**Goal**: Exibir status do vínculo no perfil e permitir login social por conta Google vinculada
 
-**Independent Test**: `GET /api/user/profile` retorna metadados no subobjeto `security`; `POST /api/auth/google` emite JWT ou desafio 2FA conforme configuração do usuário.
+**Independent Test**: `GET /api/user/profile` retorna metadados no subobjeto `security`; `POST /api/auth/google` emite JWT conforme vínculo do usuário.
 
 ### Tests for User Story 3
 - [X] T015 [P] [US3] Criar suite de testes de integração para login social e consulta de perfil em `tests/integration/google-login.test.ts`
 
 ### Implementation for User Story 3
-- [X] T016 [US3] Atualizar `UserService.getProfile` em `src/services/user.service.ts` para retornar `googleLinked`, `googleEmail`, `googleLinkedAt` e status dinâmico de `twoFactorEnabled`
-- [X] T017 [US3] Implementar método `AuthService.loginWithGoogle` em `src/services/auth.service.ts` com criação de sessão e interceptação de 2FA
+- [X] T016 [US3] Atualizar `UserService.getProfile` em `src/services/user.service.ts` para retornar `googleLinked`, `googleEmail` e `googleLinkedAt`
+- [X] T017 [US3] Implementar método `AuthService.loginWithGoogle` em `src/services/auth.service.ts` com criação de sessão e retorno direto de token
 - [X] T018 [US3] Registrar rota pública `POST /api/auth/google` em `src/routes/auth.routes.ts`
 - [X] T019 [US3] Executar e validar aprovação dos testes de login social e perfil com `npm test -- tests/integration/google-login.test.ts`
 

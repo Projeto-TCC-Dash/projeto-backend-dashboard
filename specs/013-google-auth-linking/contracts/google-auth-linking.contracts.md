@@ -21,7 +21,6 @@ Vincula a conta Google ao perfil do usuário atualmente autenticado.
       "name": "Nome do Usuário",
       "hasAiKey": false,
       "security": {
-        "twoFactorEnabled": false,
         "hasLocalPassword": true,
         "googleLinked": true,
         "googleEmail": "usuario@gmail.com",
@@ -68,7 +67,6 @@ Remove o vínculo da conta Google do perfil do usuário autenticado.
       "id": "507f1f77bcf86cd799439011",
       "email": "usuario@gmail.com",
       "security": {
-        "twoFactorEnabled": false,
         "hasLocalPassword": true,
         "googleLinked": false
       },
@@ -99,7 +97,7 @@ Realiza login no sistema utilizando a credencial da conta Google previamente vin
   }
   ```
 - **Responses**:
-  - `200 OK` (Login Direto sem 2FA):
+  - `200 OK`:
     ```json
     {
       "token": "eyJhbGciOiJIUzI1Ni...",
@@ -110,13 +108,6 @@ Realiza login no sistema utilizando a credencial da conta Google previamente vin
         "avatarUrl": "https://...",
         "hasAiKey": false
       }
-    }
-    ```
-  - `200 OK` (Interceptação com 2FA Ativo):
-    ```json
-    {
-      "requires2FA": true,
-      "challengeId": "653b6a98f12c123456789abc"
     }
     ```
   - `400 Bad Request`: Token inválido ou expirado.
@@ -144,7 +135,6 @@ Reflete as informações de vínculo de conta Google no subobjeto `security`:
     "avatarUrl": null,
     "hasAiKey": false,
     "security": {
-      "twoFactorEnabled": false,
       "hasLocalPassword": true,
       "googleLinked": true,
       "googleEmail": "usuario@gmail.com",

@@ -33,8 +33,6 @@ export interface IUser extends Document {
   authTag?: string | null;
   financialProfile?: IFinancialProfile;
   googleAccount?: IGoogleAccount | null;
-  isTwoFactorEnabled: boolean;
-  twoFactorConfirmedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   hasAiKey(): boolean;
@@ -101,15 +99,6 @@ const UserSchema = new Schema<IUser>(
     },
     googleAccount: {
       type: GoogleAccountSubschema,
-      default: null,
-    },
-    isTwoFactorEnabled: {
-      type: Boolean,
-      default: false,
-      required: true,
-    },
-    twoFactorConfirmedAt: {
-      type: Date,
       default: null,
     },
   },

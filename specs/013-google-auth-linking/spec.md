@@ -46,15 +46,14 @@ Como usuário com conta Google vinculada, desejo desvincular minha conta Google 
 
 Como usuário da plataforma, desejo visualizar claramente nas minhas configurações de segurança o status atual do vínculo com o Google (se está vinculado, qual e-mail e data do vínculo) e ser capaz de autenticar diretamente no sistema utilizando minha credencial do Google previamente vinculada.
 
-**Why this priority**: Fornece transparência na interface do usuário e viabiliza a conveniência do login rápido via Google para contas vinculadas, respeitando os desafios de segurança (como 2FA) configurados na conta.
+**Why this priority**: Fornece transparência na interface do usuário e viabiliza a conveniência do login rápido via Google para contas vinculadas.
 
 **Independent Test**: Pode ser testado consultando o endpoint de perfil de usuário e validando os campos de segurança social, bem como efetuando login via ID token Google com conta previamente vinculada.
 
 **Acceptance Scenarios**:
 
 1. **Given** um usuário com conta Google vinculada, **When** seus dados de perfil são consultados, **Then** a seção de segurança reporta `googleLinked: true`, o `googleEmail` mascarado/visível e a data `googleLinkedAt`.
-2. **Given** um usuário com conta Google vinculada, **When** ele realiza login utilizando o ID token do Google correspondente, **Then** o sistema valida o token, localiza o usuário pelo `googleId`, emite uma sessão JWT válida (ou aciona o desafio de 2FA se este estiver ativo na conta).
-3. **Given** um usuário com 2FA ativo que realiza login via Google, **When** a credencial do Google é validada, **Then** o sistema intercala o desafio de segundo fator (código OTP por e-mail) antes de emitir a sessão autenticada final.
+2. **Given** um usuário com conta Google vinculada, **When** ele realiza login utilizando o ID token do Google correspondente, **Then** o sistema valida o token, localiza o usuário pelo `googleId` e emite uma sessão JWT válida.
 
 ---
 
@@ -82,7 +81,6 @@ Como usuário da plataforma, desejo visualizar claramente nas minhas configuraç
 - **FR-007**: O sistema DEVE aplicar uma regra de guarda rigorosa no endpoint de desvinculação, rejeitando com HTTP 400 a tentativa de desvinculação caso o usuário não possua senha local cadastrada (`hasLocalPassword` falso).
 - **FR-008**: O sistema DEVE expor no endpoint de consulta de perfil (`GET /api/user/profile`) dentro do objeto `security` os campos `googleLinked: boolean`, `googleEmail?: string` e `googleLinkedAt?: Date`.
 - **FR-009**: O sistema DEVE fornecer um endpoint de login social (`POST /api/auth/google`) que permita autenticar usuários cuja conta Google já esteja vinculada ao sistema.
-- **FR-010**: Se o usuário que autenticar via Google possuir 2FA ativado, o sistema DEVE interceptar o fluxo emitindo o desafio `{ requires2FA: true, challengeId }` idêntico ao login por senha.
 - **FR-011**: O sistema DEVE registrar em logs de auditoria interna as ações de vínculo e desvinculação de contas sociais, sem expor tokens ou dados sensíveis (LGPD).
 - **FR-012**: O sistema DEVE suportar configuração desacoplada de `GOOGLE_CLIENT_ID` via variáveis de ambiente com validação pelo schema Zod de inicialização.
 

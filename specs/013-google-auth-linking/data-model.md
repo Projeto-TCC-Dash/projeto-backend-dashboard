@@ -76,7 +76,6 @@ export type GoogleLoginRequest = z.infer<typeof GoogleLoginRequestSchema>;
 ### Configurações de Segurança no Perfil (`UserSecuritySettings`)
 ```typescript
 export const UserSecuritySettingsSchema = z.object({
-  twoFactorEnabled: z.boolean().default(false),
   hasLocalPassword: z.boolean().default(true),
   googleLinked: z.boolean().default(false),
   googleEmail: z.string().email().optional(),

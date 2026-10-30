@@ -68,7 +68,7 @@ Se um usuário autenticado tentar desvincular sua conta Google (`DELETE /api/aut
 
 ---
 
-## 4. Integração com 2FA e Sessões no Login Social
+## 4. Sessões no Login Social
 
 ### Contexto
 O endpoint `POST /api/auth/google` permite que o usuário faça login apresentando o `idToken` do Google.
@@ -77,10 +77,6 @@ O endpoint `POST /api/auth/google` permite que o usuário faça login apresentan
 - Valida o token via `GoogleOAuthService.verifyIdToken`.
 - Busca o usuário pelo `googleAccount.googleId`.
 - Se não encontrar, retorna 401 Unauthorized com mensagem instruindo o usuário a vincular primeiro nas configurações de sua conta.
-- Se o usuário tiver `isTwoFactorEnabled: true`:
-  - Intercepta o login, gerando um desafio de OTP idêntico ao login por e-mail/senha (`AuthService.create2FAChallenge`).
-  - Retorna HTTP 200 com `{ requires2FA: true, challengeId: challenge._id.toString() }`.
-- Se o usuário não tiver 2FA ativo:
-  - Cria sessão persistente via `SessionService.createSession`.
-  - Emite o JWT assinado com claim `sessionId`.
-  - Retorna HTTP 200 com `{ token, user: { id, email, name, avatarUrl, hasAiKey } }`.
+- Cria sessão persistente via `SessionService.createSession`.
+- Emite o JWT assinado com claim `sessionId`.
+- Retorna HTTP 200 com `{ token, user: { id, email, name, avatarUrl, hasAiKey } }`.

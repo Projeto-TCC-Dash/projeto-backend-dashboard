@@ -44,7 +44,6 @@ describe('User Story 1: Google Account Linking (POST /api/auth/google/link)', ()
       email: 'investidor@exemplo.com',
       hasAiKey: false,
       security: {
-        twoFactorEnabled: false,
         hasLocalPassword: true,
         googleLinked: true,
         googleEmail: 'investidor@exemplo.com',

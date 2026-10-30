@@ -6,7 +6,6 @@ Arquivo: `src/models/user.model.ts`
 
 ```typescript
 export interface IUserSecuritySettings {
-  twoFactorEnabled: boolean;
   hasLocalPassword: boolean;
   googleLinked: boolean;
   googleEmail?: string;
@@ -34,7 +33,6 @@ Arquivo: `src/schemas/user.schemas.ts`
 
 ```typescript
 export const UserSecuritySettingsSchema = z.object({
-  twoFactorEnabled: z.boolean().default(false),
   hasLocalPassword: z.boolean().default(true),
   googleLinked: z.boolean().default(false),
   googleEmail: z.string().email().optional(),

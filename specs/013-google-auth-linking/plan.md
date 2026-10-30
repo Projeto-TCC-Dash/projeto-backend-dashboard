@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implementação do vínculo de contas sociais com o Google (OAuth 2.0 / Google Identity Services) na API REST do backend financeiro. Fornece endpoints para vincular (`POST /api/auth/google/link`), desvincular com regra de guarda contra perda acidental de acesso (`DELETE /api/auth/google/unlink`) e realizar login autenticado por conta Google (`POST /api/auth/google`), interoperável com o mecanismo de 2FA (Feature 012) e com o perfil de usuário (Feature 011).
+Implementação do vínculo de contas sociais com o Google (OAuth 2.0 / Google Identity Services) na API REST do backend financeiro. Fornece endpoints para vincular (`POST /api/auth/google/link`), desvincular com regra de guarda contra perda acidental de acesso (`DELETE /api/auth/google/unlink`) e realizar login autenticado por conta Google (`POST /api/auth/google`), interoperável com o perfil de usuário (Feature 011).
 
 ## Technical Context
 
@@ -30,7 +30,7 @@ Implementação do vínculo de contas sociais com o Google (OAuth 2.0 / Google I
 - Conformidade estrita com LGPD (princípio de minimização de dados)
 - Garantir guarda contra lock-out: rejeitar desvinculação se o usuário não possuir senha local cadastrada
 
-**Scale/Scope**: Módulo de autenticação social complementar a e-mail/senha e 2FA
+**Scale/Scope**: Módulo de autenticação social complementar a e-mail/senha
 
 ## Constitution Check
 
@@ -87,5 +87,5 @@ tests/
 │   └── google-auth.service.test.ts  # Testes unitários do validador de token
 └── integration/
     ├── google-link.test.ts          # Testes de vinculação, unicidade e desvinculação com guarda
-    └── google-login.test.ts         # Testes de login social e integração com 2FA
+    └── google-login.test.ts         # Testes de login social por conta vinculada
 ```

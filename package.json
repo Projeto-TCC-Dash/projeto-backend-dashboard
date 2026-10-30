@@ -1,6 +1,6 @@
 {
   "name": "projeto-backend-dashboard-sdd",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "API REST do backend financeiro com arquitetura BYOK, ingestão de extratos OFX/CSV e consultoria via IA.",
   "type": "module",
   "main": "dist/server.js",

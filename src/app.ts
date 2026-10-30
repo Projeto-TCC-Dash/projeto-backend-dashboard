@@ -18,6 +18,7 @@ import { authRoutes } from './routes/auth.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { transactionRoutes } from './routes/transactions.routes.js';
+import { exportRoutes } from './routes/export.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 
 export function buildApp(): FastifyInstance {
@@ -83,8 +84,9 @@ export function buildApp(): FastifyInstance {
   // Accounts CRUD routes
   app.register(accountsRoutes);
 
-  // Transactions routes
+  // Transactions & Export routes
   app.register(transactionRoutes);
+  app.register(exportRoutes);
 
   // Chatbot SSE routes
   app.register(chatRoutes);

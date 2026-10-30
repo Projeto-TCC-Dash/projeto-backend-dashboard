@@ -10,7 +10,7 @@ Este documento detalha o ciclo de evolução do backend (`projeto-backend-dashbo
 |---|---|---|---|
 | **v1.0.0** | ✅ Concluída em Produção | Tag `v1.0.0` / Branch `main` | Testes unitários e de integração verdes |
 | **v1.1.0** | ✅ Concluída no Código (Pronta para Release) | Branch `develop` (Aguardando merge para `main` e Tag `v1.1.0`) | 81 testes de especificações verdes (F007-F010) |
-| **v1.2.0** | 🚧 Em Andamento (F011, F012 e F013 Concluídas) | Branches `feature/011-*` a `014-*` | 202 testes unitários e de integração verdes |
+| **v1.2.0** | ✅ Concluída no Código (F011, F013 e F014 Concluídas) | Branches `feature/011-*` a `014-*` | 191 testes unitários e de integração verdes |
 
 ---
 
@@ -33,11 +33,10 @@ flowchart TD
         F010["Feature 010: Perfil Financeiro, Regime de Renda e Metas ✅"]
     end
 
-    subgraph v120 ["Ciclo v1.2.0 (Em Andamento — Integração com Frontend Feature 009)"]
+    subgraph v120 ["Ciclo v1.2.0 (Concluído no Código — 100% dos Testes Aprovados)"]
         F011["Feature 011: Perfil de Usuário, Nome e Foto de Perfil (Avatar) ✅"]
-        F012["Feature 012: Segurança de Acesso, 2FA via E-mail e Logout ✅"]
         F013["Feature 013: Vínculo de Contas Sociais (Google OAuth 2.0) ✅"]
-        F014["Feature 014: Central de Exportação de Dados (CSV, XLSX e PDF)"]
+        F014["Feature 014: Central de Exportação de Dados (CSV, XLSX e PDF) ✅"]
     end
 
     v100 --> Release100["Release v1.0.0 (Tag v1.0.0 / main)"]
@@ -45,8 +44,7 @@ flowchart TD
     F007 --> F008 --> F009 --> F010
     F010 --> Release110["Release v1.1.0 (Merge develop -> main & Tag v1.1.0)"]
     Release110 --> F011
-    F011 --> F012
-    F012 --> F013
+    F011 --> F013
     F013 --> F014
     F014 --> Release120["Release v1.2.0 (Merge develop -> main & Tag v1.2.0)"]
 ```
@@ -112,39 +110,19 @@ flowchart TD
   - `POST /api/user/avatar`: Upload de avatar em `multipart/form-data` (máx. 5MB, jpeg/png/webp) com persistência em disco e URL servida.
   - `DELETE /api/user/avatar`: Remoção do avatar e retorno ao fallback `null`.
 
-### 🛡️ Feature 012: Segurança de Acesso, 2FA via E-mail e Logout Seguro (`specs/012-two-factor-auth-session`) ✅
-- **Status**: Concluída (23/23 tarefas).
-- **Objetivo**: Proteger os dados financeiros com 2FA via OTP (6 dígitos) enviado por e-mail, desafio de interceptação no login e gerenciamento de sessões com revogação imediata (logout).
-- **Endpoints REST**:
-  - `POST /api/auth/login`: Interceptação para emissão de desafio `{ requires2FA: true, challengeId }` quando 2FA estiver ativo.
-  - `POST /api/auth/2fa/verify`: Validação do OTP de 6 dígitos e emissão do JWT com claim de `sessionId`.
-  - `POST /api/auth/2fa/enable`: Disparo do desafio para ativação de 2FA.
-  - `POST /api/auth/2fa/confirm-enable`: Validação do código e ativação definitiva.
-  - `POST /api/auth/2fa/disable`: Desativação de 2FA confirmada por senha local.
-  - `POST /api/auth/2fa/resend`: Reenvio de OTP com respeito ao cooldown de 60s.
-  - `POST /api/auth/logout`: Revogação da sessão ativa ou de todas as sessões do usuário (`allDevices`).
-
 ### 🔗 Feature 013: Vínculo de Contas Sociais — Google OAuth 2.0 (`specs/013-google-auth-linking`) ✅
 - **Status**: Concluída (22/22 tarefas).
-- **Objetivo**: Permitir que usuários vinculem ou desvinculem sua conta Google ao perfil existente, prevenindo desvinculação acidental caso o Google seja o único método de autenticação da conta, além de autenticação social com suporte a 2FA.
+- **Objetivo**: Permitir que usuários vinculem ou desvinculem sua conta Google ao perfil existente, prevenindo desvinculação acidental caso o Google seja o único método de autenticação da conta, além de login social para contas previamente vinculadas.
 - **Endpoints REST**:
   - `POST /api/auth/google/link`: Validação do idToken do Google e vinculação de `googleId` e `googleEmail` ao perfil do usuário autenticado.
   - `DELETE /api/auth/google/unlink`: Desvinculação da conta Google com regra de guarda (rejeita com `400 Bad Request` se não houver senha local).
-  - `POST /api/auth/google`: Login social via Google com emissão de sessão JWT e interceptação de 2FA.
+  - `POST /api/auth/google`: Login social via Google com emissão de sessão JWT.
   - `GET /api/user/profile`: Retorno dos metadados de vínculo social no subobjeto `security` (`googleLinked`, `googleEmail`, `googleLinkedAt`).
 
----
-
-## 🚀 Features Planejadas (Ciclo v1.2.0 — Integração Frontend Feature 009)
-
-As features abaixo espelham as necessidades e contratos formalizados no frontend (`specs/009-profile-security-export`), garantindo suporte integral a gerenciamento de identidade, segurança de sessão e central de relatórios financeiros.
-
----
-
-### 📊 Feature 014: Central de Exportação de Dados Financeiros (`specs/014-financial-data-export`)
-**Objetivo**: Fornecer endpoint unificado de exportação e download de extratos e relatórios financeiros em formatos CSV, XLSX e PDF com formatação localizada (BRL, datas em PT-BR) e filtros contextuais.
-
-- **Contrato de Requisição & Query Parameters**:
+### 📊 Feature 014: Central de Exportação de Dados Financeiros (`specs/014-financial-data-export`) ✅
+- **Status**: Concluída (23/23 tarefas).
+- **Objetivo**: Fornecer endpoint unificado de exportação e download de extratos e relatórios financeiros em formatos CSV, XLSX e PDF com formatação localizada (BRL, datas em PT-BR) e filtros contextuais.
+- **Endpoints REST**:
   - `GET /api/transactions/export`:
     - `format`: `"csv" | "xlsx" | "pdf"` (obrigatório).
     - `month`: Formato `YYYY-MM` (opcional).
@@ -154,10 +132,8 @@ As features abaixo espelham as necessidades e contratos formalizados no frontend
     - `category`: Categoria canônica (opcional).
 - **Formatos Gerados**:
   - **CSV**: Codificação UTF-8 com BOM (`\uFEFF`) para compatibilidade nativa com Microsoft Excel no Brasil (delimitador `;` e vírgula decimal).
-  - **XLSX**: Planilha estruturada via `exceljs` com cabeçalhos destacados, tipos numéricos formatados em moeda (`R$ #,##0.00`) e largura automática de colunas.
-  - **PDF**: Relatório diagramado via `pdfkit` contendo cabeçalho institucional, sumário de KPIs (Receitas, Despesas, Saldo Líquido) e tabela de transações.
-- **Etapas Spec-Kit**:
-  1. `specify` -> 2. `plan` -> 3. `tasks` -> 4. `implement` -> 5. `converge`.
+  - **XLSX**: Planilha estruturada via `exceljs` com células nativas tipadas, numFmt monetário (`R$ #,##0.00`), cabeçalhos destacados e larguras automáticas calculadas dinamicamente.
+  - **PDF**: Relatório executivo diagramado em stream via `pdfkit` contendo cabeçalho institucional, sumário em cards de KPIs (Receitas, Despesas, Saldo Líquido), tabela detalhada paginada e numeração de páginas.
 
 ---
 

@@ -344,21 +344,16 @@ npm run seed
 | `GET` | `/health` | Não | Verificação de integridade e conectividade com o MongoDB |
 | `GET` | `/docs` | Não | Interface Swagger UI interativa |
 | `GET` | `/docs/json` | Não | Especificação OpenAPI 3.0 em JSON |
-| **Autenticação, 2FA & Sessões** | | | |
+| **Autenticação & Sessões** | | | |
 | `POST` | `/api/auth/register` | Não | Cadastro de novo usuário |
-| `POST` | `/api/auth/login` | Não | Autenticação com e-mail/senha (interrompe para 2FA se ativo) |
-| `POST` | `/api/auth/2fa/verify` | Não | Validação do código OTP de 6 dígitos no login e emissão de JWT |
-| `POST` | `/api/auth/2fa/resend` | Não | Reenvio do código OTP de login com respeito ao cooldown de 60s |
-| `POST` | `/api/auth/2fa/enable` | **JWT** | Solicitação de ativação do 2FA com envio de OTP por e-mail |
-| `POST` | `/api/auth/2fa/confirm-enable`| **JWT** | Confirmação de ativação do 2FA com validação do OTP |
-| `POST` | `/api/auth/2fa/disable` | **JWT** | Desativação do 2FA mediante confirmação da senha atual |
+| `POST` | `/api/auth/login` | Não | Autenticação com e-mail e senha |
 | `POST` | `/api/auth/logout` | **JWT** | Revogação da sessão ativa ou de todos os dispositivos (`allDevices`) |
 | **Vínculo Social (Google OAuth 2.0)** | | | |
 | `POST` | `/api/auth/google/link` | **JWT** | Vínculo da conta Google ao perfil com sincronização do perfil |
 | `DELETE`| `/api/auth/google/unlink` | **JWT** | Desvinculação com guarda preventiva de lock-out (exige senha local) |
-| `POST` | `/api/auth/google` | Não | Login social via Google com suporte a interceptação de 2FA |
+| `POST` | `/api/auth/google` | Não | Login social via Google para contas previamente vinculadas |
 | **Perfil de Usuário, Avatar & BYOK** | | | |
-| `GET` | `/api/user/profile` | **JWT** | Consulta de dados cadastrais, segurança social/2FA e perfil financeiro |
+| `GET` | `/api/user/profile` | **JWT** | Consulta de dados cadastrais, segurança social e perfil financeiro |
 | `PUT` | `/api/user/profile` | **JWT** | Atualização do perfil financeiro (regime de renda, metas, risco) |
 | `PATCH` | `/api/user/profile` | **JWT** | Atualização cadastral básica (nome de exibição) |
 | `POST` | `/api/user/avatar` | **JWT** | Upload multipart de avatar (JPG/PNG/WebP até 5MB) |
@@ -376,6 +371,7 @@ npm run seed
 | `PATCH` | `/api/transactions/:id`| **JWT** | Edição de categoria, descrição limpa e vinculação de conta |
 | `DELETE`| `/api/transactions/:id`| **JWT** | Exclusão pontual atômica de transação com invalidação de cache |
 | `POST` | `/api/transactions/categorize`| **JWT + BYOK** | Categorização em lote via Gemini com minimização de tokens |
+| `GET` | `/api/transactions/export`| **JWT** | Exportação de extrato nos formatos CSV, XLSX e PDF com filtros |
 | `GET` | `/api/analysis/:month` | **JWT + BYOK** | Diagnóstico orçamentário mensal com cache de 24h e neutralização de fatura |
 | `POST` | `/api/chat/stream` | **JWT + BYOK** | Consultoria financeira conversacional em streaming via SSE |
 

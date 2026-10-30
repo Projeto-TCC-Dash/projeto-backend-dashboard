@@ -34,16 +34,19 @@
     "bcryptjs": "^2.4.3",
     "csv-parse": "^5.5.6",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "fastify": "^4.28.1",
     "fastify-type-provider-zod": "^2.0.0",
     "iconv-lite": "^0.6.3",
     "mongoose": "^8.5.1",
     "node-ofx-parser": "^0.5.1",
+    "pdfkit": "^0.20.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.14.12",
+    "@types/pdfkit": "^0.17.7",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4",
     "vitest": "^2.0.4"

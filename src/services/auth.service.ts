@@ -1,60 +1,58 @@
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { TWO_FACTOR_CONFIG } from '../config/constants.js';
-import { TwoFactorChallengeModel } from '../models/two-factor-challenge.model.js';
 import { UserModel } from '../models/user.model.js';
 import {
   AuthResponse,
-  Disable2FARequest,
-  Login2FAResponse,
+  GoogleLinkResponse,
+  GoogleUnlinkResponse,
   LoginRequest,
   RegisterRequest,
-  Verify2FARequest,
 } from '../schemas/auth.schemas.js';
 import { CryptoService } from './crypto.service.js';
-import { EmailService } from './email.service.js';
 import { GeminiService, KeyValidationResult } from './gemini.service.js';
+import { GoogleOAuthService, InvalidGoogleTokenError } from './google-auth.service.js';
 import { SessionService } from './session.service.js';
+import { UserService } from './user.service.js';
+import { env } from '../config/env.js';
 
-export class ResendCooldownError extends Error {
-  public retryAfterSeconds: number;
-  constructor(message: string, retryAfterSeconds: number) {
+export class GoogleAccountConflictError extends Error {
+  public statusCode = 409;
+  constructor(message = 'Esta conta Google já está vinculada a outro perfil cadastrado.') {
     super(message);
-    this.name = 'ResendCooldownError';
-    this.retryAfterSeconds = retryAfterSeconds;
+    this.name = 'GoogleAccountConflictError';
+  }
+}
+
+export class GoogleAccountNotLinkedError extends Error {
+  public statusCode = 400;
+  constructor(message = 'Nenhuma conta Google vinculada a este perfil.') {
+    super(message);
+    this.name = 'GoogleAccountNotLinkedError';
+  }
+}
+
+export class CannotUnlinkGoogleWithoutPasswordError extends Error {
+  public statusCode = 400;
+  constructor(
+    message = 'Não é possível desvincular a conta Google pois ela é o único método de autenticação da conta. Cadastre uma senha antes de desvincular.'
+  ) {
+    super(message);
+    this.name = 'CannotUnlinkGoogleWithoutPasswordError';
+  }
+}
+
+export class GoogleUserNotFoundError extends Error {
+  public statusCode = 401;
+  constructor(
+    message = 'Nenhuma conta vinculada a este perfil Google. Faça login com suas credenciais para vincular.'
+  ) {
+    super(message);
+    this.name = 'GoogleUserNotFoundError';
   }
 }
 
 export class AuthService {
-  /**
-   * Gera um código numérico de 6 dígitos criptograficamente seguro.
-   */
-  public static generateOtp(): string {
-    return crypto.randomInt(100000, 1000000).toString();
-  }
-
-  /**
-   * Gera o hash SHA-256 de um código OTP para armazenamento seguro.
-   */
-  public static hashOtp(code: string): string {
-    return crypto.createHash('sha256').update(code.trim()).digest('hex');
-  }
-
-  /**
-   * Compara de forma segura (tempo constante) o hash informado contra o hash armazenado.
-   */
-  public static verifyOtpHash(inputCode: string, storedHash: string): boolean {
-    const inputHash = this.hashOtp(inputCode);
-    const inputBuf = Buffer.from(inputHash, 'hex');
-    const storedBuf = Buffer.from(storedHash, 'hex');
-
-    if (inputBuf.length !== storedBuf.length) {
-      return false;
-    }
-
-    return crypto.timingSafeEqual(inputBuf, storedBuf);
-  }
 
   /**
    * Registra um novo usuário no sistema.
@@ -75,7 +73,6 @@ export class AuthService {
     const user = await UserModel.create({
       email: data.email,
       passwordHash,
-      isTwoFactorEnabled: false,
     });
 
     // Em ambiente de desenvolvimento/teste, se houver GOOGLE_GENERATIVE_AI_API_KEY no .env, vincula automaticamente
@@ -101,19 +98,18 @@ export class AuthService {
         id: user._id.toString(),
         email: user.email,
         hasAiKey: user.hasAiKey(),
-        isTwoFactorEnabled: false,
       },
     };
   }
 
   /**
-   * Autentica um usuário existente. Se 2FA estiver ativo, intercepta o login e emite desafio.
+   * Autentica um usuário existente com e-mail e senha.
    */
   public static async login(
     data: LoginRequest,
     jwtSigner: (payload: { id: string; email: string; sessionId?: string }) => string,
     metadata?: { userAgent?: string; ip?: string }
-  ): Promise<AuthResponse | Login2FAResponse> {
+  ): Promise<AuthResponse> {
     const user = await UserModel.findOne({ email: data.email }).exec();
     if (!user) {
       throw new Error('Credenciais inválidas.');
@@ -124,39 +120,6 @@ export class AuthService {
       throw new Error('Credenciais inválidas.');
     }
 
-    // Interceptação 2FA se habilitado
-    if (user.isTwoFactorEnabled) {
-      const otp = this.generateOtp();
-      const otpHash = this.hashOtp(otp);
-      const expiresAt = new Date(Date.now() + TWO_FACTOR_CONFIG.OTP_TTL_MS);
-
-      // Invalida eventuais desafios pendentes anteriores de login para este usuário
-      await TwoFactorChallengeModel.updateMany(
-        { userId: user._id, type: 'LOGIN', status: 'PENDING' },
-        { status: 'EXPIRED' }
-      ).exec();
-
-      const challenge = await TwoFactorChallengeModel.create({
-        userId: user._id,
-        type: 'LOGIN',
-        otpHash,
-        attempts: 0,
-        maxAttempts: TWO_FACTOR_CONFIG.MAX_ATTEMPTS,
-        status: 'PENDING',
-        lastSentAt: new Date(),
-        expiresAt,
-      });
-
-      await EmailService.sendOtpEmail(user.email, otp, 'LOGIN');
-
-      return {
-        requires2FA: true,
-        challengeId: challenge._id.toString(),
-        message: 'Código de verificação enviado para o seu e-mail cadastrado.',
-      };
-    }
-
-    // Sem 2FA: emissão direta da sessão
     const session = await SessionService.createSession(user._id, metadata);
     const token = jwtSigner({ id: user._id.toString(), email: user.email, sessionId: session._id });
 
@@ -166,248 +129,7 @@ export class AuthService {
         id: user._id.toString(),
         email: user.email,
         hasAiKey: user.hasAiKey(),
-        isTwoFactorEnabled: false,
       },
-    };
-  }
-
-  /**
-   * Valida o desafio 2FA de login e emite o token de acesso definitivo com sessão criada.
-   */
-  public static async verify2FA(
-    data: Verify2FARequest,
-    jwtSigner: (payload: { id: string; email: string; sessionId?: string }) => string,
-    metadata?: { userAgent?: string; ip?: string }
-  ): Promise<AuthResponse> {
-    if (!mongoose.Types.ObjectId.isValid(data.challengeId)) {
-      throw new Error('ID do desafio inválido.');
-    }
-
-    const challenge = await TwoFactorChallengeModel.findById(data.challengeId).exec();
-    if (!challenge || challenge.type !== 'LOGIN') {
-      throw new Error('Desafio 2FA expirado ou inválido. Realize login novamente.');
-    }
-
-    if (challenge.status === 'LOCKED') {
-      throw new Error('Desafio bloqueado por excesso de tentativas. Realize login novamente.');
-    }
-
-    if (challenge.status === 'EXPIRED' || challenge.expiresAt.getTime() <= Date.now()) {
-      challenge.status = 'EXPIRED';
-      await challenge.save();
-      throw new Error('Código de verificação expirado. Solicite um novo código.');
-    }
-
-    if (challenge.status !== 'PENDING') {
-      throw new Error('Desafio 2FA já utilizado ou inválido.');
-    }
-
-    const isValid = this.verifyOtpHash(data.code, challenge.otpHash);
-    if (!isValid) {
-      challenge.attempts += 1;
-      if (challenge.attempts >= challenge.maxAttempts) {
-        challenge.status = 'LOCKED';
-        await challenge.save();
-        throw new Error('Desafio bloqueado após 5 tentativas incorretas. Realize login novamente.');
-      }
-      await challenge.save();
-      const remaining = challenge.maxAttempts - challenge.attempts;
-      throw new Error(`Código de verificação incorreto. Tentativas restantes: ${remaining}`);
-    }
-
-    // Marca como verificado (single-use)
-    challenge.status = 'VERIFIED';
-    challenge.verifiedAt = new Date();
-    await challenge.save();
-
-    const user = await UserModel.findById(challenge.userId).exec();
-    if (!user) {
-      throw new Error('Usuário associado ao desafio não encontrado.');
-    }
-
-    const session = await SessionService.createSession(user._id, metadata);
-    const token = jwtSigner({ id: user._id.toString(), email: user.email, sessionId: session._id });
-
-    return {
-      token,
-      user: {
-        id: user._id.toString(),
-        email: user.email,
-        hasAiKey: user.hasAiKey(),
-        isTwoFactorEnabled: user.isTwoFactorEnabled,
-      },
-    };
-  }
-
-  /**
-   * Reenvia um novo código OTP para um desafio aberto, respeitando o cooldown de 60s.
-   */
-  public static async resendOtp(challengeId: string): Promise<{ success: boolean; message: string }> {
-    if (!mongoose.Types.ObjectId.isValid(challengeId)) {
-      throw new Error('ID do desafio inválido.');
-    }
-
-    const challenge = await TwoFactorChallengeModel.findById(challengeId).exec();
-    if (!challenge || challenge.status !== 'PENDING') {
-      throw new Error('Desafio 2FA expirado ou inválido. Inicie o fluxo novamente.');
-    }
-
-    const now = Date.now();
-    const elapsedMs = now - challenge.lastSentAt.getTime();
-    if (elapsedMs < TWO_FACTOR_CONFIG.RESEND_COOLDOWN_MS) {
-      const remainingSeconds = Math.ceil(
-        (TWO_FACTOR_CONFIG.RESEND_COOLDOWN_MS - elapsedMs) / 1000
-      );
-      throw new ResendCooldownError(
-        `Aguarde ${remainingSeconds} segundos antes de solicitar um novo código.`,
-        remainingSeconds
-      );
-    }
-
-    const user = await UserModel.findById(challenge.userId).exec();
-    if (!user) {
-      throw new Error('Usuário não encontrado.');
-    }
-
-    const newOtp = this.generateOtp();
-    challenge.otpHash = this.hashOtp(newOtp);
-    challenge.lastSentAt = new Date();
-    challenge.attempts = 0; // Reinicia contador de tentativas para o novo código
-    challenge.expiresAt = new Date(now + TWO_FACTOR_CONFIG.OTP_TTL_MS);
-    await challenge.save();
-
-    await EmailService.sendOtpEmail(user.email, newOtp, challenge.type);
-
-    return {
-      success: true,
-      message: 'Novo código de verificação enviado com sucesso para o seu e-mail.',
-    };
-  }
-
-  /**
-   * Inicia o fluxo de ativação do 2FA para o usuário autenticado.
-   */
-  public static async initiateEnable2FA(
-    userId: string
-  ): Promise<{ challengeId: string; message: string }> {
-    const user = await UserModel.findById(userId).exec();
-    if (!user) {
-      throw new Error('Usuário não encontrado.');
-    }
-
-    if (user.isTwoFactorEnabled) {
-      throw new Error('A autenticação em dois fatores já está ativada.');
-    }
-
-    // Invalida eventuais desafios anteriores de ENABLE
-    await TwoFactorChallengeModel.updateMany(
-      { userId: user._id, type: 'ENABLE', status: 'PENDING' },
-      { status: 'EXPIRED' }
-    ).exec();
-
-    const otp = this.generateOtp();
-    const otpHash = this.hashOtp(otp);
-    const expiresAt = new Date(Date.now() + TWO_FACTOR_CONFIG.OTP_TTL_MS);
-
-    const challenge = await TwoFactorChallengeModel.create({
-      userId: user._id,
-      type: 'ENABLE',
-      otpHash,
-      attempts: 0,
-      maxAttempts: TWO_FACTOR_CONFIG.MAX_ATTEMPTS,
-      status: 'PENDING',
-      lastSentAt: new Date(),
-      expiresAt,
-    });
-
-    await EmailService.sendOtpEmail(user.email, otp, 'ENABLE');
-
-    return {
-      challengeId: challenge._id.toString(),
-      message: 'Código de confirmação enviado para seu e-mail.',
-    };
-  }
-
-  /**
-   * Confirma a ativação do 2FA validando o código de teste recebido.
-   */
-  public static async confirmEnable2FA(
-    userId: string,
-    data: Verify2FARequest
-  ): Promise<{ success: boolean; isTwoFactorEnabled: boolean; message: string }> {
-    if (!mongoose.Types.ObjectId.isValid(data.challengeId)) {
-      throw new Error('ID do desafio inválido.');
-    }
-
-    const challenge = await TwoFactorChallengeModel.findById(data.challengeId).exec();
-    if (!challenge || challenge.type !== 'ENABLE' || challenge.userId.toString() !== userId) {
-      throw new Error('Desafio de ativação expirado ou inválido.');
-    }
-
-    if (challenge.status === 'LOCKED') {
-      throw new Error('Desafio bloqueado por excesso de tentativas.');
-    }
-
-    if (challenge.status === 'EXPIRED' || challenge.expiresAt.getTime() <= Date.now()) {
-      challenge.status = 'EXPIRED';
-      await challenge.save();
-      throw new Error('Código expirado. Solicite a ativação novamente.');
-    }
-
-    const isValid = this.verifyOtpHash(data.code, challenge.otpHash);
-    if (!isValid) {
-      challenge.attempts += 1;
-      if (challenge.attempts >= challenge.maxAttempts) {
-        challenge.status = 'LOCKED';
-        await challenge.save();
-        throw new Error('Desafio bloqueado após 5 tentativas incorretas.');
-      }
-      await challenge.save();
-      const remaining = challenge.maxAttempts - challenge.attempts;
-      throw new Error(`Código de verificação incorreto. Tentativas restantes: ${remaining}`);
-    }
-
-    challenge.status = 'VERIFIED';
-    challenge.verifiedAt = new Date();
-    await challenge.save();
-
-    await UserModel.findByIdAndUpdate(userId, {
-      isTwoFactorEnabled: true,
-      twoFactorConfirmedAt: new Date(),
-    }).exec();
-
-    return {
-      success: true,
-      isTwoFactorEnabled: true,
-      message: 'Autenticação em dois fatores ativada com sucesso.',
-    };
-  }
-
-  /**
-   * Desativa a autenticação em dois fatores mediante confirmação de senha.
-   */
-  public static async disable2FA(
-    userId: string,
-    data: Disable2FARequest
-  ): Promise<{ success: boolean; isTwoFactorEnabled: boolean; message: string }> {
-    const user = await UserModel.findById(userId).exec();
-    if (!user) {
-      throw new Error('Usuário não encontrado.');
-    }
-
-    const isMatch = await bcrypt.compare(data.password, user.passwordHash);
-    if (!isMatch) {
-      throw new Error('Senha incorreta. Não foi possível desativar o 2FA.');
-    }
-
-    user.isTwoFactorEnabled = false;
-    user.twoFactorConfirmedAt = null;
-    await user.save();
-
-    return {
-      success: true,
-      isTwoFactorEnabled: false,
-      message: 'Autenticação em dois fatores desativada com sucesso.',
     };
   }
 
@@ -445,5 +167,133 @@ export class AuthService {
     }
 
     return CryptoService.decrypt(user.encryptedApiKey, user.iv, user.authTag);
+  }
+
+  /**
+   * Vincula a conta Google ao usuário autenticado após validar o idToken
+   * Em ambiente de desenvolvimento, permite simulação quando nenhum token for enviado.
+   */
+  public static async linkGoogleAccount(
+    userId: string,
+    idToken?: string
+  ): Promise<GoogleLinkResponse> {
+    const user = await UserModel.findById(userId).exec();
+    if (!user) {
+      throw new Error('Usuário não encontrado.');
+    }
+
+    let googleId: string;
+    let googleEmail: string;
+
+    if (idToken) {
+      const payload = await GoogleOAuthService.verifyIdToken(idToken);
+      googleId = payload.googleId;
+      googleEmail = payload.googleEmail;
+    } else {
+      const isProd = (process.env.NODE_ENV ?? env.NODE_ENV) === 'production';
+      if (isProd) {
+        throw new InvalidGoogleTokenError('O token do Google é obrigatório em ambiente de produção.');
+      }
+      // Ambiente de desenvolvimento: gera vínculo de simulação seguro com o e-mail do próprio usuário
+      googleId = user.googleAccount?.googleId || `google_dev_${user._id.toString()}`;
+      googleEmail = user.email;
+    }
+
+    const existingWithGoogle = await UserModel.findOne({
+      'googleAccount.googleId': googleId,
+      _id: { $ne: new mongoose.Types.ObjectId(userId) },
+    }).exec();
+
+    if (existingWithGoogle) {
+      throw new GoogleAccountConflictError(
+        'Esta conta Google já está vinculada a outro perfil cadastrado.'
+      );
+    }
+
+    const linkedAt = new Date();
+    user.googleAccount = {
+      googleId,
+      googleEmail,
+      linkedAt,
+    };
+
+    await user.save();
+
+    const profile = await UserService.getProfile(userId);
+
+    return {
+      ...profile,
+      success: true,
+      message: 'Conta Google vinculada com sucesso.',
+      googleAccount: {
+        googleEmail,
+        linkedAt,
+      },
+    };
+  }
+
+  /**
+   * Desvincula a conta Google com validação de guarda contra lock-out (exige senha local)
+   */
+  public static async unlinkGoogleAccount(userId: string): Promise<GoogleUnlinkResponse> {
+    const user = await UserModel.findById(userId).exec();
+    if (!user) {
+      throw new Error('Usuário não encontrado.');
+    }
+
+    if (!user.googleAccount?.googleId) {
+      throw new GoogleAccountNotLinkedError('Nenhuma conta Google vinculada a este perfil.');
+    }
+
+    const hasLocalPassword = Boolean(user.passwordHash && user.passwordHash.length > 0);
+    if (!hasLocalPassword) {
+      throw new CannotUnlinkGoogleWithoutPasswordError(
+        'Não é possível desvincular a conta Google pois ela é o único método de autenticação da conta. Cadastre uma senha antes de desvincular.'
+      );
+    }
+
+    user.googleAccount = null;
+    await user.save();
+
+    const profile = await UserService.getProfile(userId);
+
+    return {
+      ...profile,
+      success: true,
+      message: 'Conta Google desvinculada com sucesso.',
+    };
+  }
+
+  /**
+   * Autentica usuário via Google para contas previamente vinculadas.
+   */
+  public static async loginWithGoogle(
+    idToken: string,
+    jwtSigner: (payload: { id: string; email: string; sessionId?: string }) => string,
+    metadata?: { userAgent?: string; ip?: string }
+  ): Promise<AuthResponse> {
+    const payload = await GoogleOAuthService.verifyIdToken(idToken);
+
+    const user = await UserModel.findOne({
+      'googleAccount.googleId': payload.googleId,
+    }).exec();
+
+    if (!user) {
+      throw new GoogleUserNotFoundError(
+        'Nenhuma conta vinculada a este perfil Google. Faça login com suas credenciais para vincular.'
+      );
+    }
+
+    const session = await SessionService.createSession(user._id, metadata);
+    const token = jwtSigner({ id: user._id.toString(), email: user.email, sessionId: session._id });
+
+    return {
+      token,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        hasAiKey: user.hasAiKey(),
+      },
+    };
   }
 }

@@ -48,7 +48,6 @@ describe('UserService - Unit Tests', () => {
         avatarUrl: '/uploads/avatars/user-123.webp',
         hasAiKey: true,
         security: {
-          twoFactorEnabled: false,
           hasLocalPassword: true,
           googleLinked: false,
         },

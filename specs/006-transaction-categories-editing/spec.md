@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Adicionar categoria canônica 'Receita' e categoria padrão inicial 'Não Categorizado' para extratos importados, permitir edição manual de transações via PATCH /api/transactions/:id, e documentar GOOGLE_GENERATIVE_AI_API_KEY no .env.example para o seed."
 

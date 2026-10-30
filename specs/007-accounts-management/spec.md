@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-19
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Feature 007: Gestão de Contas Bancárias e Cartões (specs/007-accounts-management) conforme o ROADMAP.md"
 

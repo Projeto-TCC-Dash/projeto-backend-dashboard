@@ -45,9 +45,10 @@ export class UserService {
       avatarUrl: user.avatarUrl ?? null,
       hasAiKey: user.hasAiKey(),
       security: {
-        twoFactorEnabled: false,
-        hasLocalPassword: Boolean(user.passwordHash),
-        googleLinked: false,
+        hasLocalPassword: Boolean(user.passwordHash && user.passwordHash.length > 0),
+        googleLinked: Boolean(user.googleAccount?.googleId),
+        googleEmail: user.googleAccount?.googleEmail,
+        googleLinkedAt: user.googleAccount?.linkedAt,
       },
       financialProfile: user.financialProfile?.incomeType ||
         user.financialProfile?.declaredMonthlyIncome !== undefined ||

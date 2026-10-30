@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Autenticação em Dois Fatores (2FA via E-mail) e Revogação de Sessão
+# Specification Quality Checklist: Feature 013 Vínculo de Contas Sociais — Google OAuth 2.0
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-10-24
@@ -31,5 +31,4 @@
 
 ## Notes
 
-- Especificação aprovada com 100% de conformidade. Não foram detectados vazamentos de detalhes de implementação (stack/frameworks).
-- Pronto para a fase de planejamento técnico (`/speckit-plan`).
+- All requirements validation criteria passed with 0 unchecked items. Ready for planning phase.

@@ -16,6 +16,12 @@ export interface IFinancialProfile {
   updatedAt?: Date;
 }
 
+export interface IGoogleAccount {
+  googleId: string;
+  googleEmail: string;
+  linkedAt: Date;
+}
+
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   email: string;
@@ -26,12 +32,20 @@ export interface IUser extends Document {
   iv?: string | null;
   authTag?: string | null;
   financialProfile?: IFinancialProfile;
-  isTwoFactorEnabled: boolean;
-  twoFactorConfirmedAt?: Date | null;
+  googleAccount?: IGoogleAccount | null;
   createdAt: Date;
   updatedAt: Date;
   hasAiKey(): boolean;
 }
+
+const GoogleAccountSubschema = new Schema<IGoogleAccount>(
+  {
+    googleId: { type: String, required: true },
+    googleEmail: { type: String, required: true, lowercase: true, trim: true },
+    linkedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
 
 const FinancialProfileSubschema = new Schema<IFinancialProfile>(
   {
@@ -83,13 +97,8 @@ const UserSchema = new Schema<IUser>(
       type: FinancialProfileSubschema,
       default: () => ({}),
     },
-    isTwoFactorEnabled: {
-      type: Boolean,
-      default: false,
-      required: true,
-    },
-    twoFactorConfirmedAt: {
-      type: Date,
+    googleAccount: {
+      type: GoogleAccountSubschema,
       default: null,
     },
   },
@@ -102,5 +111,7 @@ const UserSchema = new Schema<IUser>(
 UserSchema.methods.hasAiKey = function (): boolean {
   return Boolean(this.encryptedApiKey && this.iv && this.authTag);
 };
+
+UserSchema.index({ 'googleAccount.googleId': 1 }, { unique: true, sparse: true });
 
 export const UserModel = mongoose.model<IUser>('User', UserSchema, 'users');

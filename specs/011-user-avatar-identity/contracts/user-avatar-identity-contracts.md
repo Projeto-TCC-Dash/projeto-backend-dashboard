@@ -13,7 +13,6 @@ Retorna dados cadastrais, avatar e configurações de segurança do usuário aut
   "avatarUrl": "/uploads/avatars/user-67140f8a8-1729765432.webp",
   "hasAiKey": true,
   "security": {
-    "twoFactorEnabled": false,
     "hasLocalPassword": true,
     "googleLinked": false
   },

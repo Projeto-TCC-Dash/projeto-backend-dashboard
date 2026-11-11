@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Desacoplar e remover completamente o serviço e configurações da Pluggy, transformando o script de seed em um gerador 100% local e autônomo de dados bancários sintéticos realistas (múltiplos meses, salários, PIX, mercado e despesas variadas para demonstrar o dashboard)."
 

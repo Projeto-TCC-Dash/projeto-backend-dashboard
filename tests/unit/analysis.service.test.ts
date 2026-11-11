@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import mongoose from 'mongoose';
+import { FinancialAnalysisModel } from '../../src/models/analysis.model.js';
 import { AnalysisService } from '../../src/services/analysis.service.js';
 
 describe('AnalysisService - Unit Tests', () => {
@@ -110,6 +112,36 @@ describe('AnalysisService - Unit Tests', () => {
       });
     });
 
+    it('deve segregar transações de Pagamento de Fatura sem duplicar despesas primárias e sem poluir topCategories', () => {
+      const transactionsWithInvoice = [
+        { amount: 5000, category: 'Receita' },
+        { amount: -1000, category: 'Alimentação' },
+        { amount: -500, category: 'Lazer' },
+        { amount: -1500, category: 'Pagamento de Fatura' },
+      ];
+
+      const metrics = AnalysisService.calculateMetrics(transactionsWithInvoice);
+
+      expect(metrics.totalIncome).toBe(5000);
+      expect(metrics.totalExpenses).toBe(1500); // 1000 + 500 (NÃO 3000!)
+      expect(metrics.invoiceSettlements).toBe(1500);
+      expect(metrics.netBalance).toBe(3500);
+      // savingsRate = (3500 / 5000) * 100 = 70.0%
+      expect(metrics.savingsRate).toBe(70);
+      expect(metrics.topCategories).toHaveLength(2);
+      expect(metrics.topCategories[0]).toEqual({
+        category: 'Alimentação',
+        amount: 1000,
+        percentage: 66.7,
+      });
+      expect(metrics.topCategories[1]).toEqual({
+        category: 'Lazer',
+        amount: 500,
+        percentage: 33.3,
+      });
+      expect(metrics.topCategories.some((c) => c.category === 'Pagamento de Fatura')).toBe(false);
+    });
+
     it('deve tratar meses sem receitas sem gerar divisão por zero', () => {
       const noIncome = [
         { amount: -500, category: 'Alimentação' },
@@ -132,6 +164,24 @@ describe('AnalysisService - Unit Tests', () => {
       expect(metrics.netBalance).toBe(3500);
       expect(metrics.savingsRate).toBe(100);
       expect(metrics.topCategories).toEqual([]);
+    });
+  });
+
+  describe('invalidate', () => {
+    it('deve chamar deleteMany com o userId correto e retornar a quantidade de registros excluídos', async () => {
+      const mockUserId = '507f1f77bcf86cd799439011';
+      const deleteManySpy = vi.spyOn(FinancialAnalysisModel, 'deleteMany').mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ deletedCount: 3 }),
+      } as any);
+
+      const count = await AnalysisService.invalidate(mockUserId);
+
+      expect(deleteManySpy).toHaveBeenCalledWith({
+        userId: new mongoose.Types.ObjectId(mockUserId),
+      });
+      expect(count).toBe(3);
+
+      deleteManySpy.mockRestore();
     });
   });
 });

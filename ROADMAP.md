@@ -1,0 +1,170 @@
+# 🗺️ Roadmap de Evolução — Backend (v1.1.0 & v1.2.0+)
+
+Este documento detalha o ciclo de evolução do backend (`projeto-backend-dashboard`), estruturado conforme os princípios de **Schema-Driven Development (SDD)** e os fluxos do **Spec-Kit**, mantendo total paridade e sincronismo com o frontend (`projeto-frontend-dashboard`).
+
+---
+
+## 📌 Status Atual do Backend
+
+| Versão | Status | Branches / Tags | Cobertura de Testes |
+|---|---|---|---|
+| **v1.0.0** | ✅ Concluída em Produção | Tag `v1.0.0` / Branch `main` | Testes unitários e de integração verdes |
+| **v1.1.0** | ✅ Concluída no Código (Pronta para Release) | Branch `develop` (Aguardando merge para `main` e Tag `v1.1.0`) | 81 testes de especificações verdes (F007-F010) |
+| **v1.2.0** | ✅ Concluída no Código (F011, F013 e F014 Concluídas) | Branches `feature/011-*` a `014-*` | 191 testes unitários e de integração verdes |
+
+---
+
+## 🎯 Visão Geral dos Ciclos v1.1.0 e v1.2.0
+
+```mermaid
+flowchart TD
+    subgraph v100 ["Ciclo v1.0.0 (Concluído e Tagged — Base do Sistema)"]
+        F001["Feature 001: API REST, BYOK AES-256-GCM & Chat SSE ✅"]
+        F002["Feature 002: Cache de Análise com TTL 24h ✅"]
+        F004["Feature 004: Gerador Local Determinístico de Seed ✅"]
+        F005["Feature 005: Validação Resiliente de Chaves Gemini ✅"]
+        F006["Feature 006: Categorias Canônicas & Edição Manual ✅"]
+    end
+
+    subgraph v110 ["Ciclo v1.1.0 (Concluído no develop — 100% dos Testes Aprovados)"]
+        F007["Feature 007: Gestão de Contas (Accounts CRUD) ✅"]
+        F008["Feature 008: Novas Categorias & Exclusão de Transações ✅"]
+        F009["Feature 009: Tratamento Contábil de Faturas na IA & Análises ✅"]
+        F010["Feature 010: Perfil Financeiro, Regime de Renda e Metas ✅"]
+    end
+
+    subgraph v120 ["Ciclo v1.2.0 (Concluído no Código — 100% dos Testes Aprovados)"]
+        F011["Feature 011: Perfil de Usuário, Nome e Foto de Perfil (Avatar) ✅"]
+        F013["Feature 013: Vínculo de Contas Sociais (Google OAuth 2.0) ✅"]
+        F014["Feature 014: Central de Exportação de Dados (CSV, XLSX e PDF) ✅"]
+    end
+
+    v100 --> Release100["Release v1.0.0 (Tag v1.0.0 / main)"]
+    Release100 --> F007
+    F007 --> F008 --> F009 --> F010
+    F010 --> Release110["Release v1.1.0 (Merge develop -> main & Tag v1.1.0)"]
+    Release110 --> F011
+    F011 --> F013
+    F013 --> F014
+    F014 --> Release120["Release v1.2.0 (Merge develop -> main & Tag v1.2.0)"]
+```
+
+---
+
+## 📦 Features Entregues (Ciclo Inaugural v1.0.0)
+
+### 🏗️ Feature 001: API REST do Backend Financeiro (`specs/001-financial-backend-api`) ✅
+- **Status**: Concluída (47/47 tarefas).
+- **Entregas**: Autenticação JWT, proteção BYOK com criptografia AES-256-GCM para chave Gemini, upload multipart OFX/CSV, categorização inteligente com minimização de tokens e consultoria financeira em streaming SSE (`POST /api/chat/stream`).
+
+### ⚡ Feature 002: Cache de Análise com TTL 24h (`specs/002-seed-cache-analysis`) ✅
+- **Status**: Concluída (15/15 tarefas).
+- **Entregas**: Endpoint `GET /api/analysis/:month` com cache nativo no MongoDB, TTL de 24h e invalidação por hash de estado de transações.
+
+### 🎲 Feature 004: Gerador Local Autônomo de Dados Sintéticos (`specs/004-local-seed-generator`) ✅
+- **Status**: Concluída (10/10 tarefas).
+- **Entregas**: Script `npm run seed` 100% offline, gerando 40+ lançamentos brasileiros e contas padrão. Substituiu a integração externa Pluggy (Feature 003 descontinuada por aderência ao Princípio V da Constituição).
+
+### 🛡️ Feature 005: Validação Resiliente de Chaves Gemini (`specs/005-resilient-gemini-key-validation`) ✅
+- **Status**: Concluída (10/10 tarefas).
+- **Entregas**: Tratamento resiliente em `PUT /api/user/ai-key` (reconhece status 503/429 temporários como chave comprovadamente existente) e semântica unificada de erros.
+
+### ✏️ Feature 006: Edição Manual de Transações e Categorias (`specs/006-transaction-categories-editing`) ✅
+- **Status**: Concluída (19/19 tarefas).
+- **Entregas**: Endpoint `PATCH /api/transactions/:id` e filtros por mês/categoria em `GET /api/transactions`.
+
+---
+
+## 📦 Features Entregues (Ciclo v1.1.0)
+
+### 🏦 Feature 007: Gestão de Contas Bancárias e Cartões (`specs/007-accounts-management`) ✅
+- **Status**: Concluída (26/26 tarefas).
+- **Endpoints**: `GET /api/accounts`, `POST /api/accounts`, `PATCH /api/accounts/:id`, `DELETE /api/accounts/:id`.
+- Suporte a múltiplas contas, agregação de saldos e vinculação automática de transações e importações OFX/CSV.
+
+### 🏷️ Feature 008: Novas Categorias Canônicas e Exclusão de Transações (`specs/008-categories-and-deletion`) ✅
+- **Status**: Concluída (19/19 tarefas).
+- **Endpoints**: `DELETE /api/transactions/:id`, `PATCH /api/transactions/:id`.
+- Expansão para 11 categorias canônicas (`"Pagamento de Fatura"` e `"Investimentos"`), suporte no prompt do Gemini e remoção atômica com invalidação de cache de análise.
+
+### 🧠 Feature 009: Tratamento Contábil Inteligente de Faturas (`specs/009-invoice-accounting-ai`) ✅
+- **Status**: Concluída (17/17 tarefas).
+- **Endpoints**: `GET /api/analysis/:month`.
+- Segregação de faturas de cartão para eliminar duplicidade de despesas em `totalExpenses`, rastreamento do indicador `invoiceSettlements` e calibração contábil no Gemini.
+
+### 👤 Feature 010: Perfil Financeiro, Regime de Renda e Metas (`specs/010-user-financial-profile`) ✅
+- **Status**: Concluída (19/19 tarefas).
+- **Endpoints**: `GET /api/user/profile`, `PUT /api/user/profile`.
+- Cadastro voluntário de regime de trabalho (CLT, PJ, etc.), renda mensal declarada, metas financeiras prioritárias e calibração da reserva de emergência pela IA.
+
+---
+
+## 📦 Features Entregues no Ciclo v1.2.0
+
+### 🖼️ Feature 011: Perfil de Usuário, Nome e Foto de Perfil (`specs/011-user-avatar-identity`) ✅
+- **Status**: Concluída (12/12 tarefas).
+- **Objetivo**: Permitir ao usuário atualizar seu nome de exibição, realizar upload de foto de perfil (avatar) com validação de formato e tamanho, e excluir a foto restaurando o fallback de iniciais.
+- **Endpoints REST**:
+  - `GET /api/user/profile`: Retorno completo dos dados cadastrais (`id`, `email`, `name`, `avatarUrl`, `hasAiKey`, `security`, `financialProfile`, `createdAt`).
+  - `PATCH /api/user/profile`: Atualização de dados cadastrais (nome de 2 a 100 caracteres).
+  - `POST /api/user/avatar`: Upload de avatar em `multipart/form-data` (máx. 5MB, jpeg/png/webp) com persistência em disco e URL servida.
+  - `DELETE /api/user/avatar`: Remoção do avatar e retorno ao fallback `null`.
+
+### 🔗 Feature 013: Vínculo de Contas Sociais — Google OAuth 2.0 (`specs/013-google-auth-linking`) ✅
+- **Status**: Concluída (22/22 tarefas).
+- **Objetivo**: Permitir que usuários vinculem ou desvinculem sua conta Google ao perfil existente, prevenindo desvinculação acidental caso o Google seja o único método de autenticação da conta, além de login social para contas previamente vinculadas.
+- **Endpoints REST**:
+  - `POST /api/auth/google/link`: Validação do idToken do Google e vinculação de `googleId` e `googleEmail` ao perfil do usuário autenticado.
+  - `DELETE /api/auth/google/unlink`: Desvinculação da conta Google com regra de guarda (rejeita com `400 Bad Request` se não houver senha local).
+  - `POST /api/auth/google`: Login social via Google com emissão de sessão JWT.
+  - `GET /api/user/profile`: Retorno dos metadados de vínculo social no subobjeto `security` (`googleLinked`, `googleEmail`, `googleLinkedAt`).
+
+### 📊 Feature 014: Central de Exportação de Dados Financeiros (`specs/014-financial-data-export`) ✅
+- **Status**: Concluída (23/23 tarefas).
+- **Objetivo**: Fornecer endpoint unificado de exportação e download de extratos e relatórios financeiros em formatos CSV, XLSX e PDF com formatação localizada (BRL, datas em PT-BR) e filtros contextuais.
+- **Endpoints REST**:
+  - `GET /api/transactions/export`:
+    - `format`: `"csv" | "xlsx" | "pdf"` (obrigatório).
+    - `month`: Formato `YYYY-MM` (opcional).
+    - `startDate`: Formato `YYYY-MM-DD` (opcional).
+    - `endDate`: Formato `YYYY-MM-DD` (opcional).
+    - `accountId`: ID da conta bancária (opcional).
+    - `category`: Categoria canônica (opcional).
+- **Formatos Gerados**:
+  - **CSV**: Codificação UTF-8 com BOM (`\uFEFF`) para compatibilidade nativa com Microsoft Excel no Brasil (delimitador `;` e vírgula decimal).
+  - **XLSX**: Planilha estruturada via `exceljs` com células nativas tipadas, numFmt monetário (`R$ #,##0.00`), cabeçalhos destacados e larguras automáticas calculadas dinamicamente.
+  - **PDF**: Relatório executivo diagramado em stream via `pdfkit` contendo cabeçalho institucional, sumário em cards de KPIs (Receitas, Despesas, Saldo Líquido), tabela detalhada paginada e numeração de páginas.
+
+---
+
+## 🔄 Fluxo de Trabalho por Feature (SDD & Spec-Kit)
+
+Para cada feature acima, o fluxo estrito no repositório backend será:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as Desenvolvedor
+    participant Branch as Git (develop)
+    participant SpecKit as Spec-Kit CLI / Skills
+    participant Code as Backend Core (Fastify + Mongo)
+    participant Tests as Test Suite (Vitest)
+
+    Dev->>Branch: git checkout -b feature/<id>-<nome> develop
+    Dev->>SpecKit: 1. /speckit-specify (gera spec.md)
+    Dev->>SpecKit: 2. /speckit-plan (gera plan.md com schemas Zod e arquitetura)
+    Dev->>SpecKit: 3. /speckit-tasks (gera tasks.md ordenado)
+    Dev->>Code: 4. /speckit-implement (TDD: schemas -> services -> routes)
+    Code->>Tests: Execução de testes unitários e de integração
+    Dev->>SpecKit: 5. /speckit-converge (validação de completude)
+    Dev->>Branch: Merge para develop via Pull Request
+```
+
+---
+
+## 🔮 Próximas Versões Futuras (Backlog v1.3.0+)
+
+- [ ] **Importação Open Finance / Pluggy em Produção**: Conexão bancária direta automática via webhooks.
+- [ ] **Regras Customizadas de Categorização**: Mecanismo de regras com prioridade e condições regex/substring.
+- [ ] **Transações Recorrentes e Orçamentos (Budgets)**: Metas de teto orçamentário por categoria e alertas pró-ativos.
+- [ ] **Notificações Push / Webhooks**: Avisos de vencimento de faturas e anomalias de consumo detectadas por IA.

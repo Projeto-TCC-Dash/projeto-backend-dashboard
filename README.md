@@ -262,6 +262,9 @@ ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 
 # Chave Padrão do Google AI Studio para testes e seed (obtida em https://aistudio.google.com/)
 GOOGLE_GENERATIVE_AI_API_KEY=AIzaSy...
+
+# [OPCIONAL] Client ID do Google OAuth 2.0 para validação de audiência (aud) dos tokens
+GOOGLE_CLIENT_ID=
 ```
 
 > [!NOTE]
@@ -328,26 +331,49 @@ npm run seed
 - **E-mail de Teste**: `teste.usuario@exemplo.com`
 - **Senha**: `SenhaForte#123`
 - **Chave do Gemini**: Criptografada e vinculada a partir de `GOOGLE_GENERATIVE_AI_API_KEY` do `.env`.
-- **Transações Sintéticas**: 40+ transações brasileiras autênticas cobrindo o mês atual e anterior em todas as categorias canônicas vigentes (`Alimentação`, `Transporte`, `Moradia`, `Saúde`, `Lazer`, `Educação`, `Receita`, `Outros`).
+- **Transações Sintéticas**: 40+ transações brasileiras autênticas cobrindo o mês atual e anterior em todas as 11 categorias canônicas vigentes (`Alimentação`, `Transporte`, `Moradia`, `Saúde`, `Lazer`, `Educação`, `Receita`, `Pagamento de Fatura`, `Investimentos`, `Outros`, `Não Categorizado`).
 - **Análise Pré-aquecida**: Diagnóstico mensal já persistido no cache do MongoDB (`cached: true`).
 
 ---
 
 ## 📑 Catálogo de Endpoints (API Reference)
 
-| Método | Endpoint | Protegido? | Descrição |
+| Método | Endpoint | Protegido? | Módulo / Descrição |
 |:---:|---|:---:|---|
-| `GET` | `/health` | Não | Verificação de integridade e conectividade do banco de dados |
-| `GET` | `/docs` | Não | Interface visual interativa do Swagger UI |
+| **Sistema & Documentação** | | | |
+| `GET` | `/health` | Não | Verificação de integridade e conectividade com o MongoDB |
+| `GET` | `/docs` | Não | Interface Swagger UI interativa |
+| `GET` | `/docs/json` | Não | Especificação OpenAPI 3.0 em JSON |
+| **Autenticação & Sessões** | | | |
 | `POST` | `/api/auth/register` | Não | Cadastro de novo usuário |
-| `POST` | `/api/auth/login` | Não | Autenticação e emissão do token JWT |
-| `PUT` | `/api/user/ai-key` | **JWT** | Cadastro/atualização de chave Gemini BYOK com validação ativa |
-| `POST` | `/api/transactions/upload` | **JWT** | Upload e processamento de extrato em lote (OFX ou CSV) |
-| `GET` | `/api/transactions` | **JWT** | Listagem de transações com filtros por mês, categoria e origem |
-| `PATCH` | `/api/transactions/:id` | **JWT** | Atualização manual de transação (`category` e `cleanDescription`) com isolamento multi-tenant |
-| `POST` | `/api/transactions/categorize` | **JWT + BYOK** | Categorização em lote via IA com minimização de tokens |
+| `POST` | `/api/auth/login` | Não | Autenticação com e-mail e senha |
+| `POST` | `/api/auth/logout` | **JWT** | Revogação da sessão ativa ou de todos os dispositivos (`allDevices`) |
+| **Vínculo Social (Google OAuth 2.0)** | | | |
+| `POST` | `/api/auth/google/link` | **JWT** | Vínculo da conta Google ao perfil com sincronização do perfil |
+| `DELETE`| `/api/auth/google/unlink` | **JWT** | Desvinculação com guarda preventiva de lock-out (exige senha local) |
+| `POST` | `/api/auth/google` | Não | Login social via Google para contas previamente vinculadas |
+| **Perfil de Usuário, Avatar & BYOK** | | | |
+| `GET` | `/api/user/profile` | **JWT** | Consulta de dados cadastrais, segurança social e perfil financeiro |
+| `PUT` | `/api/user/profile` | **JWT** | Atualização do perfil financeiro (regime de renda, metas, risco) |
+| `PATCH` | `/api/user/profile` | **JWT** | Atualização cadastral básica (nome de exibição) |
+| `POST` | `/api/user/avatar` | **JWT** | Upload multipart de avatar (JPG/PNG/WebP até 5MB) |
+| `DELETE`| `/api/user/avatar` | **JWT** | Remoção do avatar e reversão para iniciais/padrão |
+| `GET` | `/uploads/avatars/:file` | Não | Servidor de imagem estática do avatar do usuário |
+| `PUT` | `/api/user/ai-key` | **JWT** | Cadastro/atualização resiliente da chave Gemini BYOK (AES-256-GCM) |
+| **Gestão de Contas Bancárias & Cartões** | | | |
+| `GET` | `/api/accounts` | **JWT** | Listagem de contas com saldos agregados e totais consolidados |
+| `POST` | `/api/accounts` | **JWT** | Criação de conta corrente, poupança, investimento ou cartão |
+| `PATCH` | `/api/accounts/:id` | **JWT** | Atualização de nome, cor, banco, tipo ou saldo inicial da conta |
+| `DELETE`| `/api/accounts/:id` | **JWT** | Exclusão de conta (bloqueada se houver transações vinculadas) |
+| **Transações, IA & Análise** | | | |
+| `POST` | `/api/transactions/upload`| **JWT** | Upload e processamento de extrato em lote (OFX ou CSV) |
+| `GET` | `/api/transactions` | **JWT** | Listagem com filtros por mês, categoria, conta e origem |
+| `PATCH` | `/api/transactions/:id`| **JWT** | Edição de categoria, descrição limpa e vinculação de conta |
+| `DELETE`| `/api/transactions/:id`| **JWT** | Exclusão pontual atômica de transação com invalidação de cache |
+| `POST` | `/api/transactions/categorize`| **JWT + BYOK** | Categorização em lote via Gemini com minimização de tokens |
+| `GET` | `/api/transactions/export`| **JWT** | Exportação de extrato nos formatos CSV, XLSX e PDF com filtros |
+| `GET` | `/api/analysis/:month` | **JWT + BYOK** | Diagnóstico orçamentário mensal com cache de 24h e neutralização de fatura |
 | `POST` | `/api/chat/stream` | **JWT + BYOK** | Consultoria financeira conversacional em streaming via SSE |
-| `GET` | `/api/analysis/:month` | **JWT + BYOK** | Diagnóstico orçamentário mensal com cache de 24h e TTL |
 
 ---
 

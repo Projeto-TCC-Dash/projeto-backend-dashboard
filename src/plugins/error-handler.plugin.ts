@@ -5,6 +5,10 @@ export function setupErrorHandler(app: FastifyInstance): void {
   app.setErrorHandler((error: FastifyError | any, request, reply) => {
     // 1. Erros de validação Zod
     if (error instanceof ZodError) {
+      request.log.warn(
+        { url: request.url, issues: error.issues, body: request.body },
+        'Falha na validação dos dados de entrada (ZodError)'
+      );
       return reply.status(400).send({
         statusCode: 400,
         error: 'Bad Request',

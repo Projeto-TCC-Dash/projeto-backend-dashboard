@@ -1,15 +1,28 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { UserModel } from '../models/user.model.js';
+import { SessionService } from '../services/session.service.js';
 
 export async function requireAuth(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
     await request.jwtVerify();
   } catch (err) {
-    reply.status(401).send({
+    return reply.status(401).send({
       statusCode: 401,
       error: 'Unauthorized',
       message: 'Token de autenticação ausente ou inválido.',
     });
+  }
+
+  // Se o token contiver sessionId, valida no MongoDB se a sessão está ativa e não revogada
+  if (request.user?.sessionId) {
+    const isActive = await SessionService.isSessionActive(request.user.sessionId);
+    if (!isActive) {
+      return reply.status(401).send({
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Sessão expirada ou revogada. Por favor, autentique-se novamente.',
+      });
+    }
   }
 }
 

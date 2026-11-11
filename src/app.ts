@@ -12,11 +12,14 @@ import {
 } from 'fastify-type-provider-zod';
 import { env } from './config/env.js';
 import { setupErrorHandler } from './plugins/error-handler.plugin.js';
+import { accountsRoutes } from './routes/accounts.routes.js';
 import { analysisRoutes } from './routes/analysis.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { transactionRoutes } from './routes/transactions.routes.js';
+import { exportRoutes } from './routes/export.routes.js';
+import { userRoutes } from './routes/user.routes.js';
 
 export function buildApp(): FastifyInstance {
   const app = fastify({
@@ -76,9 +79,14 @@ export function buildApp(): FastifyInstance {
 
   // Auth & User routes
   app.register(authRoutes);
+  app.register(userRoutes);
 
-  // Transactions routes
+  // Accounts CRUD routes
+  app.register(accountsRoutes);
+
+  // Transactions & Export routes
   app.register(transactionRoutes);
+  app.register(exportRoutes);
 
   // Chatbot SSE routes
   app.register(chatRoutes);

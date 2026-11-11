@@ -127,6 +127,8 @@ dist
 
 # pnpm
 .pnpm-store
+pnpm-lock.yaml
+pnpm-workspace.yaml
 
 # yarn v3
 .pnp.*
@@ -151,3 +153,11 @@ vite.config.ts.timestamp-*
 # Mac system files
 .DS_Store
 frontend.md
+
+# Uploads
+uploads/**
+!uploads/
+!uploads/avatars/
+!uploads/avatars/.gitkeep
+
+

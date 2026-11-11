@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { Category } from '../src/config/constants.js';
 import { env } from '../src/config/env.js';
+import { AccountModel } from '../src/models/account.model.js';
 import { TransactionModel } from '../src/models/transaction.model.js';
 import { UserModel } from '../src/models/user.model.js';
 import { AnalysisService } from '../src/services/analysis.service.js';
@@ -190,33 +191,70 @@ export async function runSeed(): Promise<{
 
   const userId = user._id.toString();
 
+  // 3.1 Provisionamento determinístico de contas bancárias (Conta Corrente e Cartão de Crédito)
+  let checkingAccount = await AccountModel.findOne({ userId: user._id, name: 'Conta Principal' }).exec();
+  if (!checkingAccount) {
+    checkingAccount = await AccountModel.create({
+      userId: user._id,
+      name: 'Conta Principal',
+      type: 'CHECKING',
+      initialBalance: 3500,
+      institution: 'Nubank',
+      color: '#2563EB',
+    });
+  }
+
+  let creditCardAccount = await AccountModel.findOne({ userId: user._id, name: 'Cartão Nubank Roxinho' }).exec();
+  if (!creditCardAccount) {
+    creditCardAccount = await AccountModel.create({
+      userId: user._id,
+      name: 'Cartão Nubank Roxinho',
+      type: 'CREDIT_CARD',
+      initialBalance: 0,
+      institution: 'Nu Pagamentos',
+      color: '#820AD1',
+    });
+  }
+
   // 4. Ingestão 100% local e autônoma de transações sintéticas (Multi-mês e Multi-categoria)
   const syntheticTransactions = generateSyntheticTransactions();
-  const operations = syntheticTransactions.map((t) => ({
-    updateOne: {
-      filter: {
-        userId: user._id,
-        externalId: t.externalId,
-      },
-      update: {
-        $setOnInsert: {
+  const operations = syntheticTransactions.map((t) => {
+    const isChecking = t.category === 'Receita' || t.category === 'Moradia';
+    const targetAccountId = isChecking ? checkingAccount!._id : creditCardAccount!._id;
+
+    return {
+      updateOne: {
+        filter: {
           userId: user._id,
           externalId: t.externalId,
-          rawDescription: t.rawDescription,
-          cleanDescription: t.cleanDescription,
-          amount: t.amount,
-          date: t.date,
-          category: t.category,
-          source: t.source,
         },
+        update: {
+          $setOnInsert: {
+            userId: user._id,
+            accountId: targetAccountId,
+            externalId: t.externalId,
+            rawDescription: t.rawDescription,
+            cleanDescription: t.cleanDescription,
+            amount: t.amount,
+            date: t.date,
+            category: t.category,
+            source: t.source,
+          },
+        },
+        upsert: true,
       },
-      upsert: true,
-    },
-  }));
+    };
+  });
 
   const result = await TransactionModel.bulkWrite(operations, { ordered: false });
   const transactionsImported = result.upsertedCount;
   const duplicatesIgnored = syntheticTransactions.length - transactionsImported;
+
+  // Migra quaisquer transações pré-existentes sem conta para a conta corrente principal
+  await TransactionModel.updateMany(
+    { userId: user._id, accountId: { $exists: false } },
+    { $set: { accountId: checkingAccount._id } }
+  ).exec();
 
   console.log(
     `✅ Transações sintéticas processadas: ${transactionsImported} novas inseridas, ${duplicatesIgnored} já existentes.`

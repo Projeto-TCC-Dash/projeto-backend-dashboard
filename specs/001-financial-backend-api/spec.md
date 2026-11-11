@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Especifique a API REST do backend financeiro com os seguintes módulos: 1. Módulo de Autenticação e Onboarding BYOK: Registro e Login de usuários via JWT; Endpoint para salvar a API Key do Google AI Studio com validação ativa (disparando um ping mínimo na API do Gemini antes de aceitar) e armazenamento criptografado (AES-256-GCM); Bloqueio (HTTP 403) de acesso a rotas analíticas se o usuário não possuir chave cadastrada. 2. Módulo de Ingestão e Processamento OFX/CSV: Endpoint de upload multipart para arquivos .ofx e .csv; Extração local de ID externo (FITID), data, valor e descrição crua; Idempotência: ignorar transações duplicadas baseando-se no FITID e userId. 3. Módulo de Integração Open Finance Simulado (Pluggy): Endpoint para sincronizar transações de contas de teste do sandbox da Pluggy, normalizando-as para o mesmo esquema das transações de OFX. 4. Módulo de Categorização Inteligente via IA: Sanitização de descrições e deduplicação em memória para obter apenas o conjunto de nomes de estabelecimentos únicos; Requisição à API do Gemini usando a chave do usuário com schema JSON estrito contendo as categorias aceitas (Alimentação, Transporte, Moradia, Saúde, Lazer, Educação, Outros); Mapeamento das categorias retornadas de volta para todas as transações correspondentes e persistência no MongoDB. 5. Módulo de Consultoria Financeira (Chatbot): Endpoint POST /api/chat/stream entregando respostas via Server-Sent Events (SSE); Contexto injetado pelo backend: resumo financeiro do mês (entradas, saídas, totais por categoria), histórico da sessão e prompt de persona consultora."
 

@@ -10,6 +10,7 @@ export type CategoryMetric = z.infer<typeof CategoryMetricSchema>;
 export const FinancialMetricsSchema = z.object({
   totalIncome: z.number(),
   totalExpenses: z.number(),
+  invoiceSettlements: z.number().default(0),
   netBalance: z.number(),
   savingsRate: z.number(),
   topCategories: z.array(CategoryMetricSchema),

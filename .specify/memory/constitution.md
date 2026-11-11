@@ -1,18 +1,17 @@
 <!--
 SYNC IMPACT REPORT:
-- Version change: 1.0.0 → 2.0.0 (MAJOR: Redefinição e simplificação de princípio fundamental de governança)
-- Last Amended Date: 2026-10-13
+- Version change: 2.0.0 → 2.1.0 (MINOR: Expansão material de governança para suporte a Contas Bancárias/Cartões e esclarecimento LGPD na ingestão OFX)
+- Last Amended Date: 2026-10-19
 - Modified Principles:
   - PRINCIPLE_5 → V. Ingestão de Extratos Bancários (OFX/CSV) e Provedor Local de Dados Sintéticos (Seed)
-    - Revogada a dependência e integração obrigatória com a API de Sandbox da Pluggy / Open Finance externo.
-    - A ingestão de produção passa a ser exclusivamente focada em arquivos de extrato bancário (.ofx e .csv).
-    - O provisionamento de dados para testes, desenvolvimento e amostragem é atribuído exclusivamente a um motor local e autônomo de dados sintéticos (seed).
-- Removed Dependencies:
-  - Pluggy API / PLUGGY_API_KEY
-- Updated Sections:
-  - Diretrizes de Segurança: remoção de credenciais da Pluggy da gestão de segredos.
-  - Estratégia de Testes: remoção de contratos com a Pluggy sandbox e inclusão do gerador de seed local.
-  - Princípio VII (LGPD): remoção de menções à Pluggy no fluxo de parsing.
+    - Formalizada a associação de transações do Esquema Canônico à entidade de Conta bancária/cartão (accountId).
+    - Motor de seed sintético atualizado para provisionar contas padrão estruturadas (ex: Conta Corrente, Cartão de Crédito) e vincular as transações geradas.
+  - PRINCIPLE_7 → VII. Autenticação Stateless e Conformidade Estrita com LGPD (JWT & Privacy-by-Design)
+    - Clarificada a ingestão OFX: metadados transitórios de extrato (como BANKID e ACCTID) podem ser processados exclusivamente em memória e em tempo de execução para identificação da instituição financeira ou derivação de apelidos amigáveis/mascarados (ex: "Conta Final 1234").
+    - Reafirmada a proibição irrevogável de persistir números reais e completos de agência, conta corrente ou cartão no MongoDB.
+- Added Sections: Nenhuma
+- Removed Sections: Nenhuma
+- Follow-up TODOs: Nenhum
 -->
 
 # Plataforma de Inteligência Financeira Pessoal Constitution
@@ -59,11 +58,11 @@ O backend adota o modelo Bring Your Own Key (BYOK) para todos os serviços de in
 ### V. Ingestão de Extratos Bancários (OFX/CSV) e Provedor Local de Dados Sintéticos (Seed)
 A plataforma DEVE prover suporte nativo à ingestão de dados financeiros através de arquivos de extrato bancário e disponibilizar um motor autônomo e 100% local de geração de dados sintéticos para testes e amostragem, eliminando dependências de provedores externos de Open Finance.
 - Canal de Ingestão de Produção: O backend DEVE aceitar upload multipart de extratos nos formatos OFX (SGML) e CSV, tratando adequadamente variações de encoding (UTF-8, ISO-8859-1/Windows-1252) e delimitadores locais (; ou ,).
-- Motor Local de Dados Sintéticos (Seed): O ambiente de desenvolvimento e testes DEVE dispor de script de seed autônomo e determinístico, capaz de gerar e popular o banco de dados com massa de transações brasileiras realistas (salários, transferências, despesas essenciais e variáveis em múltiplos meses) sem requisições de rede ou dependências de serviços de terceiros.
-- Esquema Canônico Unificado: Todos os lançamentos ingeridos via extratos ou gerados via seed DEVEM ser normalizados para o Esquema Canônico Unificado de Transação antes da sanitização, categorização e persistência.
+- Motor Local de Dados Sintéticos (Seed): O ambiente de desenvolvimento e testes DEVE dispor de script de seed autônomo e determinístico, capaz de gerar e popular o banco de dados com contas padrão estruturadas (ex: Conta Corrente, Cartão de Crédito) e massa de transações brasileiras realistas associadas a essas contas, sem requisições de rede ou dependências de serviços de terceiros.
+- Esquema Canônico Unificado e Associação a Contas: Todos os lançamentos ingeridos via extratos ou gerados via seed DEVEM ser normalizados para o Esquema Canônico Unificado de Transação antes da sanitização, categorização e persistência, suportando associação relacional lógica à entidade de Conta bancária/cartão (`accountId`).
 - Desacoplamento dos Módulos: Os parsers de extrato e o gerador de dados sintéticos DEVEM ser concebidos como adaptadores desacoplados e testáveis de maneira isolada.
 
-*Rationale*: O upload manual de extratos (OFX/CSV) é o padrão universal e soberano adotado pelos usuários da plataforma, eliminando fricção regulatória, contratos de Open Finance e passivos de segurança. A geração local de dados sintéticos confere velocidade instantânea (<1s), confiabilidade e independência total de conexão externa para demonstrações e testes do dashboard.
+*Rationale*: O upload manual de extratos (OFX/CSV) é o padrão universal e soberano adotado pelos usuários da plataforma, eliminando fricção regulatória, contratos de Open Finance e passivos de segurança. A geração local de dados sintéticos estruturados com contas e transações confere velocidade instantânea (<1s), confiabilidade e independência total de conexão externa para demonstrações e testes do dashboard.
 
 ### VI. Containerização Integral e Resiliência (Docker Compose & Healthcheck)
 Todo o ecossistema da aplicação DEVE ser 100% conteinerizado e executável via Docker Compose, sem dependências de binários instalados na máquina do host além da engine do Docker.
@@ -77,8 +76,8 @@ Todo o ecossistema da aplicação DEVE ser 100% conteinerizado e executável via
 ### VII. Autenticação Stateless e Conformidade Estrita com LGPD (JWT & Privacy-by-Design)
 A autenticação na API DEVE ser totalmente stateless baseada em JSON Web Tokens (JWT), e todos os fluxos de ingestão e armazenamento DEVEM cumprir integralmente o princípio de minimização de dados da Lei Geral de Proteção de Dados (LGPD).
 - As requisições protegidas DEVEM ser autenticadas via JWT no cabeçalho `Authorization: Bearer <token>`, validadas em hooks globais de ciclo de vida (`onRequest` ou `preHandler`) do Fastify.
-- *Privacy by Design na Ingestão*: Durante a leitura e processamento de extratos (OFX e CSV), identificadores bancários sensíveis e dados pessoais identificáveis (PII) — incluindo números de agência, conta corrente, CPF, CNPJ, dados de cartão e documentos de titularidade — DEVEM ser descartados sumariamente na camada de parsing.
-- É PROIBIDO persistir números de agência, conta e documentos pessoais no MongoDB.
+- *Privacy by Design na Ingestão*: Durante a leitura e processamento de extratos (OFX e CSV), identificadores bancários sensíveis e dados pessoais identificáveis (PII) — incluindo números de agência, conta corrente, CPF, CNPJ, dados de cartão e documentos de titularidade — DEVEM ser descartados sumariamente na camada de parsing. Metadados transitórios de extrato (como tags `<BANKID>` ou `<ACCTID>`) podem ser processados exclusivamente em memória e em tempo de execução para identificação da instituição financeira ou derivação de apelidos amigáveis/mascarados para contas (ex: "Conta Final 1234").
+- É PROIBIDO persistir números reais completos de agência, conta corrente e documentos pessoais no MongoDB.
 - É TERMINANTEMENTE PROIBIDO enviar qualquer PII ou identificador bancário pessoal para a LLM.
 - Registros de logs da aplicação NÃO DEVEM conter tokens JWT, senhas, chaves de API ou dados de transações que identifiquem diretamente a titularidade civil do usuário.
 
@@ -113,4 +112,4 @@ A presente Constituição estabelece as diretrizes arquiteturais e normativas so
   - *PATCH*: Correções de texto, melhorias de redação, clarificações técnicas ou correções tipográficas sem alteração semântica das obrigações.
 - **Auditoria de Conformidade**: Cada nova funcionalidade, rota ou refatoração DEVE ser auditada contra os 7 Princípios Centrais antes de ser integrada à branch principal.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13
+**Version**: 2.1.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-19

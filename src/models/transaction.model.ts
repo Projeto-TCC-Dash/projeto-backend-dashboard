@@ -4,6 +4,7 @@ import { CANONICAL_CATEGORIES, Category, TRANSACTION_SOURCES, TransactionSource 
 export interface ITransaction extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
+  accountId?: mongoose.Types.ObjectId;
   externalId: string;
   rawDescription: string;
   cleanDescription: string;
@@ -21,6 +22,12 @@ const TransactionSchema = new Schema<ITransaction>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true,
+    },
+    accountId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Account',
+      required: false,
       index: true,
     },
     externalId: {
@@ -67,6 +74,7 @@ TransactionSchema.index({ userId: 1, externalId: 1 }, { unique: true });
 // Índices para otimização de consultas e agregações
 TransactionSchema.index({ userId: 1, date: -1 });
 TransactionSchema.index({ userId: 1, category: 1 });
+TransactionSchema.index({ userId: 1, accountId: 1 });
 
 export const TransactionModel = mongoose.model<ITransaction>(
   'Transaction',

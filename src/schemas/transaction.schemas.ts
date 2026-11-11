@@ -3,6 +3,7 @@ import { CategoryEnum, TransactionSourceEnum } from '../config/constants.js';
 
 export const TransactionItemSchema = z.object({
   id: z.string(),
+  accountId: z.string().optional(),
   externalId: z.string(),
   rawDescription: z.string(),
   cleanDescription: z.string(),
@@ -20,7 +21,16 @@ export const UploadTransactionsResponseSchema = z.object({
 });
 export type UploadTransactionsResponse = z.infer<typeof UploadTransactionsResponseSchema>;
 
+export const UploadTransactionsQuerySchema = z.object({
+  accountId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'ID de conta deve ser um ObjectId hexadecimal válido de 24 caracteres').optional(),
+});
+export type UploadTransactionsQuery = z.infer<typeof UploadTransactionsQuerySchema>;
+
 export const ListTransactionsQuerySchema = z.object({
+  accountId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/, 'ID de conta deve ser um ObjectId hexadecimal válido de 24 caracteres')
+    .optional(),
   month: z
     .string()
     .regex(/^\d{4}-\d{2}$/, 'Mês deve estar no formato YYYY-MM')
@@ -46,11 +56,15 @@ export const UpdateTransactionBodySchema = z
       .min(1, 'A descrição não pode estar vazia')
       .max(255, 'A descrição não pode exceder 255 caracteres')
       .optional(),
+    accountId: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'ID de conta deve ser um ObjectId hexadecimal válido de 24 caracteres')
+      .optional(),
   })
   .refine(
-    (data) => data.category !== undefined || data.cleanDescription !== undefined,
+    (data) => data.category !== undefined || data.cleanDescription !== undefined || data.accountId !== undefined,
     {
-      message: 'Ao menos um dos campos (category ou cleanDescription) deve ser informado para atualização',
+      message: 'Ao menos um dos campos (category, cleanDescription ou accountId) deve ser informado para atualização',
     }
   );
 export type UpdateTransactionBody = z.infer<typeof UpdateTransactionBodySchema>;

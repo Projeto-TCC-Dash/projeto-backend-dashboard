@@ -13,6 +13,7 @@ const envSchema = z.object({
     // Aceita 32 caracteres brutos ou 64 caracteres hexadecimais (32 bytes)
     return val.length === 32 || (val.length === 64 && /^[0-9a-fA-F]+$/.test(val));
   }, 'ENCRYPTION_KEY deve ter 32 bytes (32 caracteres ASCII ou 64 caracteres em hexadecimal).'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

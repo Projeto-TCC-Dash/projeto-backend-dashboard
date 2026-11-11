@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Adicione suporte a: 1. Seed automático de usuários fictícios integrados à sandbox da Pluggy usando a chave do Google AI Studio padrão do .env. 2. Camada de cache e persistência com TTL para diagnósticos e análises financeiras geradas por IA, invalidada apenas por novas transações, reduzindo drasticamente o consumo de tokens no Gemini. 3. Atualização e expansão completa do README.md com diagramas, arquitetura e instruções de uso."
 

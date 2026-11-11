@@ -6,8 +6,10 @@ import {
   TransactionIdParamSchema,
   TransactionItemSchema,
   UpdateTransactionBodySchema,
+  UploadTransactionsQuerySchema,
   UploadTransactionsResponseSchema,
 } from '../schemas/transaction.schemas.js';
+import { AccountNotFoundError } from '../services/account.service.js';
 import { AuthService } from '../services/auth.service.js';
 import { GeminiService } from '../services/gemini.service.js';
 import { ParserService } from '../services/parser.service.js';
@@ -23,10 +25,12 @@ export const transactionRoutes: FastifyPluginAsyncZod = async (fastify) => {
         description: 'Upload multipart de extratos bancários (.ofx e .csv)',
         tags: ['Transactions'],
         security: [{ bearerAuth: [] }],
+        querystring: UploadTransactionsQuerySchema,
         response: {
           200: UploadTransactionsResponseSchema,
           400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
           401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          404: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
         },
       },
     },
@@ -64,8 +68,23 @@ export const transactionRoutes: FastifyPluginAsyncZod = async (fastify) => {
         });
       }
 
-      const result = await TransactionService.importTransactions(request.user.id, extracted);
-      return reply.status(200).send(result);
+      try {
+        const result = await TransactionService.importTransactions(
+          request.user.id,
+          extracted,
+          request.query.accountId
+        );
+        return reply.status(200).send(result);
+      } catch (err) {
+        if (err instanceof AccountNotFoundError) {
+          return reply.status(404).send({
+            statusCode: 404,
+            error: 'Not Found',
+            message: err.message,
+          });
+        }
+        throw err;
+      }
     }
   );
 
@@ -150,6 +169,42 @@ export const transactionRoutes: FastifyPluginAsyncZod = async (fastify) => {
         category: updated.category,
         source: updated.source,
       });
+    }
+  );
+
+  // DELETE /api/transactions/:id
+  fastify.delete(
+    '/api/transactions/:id',
+    {
+      preHandler: [requireAuth],
+      schema: {
+        description: 'Exclui permanentemente uma transação individual e invalida o cache de análises',
+        tags: ['Transactions'],
+        security: [{ bearerAuth: [] }],
+        params: TransactionIdParamSchema,
+        response: {
+          204: z.null().describe('Transação excluída com sucesso'),
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          404: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const deleted = await TransactionService.deleteTransaction(
+        request.user.id,
+        request.params.id
+      );
+
+      if (!deleted) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Transação não encontrada ou acesso não autorizado',
+        });
+      }
+
+      return reply.status(204).send();
     }
   );
 

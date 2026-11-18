@@ -87,12 +87,12 @@
 **Independent Test**: Inserir lançamentos em meses consecutivos e consultar `GET /api/analysis/multi-month?range=6` verificando o cálculo correto das médias e flags de tendência.
 
 ### Tests for User Story 3
-- [ ] T022 [P] [US3] Criar suite de testes unitários para o cálculo de médias móveis e detecção de variações de custo fixo em `tests/unit/analysis-multimonth.test.ts`
-- [ ] T023 [P] [US3] Criar suite de testes de integração para a rota `GET /api/analysis/multi-month` em `tests/integration/analysis-multimonth.routes.test.ts`
+- [X] T022 [P] [US3] Criar suite de testes unitários para o cálculo de médias móveis e detecção de variações de custo fixo em `tests/unit/analysis-multimonth.test.ts`
+- [X] T023 [P] [US3] Criar suite de testes de integração para a rota `GET /api/analysis/multi-month` em `tests/integration/analysis-multimonth.routes.test.ts`
 
 ### Implementation for User Story 3
-- [ ] T024 [US3] Implementar método `AnalysisService.getMultiMonthSummary(userId, range)` com pipelines de agregação do MongoDB em `src/services/analysis.service.ts`
-- [ ] T025 [US3] Adicionar rota `GET /api/analysis/multi-month` em `src/routes/analysis.routes.ts` com validação de query parameters via Zod
+- [X] T024 [US3] Implementar método `AnalysisService.getMultiMonthSummary(userId, range)` com pipelines de agregação do MongoDB em `src/services/analysis.service.ts`
+- [X] T025 [US3] Adicionar rota `GET /api/analysis/multi-month` em `src/routes/analysis.routes.ts` com validação de query parameters via Zod
 
 **Checkpoint**: Inteligência financeira multi-mês operante.
 

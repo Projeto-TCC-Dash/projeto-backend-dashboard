@@ -180,6 +180,16 @@ describe('Extra Current-Month Seed Script (scripts/seed-extra.ts)', () => {
       expect(res.totalExpensesAdded).toBeGreaterThan(0);
       expect(res.totalInvestmentsAdded).toBeGreaterThan(0);
       expect(bulkWriteSpy).toHaveBeenCalledTimes(1);
+      const ops = bulkWriteSpy.mock.calls[0]?.[0] as Array<{
+        updateOne: { update: { $setOnInsert: { accountId: mongoose.Types.ObjectId } } };
+      }>;
+      expect(ops).toHaveLength(15);
+      const accountIdsUsed = new Set(
+        ops.map((op) => op.updateOne.update.$setOnInsert.accountId.toString())
+      );
+      expect(accountIdsUsed.has(checkingId.toString())).toBe(true);
+      expect(accountIdsUsed.has(cardId.toString())).toBe(true);
+      expect(accountIdsUsed.has(investId.toString())).toBe(true);
       expect(invalidateSpy).toHaveBeenCalledWith(userId.toString());
     });
   });

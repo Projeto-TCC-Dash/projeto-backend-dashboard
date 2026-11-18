@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../src/app.js';
 import { TransactionService } from '../../src/services/transaction.service.js';
@@ -163,9 +164,11 @@ describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering'
     expect(bodyInvest.category).toBe('Investimentos');
   });
 
-  it('GET /api/transactions?category=Receita deve aceitar e filtrar pela categoria Receita', async () => {
+  it('GET /api/transactions?category=Receita deve aceitar e filtrar pela categoria Receita e retornar accountId', async () => {
+    const mockAccountId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439088');
     const mockTx: any = {
       _id: testTransactionId,
+      accountId: mockAccountId,
       externalId: 'ext-rec-1',
       rawDescription: 'PROVENTOS DIVIDENDOS',
       cleanDescription: 'Dividendos',
@@ -191,6 +194,7 @@ describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering'
     const body = JSON.parse(res.body);
     expect(body).toHaveLength(1);
     expect(body[0].category).toBe('Receita');
+    expect(body[0].accountId).toBe(mockAccountId.toString());
   });
 
   it('GET /api/transactions?category=... deve filtrar por Pagamento de Fatura e Investimentos', async () => {
@@ -221,11 +225,11 @@ describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering'
     );
   });
 
-  it('PATCH /api/transactions/:id deve aceitar atualização do campo accountId', async () => {
+  it('PATCH /api/transactions/:id deve aceitar atualização do campo accountId e retorná-lo no corpo', async () => {
     const targetAccountId = '507f1f77bcf86cd799439099';
     const mockUpdatedDoc: any = {
       _id: testTransactionId,
-      accountId: targetAccountId,
+      accountId: new mongoose.Types.ObjectId(targetAccountId),
       externalId: 'ext-123',
       rawDescription: 'TED SALARIO',
       cleanDescription: 'Salário Mensal',
@@ -250,11 +254,38 @@ describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering'
       testTransactionId,
       expect.objectContaining({ accountId: targetAccountId })
     );
+    const body = JSON.parse(res.body);
+    expect(body.id).toBe(testTransactionId);
+    expect(body.accountId).toBe(targetAccountId);
   });
 
-  it('GET /api/transactions?accountId=... deve filtrar por conta específica', async () => {
+  it('GET /api/transactions?accountId=... deve filtrar por conta específica e omitir accountId quando não vinculado', async () => {
     const targetAccountId = '507f1f77bcf86cd799439099';
-    const listSpy = vi.spyOn(TransactionService, 'listTransactions').mockResolvedValueOnce([]);
+    const mockTxLinked: any = {
+      _id: testTransactionId,
+      accountId: new mongoose.Types.ObjectId(targetAccountId),
+      externalId: 'ext-linked',
+      rawDescription: 'COMPRA CONTA',
+      cleanDescription: 'Compra Conta',
+      amount: -120,
+      date: new Date('2026-10-13T10:00:00Z'),
+      category: 'Outros',
+      source: 'SEED',
+    };
+    const mockTxUnlinked: any = {
+      _id: '507f1f77bcf86cd799439033',
+      externalId: 'ext-unlinked',
+      rawDescription: 'COMPRA SEM CONTA',
+      cleanDescription: 'Compra Sem Conta',
+      amount: -50,
+      date: new Date('2026-10-12T10:00:00Z'),
+      category: 'Outros',
+      source: 'SEED',
+    };
+
+    const listSpy = vi
+      .spyOn(TransactionService, 'listTransactions')
+      .mockResolvedValueOnce([mockTxLinked, mockTxUnlinked]);
 
     const res = await app.inject({
       method: 'GET',
@@ -267,6 +298,10 @@ describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering'
       testUserId,
       expect.objectContaining({ accountId: targetAccountId })
     );
+    const body = JSON.parse(res.body);
+    expect(body).toHaveLength(2);
+    expect(body[0].accountId).toBe(targetAccountId);
+    expect(body[1].accountId).toBeUndefined();
   });
 
   describe('DELETE /api/transactions/:id', () => {

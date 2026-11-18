@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:flow": "tsx scripts/test-flow.ts",
     "seed": "tsx scripts/seed.ts",
+    "seed:extra": "tsx scripts/seed-extra.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [

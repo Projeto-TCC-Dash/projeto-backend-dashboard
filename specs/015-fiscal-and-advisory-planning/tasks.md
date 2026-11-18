@@ -159,11 +159,11 @@
 
 **Purpose**: Provisionamento sintético, validação de contratos e garantia de qualidade integral
 
-- [ ] T041 Atualizar script de seed `scripts/seed.ts` provisionando dados sintéticos com metadados fiscais, orçamentos mensais e posições de investimentos
-- [ ] T042 [P] Atualizar documentação OpenAPI / Swagger para todos os novos endpoints e tags em `src/server.ts`
-- [ ] T043 Executar suíte completa de testes unitários e de integração (`npm test`) garantindo 100% de aprovação
-- [ ] T044 Executar verificação estática de tipos estritos do TypeScript (`npm run typecheck`) garantindo zero erros de compilação
-- [ ] T045 Executar roteiro prático do `quickstart.md` validando todos os cenários ponta a ponta
+- [X] T041 Atualizar script de seed `scripts/seed.ts` provisionando dados sintéticos com metadados fiscais, orçamentos mensais e posições de investimentos
+- [X] T042 [P] Atualizar documentação OpenAPI / Swagger para todos os novos endpoints e tags em `src/server.ts`
+- [X] T043 Executar suíte completa de testes unitários e de integração (`npm test`) garantindo 100% de aprovação
+- [X] T044 Executar verificação estática de tipos estritos do TypeScript (`npm run typecheck`) garantindo zero erros de compilação
+- [X] T045 Executar roteiro prático do `quickstart.md` validando todos os cenários ponta a ponta
 
 ---
 

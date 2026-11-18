@@ -12,6 +12,9 @@ import { UserModel } from '../src/models/user.model.js';
 import { AnalysisService } from '../src/services/analysis.service.js';
 import { SEED_CONFIG } from './seed.js';
 
+export type SeedExtraType = 'all' | 'receitas' | 'gastos' | 'investimentos' | 'fiscais';
+export type AccountPreference = 'CHECKING' | 'CREDIT_CARD' | 'INVESTMENT';
+
 export interface ExtraTransactionFiscal {
   isTaxDeductible: boolean;
   taxCategory?: TaxCategory;
@@ -38,6 +41,7 @@ export interface SeedExtraOptions {
   month?: string; // YYYY-MM
   count?: number;
   batchId?: string;
+  type?: SeedExtraType;
 }
 
 export interface SeedExtraResult {
@@ -45,10 +49,12 @@ export interface SeedExtraResult {
   email: string;
   month: string;
   batchId: string;
+  type: SeedExtraType;
   transactionsInserted: number;
   duplicatesIgnored: number;
   totalIncomeAdded: number;
   totalExpensesAdded: number;
+  totalInvestmentsAdded: number;
 }
 
 interface TransactionTemplate {
@@ -56,7 +62,7 @@ interface TransactionTemplate {
   cleanDescription: string;
   amount: number;
   category: Category;
-  accountPreference: 'CHECKING' | 'CREDIT_CARD';
+  accountPreference: AccountPreference;
   fiscal?: Omit<ExtraTransactionFiscal, 'verifiedAt'>;
 }
 
@@ -74,6 +80,13 @@ const EXTRA_TEMPLATES: readonly TransactionTemplate[] = [
     amount: -118.9,
     category: 'Alimentação',
     accountPreference: 'CREDIT_CARD',
+  },
+  {
+    rawDescription: 'APLICACAO TESOURO DIRETO SELIC 2029',
+    cleanDescription: 'APLICACAO TESOURO SELIC',
+    amount: -1500.0,
+    category: 'Investimentos',
+    accountPreference: 'INVESTMENT',
   },
   {
     rawDescription: 'CONSULTA ODONTOLOGICA CLINICA SORRISO LTDA',
@@ -98,6 +111,13 @@ const EXTRA_TEMPLATES: readonly TransactionTemplate[] = [
     accountPreference: 'CREDIT_CARD',
   },
   {
+    rawDescription: 'PIX RECEBIDO DESENVOLVIMENTO SOFTWARE FREELA',
+    cleanDescription: 'FREELANCE SOFTWARE PJ',
+    amount: 2200.0,
+    category: 'Receita',
+    accountPreference: 'CHECKING',
+  },
+  {
     rawDescription: 'UBER *TRIP AEROPORTO CONGONHAS',
     cleanDescription: 'UBER TRIP AEROPORTO',
     amount: -64.8,
@@ -110,6 +130,13 @@ const EXTRA_TEMPLATES: readonly TransactionTemplate[] = [
     amount: -2500.0,
     category: 'Outros',
     accountPreference: 'CHECKING',
+  },
+  {
+    rawDescription: 'CREDITO DIVIDENDOS FII HGLG11 XP',
+    cleanDescription: 'DIVIDENDOS FII HGLG11',
+    amount: 245.5,
+    category: 'Investimentos',
+    accountPreference: 'INVESTMENT',
   },
   {
     rawDescription: 'MENSALIDADE MBA GESTAO FINANCEIRA FGV',
@@ -125,13 +152,6 @@ const EXTRA_TEMPLATES: readonly TransactionTemplate[] = [
       deductibleAmount: 690.0,
       status: 'PENDING',
     },
-  },
-  {
-    rawDescription: 'PIX RECEBIDO DESENVOLVIMENTO SOFTWARE FREELA',
-    cleanDescription: 'FREELANCE SOFTWARE PJ',
-    amount: 2200.0,
-    category: 'Receita',
-    accountPreference: 'CHECKING',
   },
   {
     rawDescription: 'DEBITO AUTOMATICO COMGAS DISTRIBUICAO',
@@ -156,11 +176,11 @@ const EXTRA_TEMPLATES: readonly TransactionTemplate[] = [
     },
   },
   {
-    rawDescription: 'POSTO SHELL SELECT COMBUSTIVEL',
-    cleanDescription: 'POSTO SHELL COMBUSTIVEL',
-    amount: -215.0,
-    category: 'Transporte',
-    accountPreference: 'CREDIT_CARD',
+    rawDescription: 'PAGAMENTO FATURA CARTAO NUBANK ROXINHO',
+    cleanDescription: 'PAGAMENTO FATURA NUBANK',
+    amount: -1850.0,
+    category: 'Pagamento de Fatura',
+    accountPreference: 'CHECKING',
   },
   {
     rawDescription: 'APORTE PREVIDENCIA PRIVADA PGBL ITAU',
@@ -185,6 +205,13 @@ const EXTRA_TEMPLATES: readonly TransactionTemplate[] = [
     accountPreference: 'CREDIT_CARD',
   },
   {
+    rawDescription: 'COMPRA COTAS FII KNRI11 CORRETORA XP',
+    cleanDescription: 'COMPRA FII KNRI11',
+    amount: -950.0,
+    category: 'Investimentos',
+    accountPreference: 'INVESTMENT',
+  },
+  {
     rawDescription: 'COWORKING WEWORK SALA LIVRO CAIXA PJ',
     cleanDescription: 'COWORKING WEWORK',
     amount: -450.0,
@@ -200,11 +227,25 @@ const EXTRA_TEMPLATES: readonly TransactionTemplate[] = [
     },
   },
   {
-    rawDescription: 'RESTAURANTE JAPONES KOI SUSHI SP',
-    cleanDescription: 'RESTAURANTE KOI SUSHI',
-    amount: -186.5,
-    category: 'Alimentação',
+    rawDescription: 'POSTO SHELL SELECT COMBUSTIVEL',
+    cleanDescription: 'POSTO SHELL COMBUSTIVEL',
+    amount: -215.0,
+    category: 'Transporte',
     accountPreference: 'CREDIT_CARD',
+  },
+  {
+    rawDescription: 'TED RECEBIDA BONIFICACAO PROJETO ENTREGA',
+    cleanDescription: 'BONIFICACAO PROJETO',
+    amount: 1650.0,
+    category: 'Receita',
+    accountPreference: 'CHECKING',
+  },
+  {
+    rawDescription: 'RESGATE CDB LIQUIDEZ DIARIA 110 CDI',
+    cleanDescription: 'RESGATE CDB LIQUIDEZ',
+    amount: 1200.0,
+    category: 'Investimentos',
+    accountPreference: 'CHECKING',
   },
   {
     rawDescription: 'TRANSFERENCIA DISTRIBUICAO LUCRO TRIMESTRAL',
@@ -212,13 +253,6 @@ const EXTRA_TEMPLATES: readonly TransactionTemplate[] = [
     amount: -3200.0,
     category: 'Outros',
     accountPreference: 'CHECKING',
-  },
-  {
-    rawDescription: 'ESTAPAR ESTACIONAMENTO CENTRO SP',
-    cleanDescription: 'ESTAPAR ESTACIONAMENTO',
-    amount: -48.0,
-    category: 'Transporte',
-    accountPreference: 'CREDIT_CARD',
   },
   {
     rawDescription: 'WORKSHOP ARQUITETURA CLOUD CERTIFICACAO',
@@ -235,10 +269,66 @@ const EXTRA_TEMPLATES: readonly TransactionTemplate[] = [
       status: 'CONFIRMED',
     },
   },
+  {
+    rawDescription: 'RESTAURANTE JAPONES KOI SUSHI SP',
+    cleanDescription: 'RESTAURANTE KOI SUSHI',
+    amount: -186.5,
+    category: 'Alimentação',
+    accountPreference: 'CREDIT_CARD',
+  },
+  {
+    rawDescription: 'ESTAPAR ESTACIONAMENTO CENTRO SP',
+    cleanDescription: 'ESTAPAR ESTACIONAMENTO',
+    amount: -48.0,
+    category: 'Transporte',
+    accountPreference: 'CREDIT_CARD',
+  },
 ];
 
+const TYPE_ALIASES: Record<string, SeedExtraType> = {
+  all: 'all',
+  todos: 'all',
+  receitas: 'receitas',
+  receita: 'receitas',
+  income: 'receitas',
+  gastos: 'gastos',
+  gasto: 'gastos',
+  despesas: 'gastos',
+  expenses: 'gastos',
+  investimentos: 'investimentos',
+  investimento: 'investimentos',
+  investments: 'investimentos',
+  fiscais: 'fiscais',
+  fiscal: 'fiscais',
+};
+
+function selectTemplatesByType(type: SeedExtraType): readonly TransactionTemplate[] {
+  switch (type) {
+    case 'receitas':
+      return EXTRA_TEMPLATES.filter((t) => t.amount > 0);
+    case 'gastos':
+      return EXTRA_TEMPLATES.filter(
+        (t) =>
+          t.amount < 0 &&
+          t.category !== 'Investimentos' &&
+          t.category !== 'Pagamento de Fatura'
+      );
+    case 'investimentos':
+      return EXTRA_TEMPLATES.filter(
+        (t) =>
+          t.category === 'Investimentos' ||
+          t.fiscal?.taxCategory === 'PENSION_PGBL'
+      );
+    case 'fiscais':
+      return EXTRA_TEMPLATES.filter((t) => Boolean(t.fiscal?.isTaxDeductible));
+    case 'all':
+    default:
+      return EXTRA_TEMPLATES;
+  }
+}
+
 /**
- * Faz parsing seguro dos argumentos de linha de comando (`--email=`, `--month=`, `--count=`, `--batch=`).
+ * Faz parsing seguro dos argumentos de linha de comando (`--email=`, `--month=`, `--count=`, `--batch=`, `--type=`).
  */
 export function parseSeedExtraArgs(argv: string[]): SeedExtraOptions {
   const options: SeedExtraOptions = {};
@@ -261,6 +351,15 @@ export function parseSeedExtraArgs(argv: string[]): SeedExtraOptions {
       options.count = parsed;
     } else if (arg.startsWith('--batch=')) {
       options.batchId = arg.slice('--batch='.length).trim();
+    } else if (arg.startsWith('--type=')) {
+      const rawType = arg.slice('--type='.length).trim().toLowerCase();
+      const mapped = TYPE_ALIASES[rawType];
+      if (!mapped) {
+        throw new Error(
+          `Tipo inválido para --type="${rawType}". Valores aceitos: all, receitas, gastos, investimentos, fiscais.`
+        );
+      }
+      options.type = mapped;
     }
   }
 
@@ -274,11 +373,13 @@ export function generateCurrentMonthTransactions(params?: {
   month?: string;
   count?: number;
   batchId?: string;
+  type?: SeedExtraType;
   now?: Date;
 }): {
   month: string;
   batchId: string;
-  transactions: Array<ExtraSyntheticTransaction & { accountPreference: 'CHECKING' | 'CREDIT_CARD' }>;
+  type: SeedExtraType;
+  transactions: Array<ExtraSyntheticTransaction & { accountPreference: AccountPreference }>;
 } {
   const referenceNow = params?.now ?? new Date();
   let targetYear = referenceNow.getUTCFullYear();
@@ -297,6 +398,7 @@ export function generateCurrentMonthTransactions(params?: {
   const monthStr = String(targetMonthIndex + 1).padStart(2, '0');
   const resolvedMonth = `${targetYear}-${monthStr}`;
   const count = params?.count ?? 15;
+  const resolvedType: SeedExtraType = params?.type ?? 'all';
   const batchId =
     params?.batchId ||
     `${Date.now().toString(36)}-${crypto.randomBytes(2).toString('hex')}`;
@@ -310,15 +412,16 @@ export function generateCurrentMonthTransactions(params?: {
     ? Math.max(1, Math.min(28, referenceNow.getUTCDate()))
     : 28;
 
+  const pool = selectTemplatesByType(resolvedType);
   const transactions: Array<
-    ExtraSyntheticTransaction & { accountPreference: 'CHECKING' | 'CREDIT_CARD' }
+    ExtraSyntheticTransaction & { accountPreference: AccountPreference }
   > = [];
 
   for (let i = 0; i < count; i++) {
-    const template = EXTRA_TEMPLATES[i % EXTRA_TEMPLATES.length]!;
-    const cycle = Math.floor(i / EXTRA_TEMPLATES.length);
+    const template = pool[i % pool.length]!;
+    const cycle = Math.floor(i / pool.length);
 
-    // Pequena variação determinística de centavos/valores quando o lote repete templates
+    // Pequena variação determinística de valores quando o lote repete templates
     const factor = cycle === 0 ? 1 : 1 + ((cycle % 5) * 0.07);
     const adjustedAmount = Math.round(template.amount * factor * 100) / 100;
 
@@ -355,6 +458,7 @@ export function generateCurrentMonthTransactions(params?: {
   return {
     month: resolvedMonth,
     batchId,
+    type: resolvedType,
     transactions,
   };
 }
@@ -366,8 +470,9 @@ export function generateCurrentMonthTransactions(params?: {
 export async function runSeedExtra(options: SeedExtraOptions = {}): Promise<SeedExtraResult> {
   const email = options.email || process.env.SEED_EMAIL || SEED_CONFIG.EMAIL;
   const count = options.count ?? 15;
+  const type = options.type ?? 'all';
 
-  console.log(`🌱 Adicionando lote extra de ${count} transações para ${email}...`);
+  console.log(`🌱 Adicionando lote extra (${type}) de ${count} transações para ${email}...`);
 
   if (mongoose.connection.readyState === 0) {
     await mongoose.connect(env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
@@ -404,17 +509,25 @@ export async function runSeedExtra(options: SeedExtraOptions = {}): Promise<Seed
     type: 'CREDIT_CARD',
   }).exec();
 
+  const investmentAccount = await AccountModel.findOne({
+    userId: user._id,
+    type: 'INVESTMENT',
+  }).exec();
+
   const generated = generateCurrentMonthTransactions({
     month: options.month,
     count,
     batchId: options.batchId,
+    type,
   });
 
   const operations = generated.transactions.map((t) => {
-    const targetAccountId =
-      t.accountPreference === 'CREDIT_CARD' && creditCardAccount
-        ? creditCardAccount._id
-        : checkingAccount._id;
+    let targetAccountId = checkingAccount._id;
+    if (t.accountPreference === 'CREDIT_CARD' && creditCardAccount) {
+      targetAccountId = creditCardAccount._id;
+    } else if (t.accountPreference === 'INVESTMENT' && investmentAccount) {
+      targetAccountId = investmentAccount._id;
+    }
 
     return {
       updateOne: {
@@ -447,10 +560,15 @@ export async function runSeedExtra(options: SeedExtraOptions = {}): Promise<Seed
 
   let totalIncomeAdded = 0;
   let totalExpensesAdded = 0;
+  let totalInvestmentsAdded = 0;
+
   for (const t of generated.transactions) {
+    if (t.category === 'Investimentos') {
+      totalInvestmentsAdded += Math.abs(t.amount);
+    }
     if (t.amount > 0) {
       totalIncomeAdded += t.amount;
-    } else {
+    } else if (t.category !== 'Pagamento de Fatura' && t.category !== 'Investimentos') {
       totalExpensesAdded += Math.abs(t.amount);
     }
   }
@@ -463,12 +581,12 @@ export async function runSeedExtra(options: SeedExtraOptions = {}): Promise<Seed
     }
   }
 
-  console.log(`✅ Mês alvo: ${generated.month} | Lote: ${generated.batchId}`);
+  console.log(`✅ Mês alvo: ${generated.month} | Tipo: ${generated.type} | Lote: ${generated.batchId}`);
   console.log(
     `✅ Transações processadas: ${transactionsInserted} inseridas, ${duplicatesIgnored} ignoradas (já existentes).`
   );
   console.log(
-    `💰 Volume do lote -> Receitas: R$ ${totalIncomeAdded.toFixed(2)} | Despesas: R$ ${totalExpensesAdded.toFixed(2)}`
+    `💰 Volume do lote -> Receitas/Entradas: R$ ${totalIncomeAdded.toFixed(2)} | Despesas: R$ ${totalExpensesAdded.toFixed(2)} | Investimentos: R$ ${totalInvestmentsAdded.toFixed(2)}`
   );
 
   return {
@@ -476,14 +594,16 @@ export async function runSeedExtra(options: SeedExtraOptions = {}): Promise<Seed
     email: user.email,
     month: generated.month,
     batchId: generated.batchId,
+    type: generated.type,
     transactionsInserted,
     duplicatesIgnored,
     totalIncomeAdded: Math.round(totalIncomeAdded * 100) / 100,
     totalExpensesAdded: Math.round(totalExpensesAdded * 100) / 100,
+    totalInvestmentsAdded: Math.round(totalInvestmentsAdded * 100) / 100,
   };
 }
 
-// Execução direta via CLI: npm run seed:extra -- [--count=20] [--month=2026-11] [--email=...] [--batch=...]
+// Execução direta via CLI: npm run seed:extra -- [--count=20] [--type=all|receitas|gastos|investimentos|fiscais] [--month=2026-11] [--email=...] [--batch=...]
 if (process.argv[1] && process.argv[1].endsWith('seed-extra.ts')) {
   const cliOptions = parseSeedExtraArgs(process.argv.slice(2));
   runSeedExtra(cliOptions)

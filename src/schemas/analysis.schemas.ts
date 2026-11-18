@@ -40,3 +40,32 @@ export const AnalysisQuerySchema = z.object({
     .transform((val) => val === 'true'),
 });
 export type AnalysisQuery = z.infer<typeof AnalysisQuerySchema>;
+
+export const MultiMonthQuerySchema = z.object({
+  range: z.enum(['3', '6', '12']).default('6'),
+});
+export type MultiMonthQuery = z.infer<typeof MultiMonthQuerySchema>;
+
+export const MonthlyDataPointSchema = z.object({
+  month: z.string(),
+  totalIncome: z.number(),
+  totalExpenses: z.number(),
+  netBalance: z.number(),
+  savingsRate: z.number(),
+});
+export type MonthlyDataPoint = z.infer<typeof MonthlyDataPointSchema>;
+
+export const MultiMonthAnalysisResponseSchema = z.object({
+  rangeMonths: z.number(),
+  averageSavingsRate: z.number(),
+  averageMonthlyExpenses: z.number(),
+  averageMonthlyIncome: z.number(),
+  fixedCostTrend: z.object({
+    status: z.enum(['STABLE', 'GROWING', 'DECLINING']),
+    percentageChange: z.number(),
+    alertCategory: z.string().optional(),
+  }),
+  monthlyHistory: z.array(MonthlyDataPointSchema),
+});
+export type MultiMonthAnalysisResponse = z.infer<typeof MultiMonthAnalysisResponseSchema>;
+

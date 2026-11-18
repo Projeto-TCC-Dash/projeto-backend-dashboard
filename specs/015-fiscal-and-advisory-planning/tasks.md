@@ -67,14 +67,14 @@
 **Independent Test**: Configurar orçamento para o mês via `PUT /api/budgets/:month` e consultar `GET /api/budgets/:month` verificando os percentuais consumidos calculados contra os lançamentos reais de débito.
 
 ### Tests for User Story 2
-- [ ] T016 [P] [US2] Criar suite de testes unitários para a lógica de consumo orçamentário e faixas de alerta em `tests/unit/budget.service.test.ts`
-- [ ] T017 [P] [US2] Criar suite de testes de integração para as rotas `GET /api/budgets/:month` e `PUT /api/budgets/:month` em `tests/integration/budgets.routes.test.ts`
+- [X] T016 [P] [US2] Criar suite de testes unitários para a lógica de consumo orçamentário e faixas de alerta em `tests/unit/budget.service.test.ts`
+- [X] T017 [P] [US2] Criar suite de testes de integração para as rotas `GET /api/budgets/:month` e `PUT /api/budgets/:month` em `tests/integration/budgets.routes.test.ts`
 
 ### Implementation for User Story 2
-- [ ] T018 [US2] Implementar serviço `BudgetService.upsertBudgetPlan(userId, month, data)` e `BudgetService.getBudgetOverview(userId, month)` cruzando limites com despesas de `TransactionModel` em `src/services/budget.service.ts`
-- [ ] T019 [US2] Implementar rotas Fastify `GET /api/budgets/:month` e `PUT /api/budgets/:month` em `src/routes/budget.routes.ts`
-- [ ] T020 [US2] Registrar plugin `budgetRoutes` no servidor em `src/app.ts`
-- [ ] T021 [US2] Integrar resumo de orçamentos em alerta (`WARNING` ou `EXCEEDED`) no prompt de sistema de `ChatService.buildSystemInstruction` em `src/services/chat.service.ts`
+- [X] T018 [US2] Implementar serviço `BudgetService.upsertBudgetPlan(userId, month, data)` e `BudgetService.getBudgetOverview(userId, month)` cruzando limites com despesas de `TransactionModel` em `src/services/budget.service.ts`
+- [X] T019 [US2] Implementar rotas Fastify `GET /api/budgets/:month` e `PUT /api/budgets/:month` em `src/routes/budget.routes.ts`
+- [X] T020 [US2] Registrar plugin `budgetRoutes` no servidor em `src/app.ts`
+- [X] T021 [US2] Integrar resumo de orçamentos em alerta (`WARNING` ou `EXCEEDED`) no prompt de sistema de `ChatService.buildSystemInstruction` em `src/services/chat.service.ts`
 
 **Checkpoint**: Orçamentos operantes com alertas automáticos vinculados ao consultor de IA.
 

@@ -71,6 +71,27 @@ describe('GeminiErrorParser & withGeminiRetry Unit Tests', () => {
       expect(parsed.isTransient).toBe(true);
     });
 
+    it('deve identificar AbortError / request timeout como NETWORK_ERROR com status 503', () => {
+      const err = new Error('The operation was aborted due to timeout');
+
+      const parsed = GeminiErrorParser.parse(err);
+      expect(parsed.type).toBe('NETWORK_ERROR');
+      expect(parsed.statusCode).toBe(503);
+      expect(parsed.isTransient).toBe(true);
+    });
+
+    it('deve identificar erro 404 de modelo não encontrado como UPSTREAM_UNAVAILABLE sem retentativa', () => {
+      const err = {
+        status: 404,
+        message: 'models/gemini-3.8-flash is not found for API version v1beta',
+      };
+
+      const parsed = GeminiErrorParser.parse(err);
+      expect(parsed.type).toBe('UPSTREAM_UNAVAILABLE');
+      expect(parsed.statusCode).toBe(503);
+      expect(parsed.isTransient).toBe(false);
+    });
+
     it('deve classificar erro inesperado como UNKNOWN_ERROR com status 500', () => {
       const err = new Error('Random unexpected internal bug');
 

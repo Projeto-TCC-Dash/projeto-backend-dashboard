@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../src/app.js';
 import { UserModel } from '../../src/models/user.model.js';
 import { AnalysisService } from '../../src/services/analysis.service.js';
+import { GeminiApiError } from '../../src/utils/gemini-errors.js';
 
 describe('Financial Analysis Routes (HTTP Inject & Auth Guard)', () => {
   const app = buildApp();
@@ -101,5 +102,59 @@ describe('Financial Analysis Routes (HTTP Inject & Auth Guard)', () => {
     const body = JSON.parse(res.body);
     expect(body.metrics.invoiceSettlements).toBe(1200);
     expect(body.metrics.totalExpenses).toBe(1500);
+  });
+
+  it('GET /api/analysis/2026-10 deve retornar 503 e 429 adequadamente quando o Gemini falhar', async () => {
+    vi.spyOn(UserModel, 'findById').mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        _id: '652d8e6a1f8b3c9a10000001',
+        email: 'com-chave@exemplo.com',
+        hasAiKey: () => true,
+      }),
+    } as any);
+
+    const fakeToken = app.jwt.sign({ id: '652d8e6a1f8b3c9a10000001', email: 'com-chave@exemplo.com' });
+
+    vi.spyOn(AnalysisService, 'getAnalysis').mockRejectedValueOnce(
+      new GeminiApiError({
+        type: 'UPSTREAM_UNAVAILABLE',
+        statusCode: 503,
+        userMessage: 'Serviço upstream indisponível.',
+        isTransient: true,
+        originalMessage: '503 UNAVAILABLE',
+      })
+    );
+
+    const res503 = await app.inject({
+      method: 'GET',
+      url: '/api/analysis/2026-10',
+      headers: { authorization: `Bearer ${fakeToken}` },
+    });
+    expect(res503.statusCode).toBe(503);
+
+    vi.spyOn(UserModel, 'findById').mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        _id: '652d8e6a1f8b3c9a10000001',
+        email: 'com-chave@exemplo.com',
+        hasAiKey: () => true,
+      }),
+    } as any);
+
+    vi.spyOn(AnalysisService, 'getAnalysis').mockRejectedValueOnce(
+      new GeminiApiError({
+        type: 'RATE_LIMIT_ERROR',
+        statusCode: 429,
+        userMessage: 'Limite de cota atingido.',
+        isTransient: true,
+        originalMessage: '429 RESOURCE_EXHAUSTED',
+      })
+    );
+
+    const res429 = await app.inject({
+      method: 'GET',
+      url: '/api/analysis/2026-10',
+      headers: { authorization: `Bearer ${fakeToken}` },
+    });
+    expect(res429.statusCode).toBe(429);
   });
 });

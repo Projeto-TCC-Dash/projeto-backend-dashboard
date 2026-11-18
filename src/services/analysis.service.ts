@@ -164,8 +164,19 @@ export class AnalysisService {
           cached: true,
           month: cached.month,
           diagnosis: cached.diagnosis,
-          recommendations: cached.recommendations,
-          metrics: cached.metrics,
+          recommendations: [...cached.recommendations],
+          metrics: {
+            totalIncome: cached.metrics.totalIncome,
+            totalExpenses: cached.metrics.totalExpenses,
+            invoiceSettlements: cached.metrics.invoiceSettlements ?? 0,
+            netBalance: cached.metrics.netBalance,
+            savingsRate: cached.metrics.savingsRate,
+            topCategories: cached.metrics.topCategories.map((c) => ({
+              category: c.category,
+              amount: c.amount,
+              percentage: c.percentage,
+            })),
+          },
           generatedAt: cached.generatedAt,
           expiresAt: cached.expiresAt,
         };
@@ -213,8 +224,8 @@ export class AnalysisService {
       cached: false,
       month: saved.month,
       diagnosis: saved.diagnosis,
-      recommendations: saved.recommendations,
-      metrics: saved.metrics,
+      recommendations: [...saved.recommendations],
+      metrics,
       generatedAt: saved.generatedAt,
       expiresAt: saved.expiresAt,
     };

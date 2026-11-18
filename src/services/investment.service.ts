@@ -31,6 +31,9 @@ export class InvestmentService {
 
     let totalInvested = 0;
     for (const h of holdings) {
+      if (!ASSET_MACRO_CLASSES.includes(h.macroClass)) {
+        continue;
+      }
       macroClassSum[h.macroClass] = (macroClassSum[h.macroClass] || 0) + h.amount;
       totalInvested += h.amount;
     }

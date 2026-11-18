@@ -24,7 +24,10 @@ export class FiscalOcrService {
     fileBuffer: Buffer,
     mimeType: string
   ): Promise<ExtractedReceiptData> {
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: { timeout: 25_000 },
+    });
 
     const contents = [
       {

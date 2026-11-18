@@ -54,6 +54,8 @@ export const analysisRoutes: FastifyPluginAsyncZod = async (fastify) => {
           400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
           401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
           403: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          429: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          503: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
         },
       },
     },

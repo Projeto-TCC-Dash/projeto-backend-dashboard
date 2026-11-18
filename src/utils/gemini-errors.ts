@@ -106,13 +106,14 @@ export class GeminiErrorParser {
       };
     }
 
-    // 3. Autenticação Incorreta ou Revogada (400 / 401 / 403 / API key not valid / PERMISSION_DENIED)
+    // 3. Autenticação Incorreta, Expirada ou Revogada (400 / 401 / 403 / API key not valid / PERMISSION_DENIED)
     if (
       extractedStatus === 401 ||
       extractedStatus === 403 ||
       extractedStatus === 'PERMISSION_DENIED' ||
       lowerMsg.includes('api key not valid') ||
       lowerMsg.includes('api_key_invalid') ||
+      lowerMsg.includes('api key expired') ||
       lowerMsg.includes('permission_denied') ||
       lowerMsg.includes('invalid api key') ||
       lowerMsg.includes('unauthorized') ||
@@ -128,14 +129,36 @@ export class GeminiErrorParser {
       };
     }
 
-    // 4. Falhas de Rede e Timeout (ETIMEDOUT, ENOTFOUND, ECONNRESET)
+    // 3.1. Modelo não encontrado / Indisponível (404 / NOT_FOUND)
+    if (
+      extractedStatus === 404 ||
+      extractedStatus === 'NOT_FOUND' ||
+      lowerMsg.includes('is not found for api version') ||
+      lowerMsg.includes('not supported for generatecontent')
+    ) {
+      return {
+        type: 'UPSTREAM_UNAVAILABLE',
+        statusCode: 503,
+        userMessage:
+          'O modelo de IA configurado encontra-se indisponível ou não foi encontrado no Google AI Studio.',
+        isTransient: false,
+        originalMessage: extractedMsg,
+        originalStatus: extractedStatus,
+      };
+    }
+
+    // 4. Falhas de Rede e Timeout (ETIMEDOUT, ENOTFOUND, ECONNRESET, AbortError, timeout)
     if (
       lowerMsg.includes('etimedout') ||
       lowerMsg.includes('enotfound') ||
       lowerMsg.includes('econnrefused') ||
       lowerMsg.includes('econnreset') ||
       lowerMsg.includes('fetch failed') ||
-      lowerMsg.includes('network error')
+      lowerMsg.includes('network error') ||
+      lowerMsg.includes('timed out') ||
+      lowerMsg.includes('timeout') ||
+      lowerMsg.includes('aborterror') ||
+      lowerMsg.includes('operation was aborted')
     ) {
       return {
         type: 'NETWORK_ERROR',

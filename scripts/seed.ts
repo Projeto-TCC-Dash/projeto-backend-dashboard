@@ -275,13 +275,13 @@ export async function runSeed(): Promise<{
   }
 
   // Configurar perfil financeiro completo para testes de advisory e fiscal
-  if (!user.financialProfile || !user.financialProfile.riskProfile) {
+  if (!user.financialProfile || !user.financialProfile.riskProfile || !user.financialProfile.incomeType) {
     user.financialProfile = {
-      monthlyIncome: 8700,
-      fixedExpensesRatio: 0.45,
-      riskProfile: 'MODERATE',
       incomeType: 'PJ_AUTONOMO',
-      primaryGoal: 'WEALTH_ACCUMULATION',
+      declaredMonthlyIncome: 8700,
+      goals: ['INVESTIR_LONGO_PRAZO', 'RESERVA_EMERGENCIA'],
+      riskProfile: 'MODERATE',
+      updatedAt: new Date(),
     };
     await user.save();
   }
@@ -328,7 +328,10 @@ export async function runSeed(): Promise<{
 
   // Migra quaisquer transações pré-existentes sem conta para a conta corrente principal
   await TransactionModel.updateMany(
-    { userId: user._id, accountId: { $exists: false } },
+    {
+      userId: user._id,
+      $or: [{ accountId: { $exists: false } }, { accountId: null }],
+    },
     { $set: { accountId: checkingAccount._id } }
   ).exec();
 
@@ -378,11 +381,17 @@ export async function runSeed(): Promise<{
   console.log(`✅ Orçamentos mensais provisionados para ${currentMonthStr} e ${prevMonthStr}.`);
 
   // 6. Provisionamento de Carteira de Investimentos por Macroclasses
+  // Remove eventuais registros legados com macroClass 'LIQUIDITY' fora do enum oficial
+  await InvestmentHoldingModel.deleteMany({
+    userId: user._id,
+    macroClass: 'LIQUIDITY',
+  }).exec();
+
   const holdings = [
     { macroClass: 'FIXED_INCOME' as const, amount: 45000, notes: 'Tesouro IPCA+ e CDBs 110% CDI' },
     { macroClass: 'EQUITIES' as const, amount: 20000, notes: 'Ações Brasil (Blue chips e Dividendos)' },
     { macroClass: 'REAL_ESTATE' as const, amount: 15000, notes: 'Fundos Imobiliários de Logística e Papel' },
-    { macroClass: 'LIQUIDITY' as const, amount: 10000, notes: 'Reserva de Emergência Selic Diária' },
+    { macroClass: 'CASH_LIQUIDITY' as const, amount: 10000, notes: 'Reserva de Emergência Selic Diária' },
     { macroClass: 'INTERNATIONAL' as const, amount: 5000, notes: 'ETFs S&P 500 e Mercados Globais' },
     { macroClass: 'CRYPTO' as const, amount: 2000, notes: 'Bitcoin e Ethereum para reserva de valor' },
   ];
@@ -397,7 +406,7 @@ export async function runSeed(): Promise<{
         amount: h.amount,
         notes: h.notes,
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: true }
     );
   }
   console.log(`✅ Carteira de investimentos provisionada: 6 macroclasses alocadas.`);

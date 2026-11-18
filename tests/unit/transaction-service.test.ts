@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TransactionModel } from '../../src/models/transaction.model.js';
 import { UserModel } from '../../src/models/user.model.js';
 import { AnalysisService } from '../../src/services/analysis.service.js';
+import { BudgetService } from '../../src/services/budget.service.js';
 import { ChatService } from '../../src/services/chat.service.js';
 import { TransactionService } from '../../src/services/transaction.service.js';
 
@@ -12,6 +13,7 @@ describe('TransactionService.deleteTransaction - Unit Tests', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(BudgetService, 'getAlertingBudgetsSummary').mockResolvedValue([]);
   });
 
   it('deve excluir a transação atomicamente via findOneAndDelete e invalidar o cache de análise do usuário', async () => {

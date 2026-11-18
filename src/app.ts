@@ -57,9 +57,21 @@ export function buildApp(): FastifyInstance {
     openapi: {
       info: {
         title: 'Financial Intelligence API',
-        description: 'API REST do backend financeiro com arquitetura BYOK, ingestão de extratos OFX/CSV e consultoria via IA.',
-        version: '1.0.0',
+        description: 'API REST do backend financeiro com arquitetura BYOK, ingestão de extratos OFX/CSV, módulo fiscal e consultoria patrimonial via IA.',
+        version: '1.2.0',
       },
+      tags: [
+        { name: 'Auth', description: 'Autenticação e gerenciamento de chaves de API BYOK' },
+        { name: 'Users', description: 'Perfil de usuário e preferências financeiras' },
+        { name: 'Accounts', description: 'Gestão de contas correntes, cartões e investimentos' },
+        { name: 'Transactions', description: 'Lançamentos, categorização e extratos financeiros' },
+        { name: 'Fiscal', description: 'Gestão fiscal, dedutibilidade IRPF, OCR de recibos e Dossiê Fiscal' },
+        { name: 'Budgets', description: 'Planejamento e acompanhamento de orçamentos mensais' },
+        { name: 'Investments', description: 'Alocação patrimonial da carteira por macroclasses e risco' },
+        { name: 'Analysis', description: 'Inteligência financeira agregada e análise multi-mês' },
+        { name: 'Chat', description: 'Consultor financeiro inteligente conversacional' },
+        { name: 'Health', description: 'Verificação de integridade operacional do sistema' },
+      ],
       components: {
         securitySchemes: {
           bearerAuth: {

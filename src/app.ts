@@ -19,6 +19,7 @@ import { chatRoutes } from './routes/chat.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { transactionRoutes } from './routes/transactions.routes.js';
 import { exportRoutes } from './routes/export.routes.js';
+import { fiscalRoutes } from './routes/fiscal.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 
 export function buildApp(): FastifyInstance {
@@ -87,6 +88,7 @@ export function buildApp(): FastifyInstance {
   // Transactions & Export routes
   app.register(transactionRoutes);
   app.register(exportRoutes);
+  app.register(fiscalRoutes);
 
   // Chatbot SSE routes
   app.register(chatRoutes);

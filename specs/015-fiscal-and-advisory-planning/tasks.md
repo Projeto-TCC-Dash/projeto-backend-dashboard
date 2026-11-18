@@ -47,14 +47,14 @@
 **Independent Test**: Atualizar uma transação com dados fiscais via `PATCH /api/transactions/:id/fiscal` e consultar `GET /api/fiscal/summary?year=2026` verificando o acúmulo de deduções e a integridade de dados.
 
 ### Tests for User Story 1
-- [ ] T010 [P] [US1] Criar suite de testes unitários para os métodos de classificação fiscal e agregação de deduções em `tests/unit/fiscal.service.test.ts`
-- [ ] T011 [P] [US1] Criar suite de testes de integração para as rotas `/api/transactions/:id/fiscal` e `/api/fiscal/summary` em `tests/integration/fiscal.routes.test.ts`
+- [X] T010 [P] [US1] Criar suite de testes unitários para os métodos de classificação fiscal e agregação de deduções em `tests/unit/fiscal.service.test.ts`
+- [X] T011 [P] [US1] Criar suite de testes de integração para as rotas `/api/transactions/:id/fiscal` e `/api/fiscal/summary` em `tests/integration/fiscal.routes.test.ts`
 
 ### Implementation for User Story 1
-- [ ] T012 [US1] Implementar serviço `FiscalService.updateTransactionFiscal(userId, transactionId, data)` garantindo validação de CPF/CNPJ limpos e isolamento multi-tenant em `src/services/fiscal.service.ts`
-- [ ] T013 [US1] Implementar serviço `FiscalService.getAnnualSummary(userId, year)` agregando despesas dedutíveis confirmadas e pendentes por categoria em `src/services/fiscal.service.ts`
-- [ ] T014 [US1] Implementar rotas Fastify `PATCH /api/transactions/:id/fiscal` e `GET /api/fiscal/summary` protegidas por JWT em `src/routes/fiscal.routes.ts`
-- [ ] T015 [US1] Registrar plugin `fiscalRoutes` no servidor em `src/app.ts`
+- [X] T012 [US1] Implementar serviço `FiscalService.updateTransactionFiscal(userId, transactionId, data)` garantindo validação de CPF/CNPJ limpos e isolamento multi-tenant em `src/services/fiscal.service.ts`
+- [X] T013 [US1] Implementar serviço `FiscalService.getAnnualSummary(userId, year)` agregando despesas dedutíveis confirmadas e pendentes por categoria em `src/services/fiscal.service.ts`
+- [X] T014 [US1] Implementar rotas Fastify `PATCH /api/transactions/:id/fiscal` e `GET /api/fiscal/summary` protegidas por JWT em `src/routes/fiscal.routes.ts`
+- [X] T015 [US1] Registrar plugin `fiscalRoutes` no servidor em `src/app.ts`
 
 **Checkpoint**: MVP Fiscal concluído — Usuários já conseguem organizar e auditar despesas dedutíveis do IRPF com segurança.
 

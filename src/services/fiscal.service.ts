@@ -6,6 +6,7 @@ import {
   FiscalAnnualSummaryResponse,
   UpdateTransactionFiscalBody,
 } from '../schemas/fiscal.schemas.js';
+import { IFiscalDossierRecord } from './fiscal-dossier-export.service.js';
 
 export class FiscalService {
   /**
@@ -123,49 +124,7 @@ export class FiscalService {
     })).filter((c) => c.count > 0);
 
     // 2. Apuração PJ / Autônomo
-    const user = await UserModel.findById(userObjectId).exec();
-    const incomeType = user?.financialProfile?.incomeType;
-    const isPj = incomeType === 'PJ_AUTONOMO' || incomeType === 'ENTREPRENEUR';
-
-    let grossRevenue = 0;
-    let proLabore = 0;
-    let dividends = 0;
-
-    if (isPj) {
-      // Buscar receitas do ano
-      const revenueTxs = await TransactionModel.find({
-        userId: userObjectId,
-        date: { $gte: startDate, $lt: endDate },
-        amount: { $gt: 0 },
-        category: 'Receita',
-      }).exec();
-
-      for (const rev of revenueTxs) {
-        grossRevenue += rev.amount;
-      }
-
-      // Buscar retiradas de pró-labore ou distribuição de lucros
-      const withdrawalTxs = await TransactionModel.find({
-        userId: userObjectId,
-        date: { $gte: startDate, $lt: endDate },
-        amount: { $lt: 0 },
-      }).exec();
-
-      for (const w of withdrawalTxs) {
-        const desc = (w.cleanDescription || '').toUpperCase();
-        if (desc.includes('PRO LABORE') || desc.includes('PRO-LABORE')) {
-          proLabore += Math.abs(w.amount);
-        } else if (desc.includes('DIVIDENDO') || desc.includes('DISTRIBUICAO LUCRO')) {
-          dividends += Math.abs(w.amount);
-        }
-      }
-    }
-
-    const annualLimit = 81000.0; // Padrão MEI de referência
-    const ceilingPercentage =
-      annualLimit > 0
-        ? Math.round((grossRevenue / annualLimit) * 1000) / 10
-        : 0;
+    const pjSummary = await this.getPjSummary(userId, year);
 
     return {
       year,
@@ -173,14 +132,91 @@ export class FiscalService {
       confirmedDeductibleExpenses: Math.round(confirmedDeductible * 100) / 100,
       pendingDocumentationExpenses: Math.round(pendingDeductible * 100) / 100,
       byCategory,
-      pjSummary: {
-        applicable: isPj,
-        grossRevenueYearToDate: Math.round(grossRevenue * 100) / 100,
+      pjSummary,
+    };
+  }
+
+  /**
+   * Consolida métricas de faturamento bruto PJ/Autônomo acumulado, proximidade de limites de enquadramento
+   * e segregação contábil de pró-labore e dividendos.
+   */
+  public static async getPjSummary(
+    userId: string,
+    year: string
+  ): Promise<{
+    applicable: boolean;
+    grossRevenueYearToDate: number;
+    annualLimit: number;
+    ceilingPercentage: number;
+    proLaboreTotal: number;
+    dividendsTotal: number;
+  }> {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const numYear = parseInt(year, 10);
+    const startDate = new Date(Date.UTC(numYear, 0, 1));
+    const endDate = new Date(Date.UTC(numYear + 1, 0, 1));
+
+    const user = await UserModel.findById(userObjectId).exec();
+    const incomeType = user?.financialProfile?.incomeType;
+    const isPj = incomeType === 'PJ_AUTONOMO' || incomeType === 'ENTREPRENEUR';
+
+    const annualLimit = 81000.0; // Padrão MEI de referência
+
+    if (!isPj) {
+      return {
+        applicable: false,
+        grossRevenueYearToDate: 0,
         annualLimit,
-        ceilingPercentage,
-        proLaboreTotal: Math.round(proLabore * 100) / 100,
-        dividendsTotal: Math.round(dividends * 100) / 100,
-      },
+        ceilingPercentage: 0,
+        proLaboreTotal: 0,
+        dividendsTotal: 0,
+      };
+    }
+
+    let grossRevenue = 0;
+    let proLabore = 0;
+    let dividends = 0;
+
+    // Buscar receitas do ano
+    const revenueTxs = await TransactionModel.find({
+      userId: userObjectId,
+      date: { $gte: startDate, $lt: endDate },
+      amount: { $gt: 0 },
+      category: 'Receita',
+    }).exec();
+
+    for (const rev of revenueTxs) {
+      grossRevenue += rev.amount;
+    }
+
+    // Buscar retiradas de pró-labore ou distribuição de lucros
+    const withdrawalTxs = await TransactionModel.find({
+      userId: userObjectId,
+      date: { $gte: startDate, $lt: endDate },
+      amount: { $lt: 0 },
+    }).exec();
+
+    for (const w of withdrawalTxs) {
+      const desc = (w.cleanDescription || '').toUpperCase();
+      if (desc.includes('PRO LABORE') || desc.includes('PRO-LABORE')) {
+        proLabore += Math.abs(w.amount);
+      } else if (desc.includes('DIVIDENDO') || desc.includes('DISTRIBUICAO LUCRO')) {
+        dividends += Math.abs(w.amount);
+      }
+    }
+
+    const ceilingPercentage =
+      annualLimit > 0
+        ? Math.round((grossRevenue / annualLimit) * 1000) / 10
+        : 0;
+
+    return {
+      applicable: true,
+      grossRevenueYearToDate: Math.round(grossRevenue * 100) / 100,
+      annualLimit,
+      ceilingPercentage,
+      proLaboreTotal: Math.round(proLabore * 100) / 100,
+      dividendsTotal: Math.round(dividends * 100) / 100,
     };
   }
 
@@ -235,6 +271,37 @@ export class FiscalService {
       amount: t.amount,
       cleanDescription: t.cleanDescription,
       confidence: (issueDateStr ? 'HIGH' : 'MEDIUM') as 'HIGH' | 'MEDIUM',
+    }));
+  }
+
+  /**
+   * Obtém os registros detalhados de despesas dedutíveis para composição do dossiê fiscal anual.
+   */
+  public static async getDossierRecords(
+    userId: string,
+    year: string
+  ): Promise<IFiscalDossierRecord[]> {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const numYear = parseInt(year, 10);
+    const startDate = new Date(Date.UTC(numYear, 0, 1));
+    const endDate = new Date(Date.UTC(numYear + 1, 0, 1));
+
+    const transactions = await TransactionModel.find({
+      userId: userObjectId,
+      date: { $gte: startDate, $lt: endDate },
+      'fiscal.isTaxDeductible': true,
+    })
+      .sort({ date: 1 })
+      .exec();
+
+    return transactions.map((t) => ({
+      date: t.date,
+      description: t.cleanDescription || t.rawDescription || 'Sem descrição',
+      taxCategory: t.fiscal?.taxCategory,
+      providerName: t.fiscal?.providerName,
+      providerDocument: t.fiscal?.providerDocument,
+      deductibleAmount: t.fiscal?.deductibleAmount ?? Math.abs(t.amount),
+      status: t.fiscal?.status || 'PENDING',
     }));
   }
 }

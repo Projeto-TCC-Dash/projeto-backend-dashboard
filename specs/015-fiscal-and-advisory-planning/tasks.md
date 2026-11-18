@@ -143,13 +143,13 @@
 **Independent Test**: Consultar `GET /api/fiscal/summary?year=2026` com conta PJ e requisitar `GET /api/fiscal/dossier?year=2026&format=pdf` verificando o download do arquivo diagramado.
 
 ### Tests for User Story 6
-- [ ] T036 [P] [US6] Criar suite de testes unitários para apuração de faturamento bruto PJ e cálculo de tetos tributários em `tests/unit/fiscal-pj.service.test.ts`
-- [ ] T037 [P] [US6] Criar suite de testes de integração para o download do dossiê fiscal em `tests/integration/fiscal-dossier.routes.test.ts`
+- [X] T036 [P] [US6] Criar suite de testes unitários para apuração de faturamento bruto PJ e cálculo de tetos tributários em `tests/unit/fiscal-pj.service.test.ts`
+- [X] T037 [P] [US6] Criar suite de testes de integração para o download do dossiê fiscal em `tests/integration/fiscal-dossier.routes.test.ts`
 
 ### Implementation for User Story 6
-- [ ] T038 [US6] Implementar apuração de receitas de prestação de serviços e segregação de pró-labore em `FiscalService.getPjSummary(userId, year)` em `src/services/fiscal.service.ts`
-- [ ] T039 [US6] Implementar serviço de geração de dossiê em PDF e planilha XLSX `FiscalDossierExportService.generate(user, summary, records, format)` em `src/services/fiscal-dossier-export.service.ts`
-- [ ] T040 [US6] Implementar rota `GET /api/fiscal/dossier` com cabeçalhos de download em `src/routes/fiscal.routes.ts`
+- [X] T038 [US6] Implementar apuração de receitas de prestação de serviços e segregação de pró-labore em `FiscalService.getPjSummary(userId, year)` em `src/services/fiscal.service.ts`
+- [X] T039 [US6] Implementar serviço de geração de dossiê em PDF e planilha XLSX `FiscalDossierExportService.generate(user, summary, records, format)` em `src/services/fiscal-dossier-export.service.ts`
+- [X] T040 [US6] Implementar rota `GET /api/fiscal/dossier` com cabeçalhos de download em `src/routes/fiscal.routes.ts`
 
 **Checkpoint**: Suporte completo para Autônomos/PJ e exportação do Dossiê Fiscal entregues.
 

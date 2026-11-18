@@ -20,6 +20,7 @@ import { healthRoutes } from './routes/health.routes.js';
 import { transactionRoutes } from './routes/transactions.routes.js';
 import { exportRoutes } from './routes/export.routes.js';
 import { fiscalRoutes } from './routes/fiscal.routes.js';
+import { budgetRoutes } from './routes/budget.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 
 export function buildApp(): FastifyInstance {
@@ -89,6 +90,7 @@ export function buildApp(): FastifyInstance {
   app.register(transactionRoutes);
   app.register(exportRoutes);
   app.register(fiscalRoutes);
+  app.register(budgetRoutes);
 
   // Chatbot SSE routes
   app.register(chatRoutes);

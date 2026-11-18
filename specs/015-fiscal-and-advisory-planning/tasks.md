@@ -105,13 +105,13 @@
 **Independent Test**: Configurar posições patrimoniais via `PUT /api/investments/holdings` e consultar `GET /api/investments/holdings` verificando os percentuais e o diagnóstico de conformidade ao risco.
 
 ### Tests for User Story 4
-- [ ] T026 [P] [US4] Criar suite de testes unitários para cálculo de percentuais de carteira e regras de calibração de risco em `tests/unit/investment.service.test.ts`
-- [ ] T027 [P] [US4] Criar suite de testes de integração para as rotas `/api/investments/holdings` em `tests/integration/investments.routes.test.ts`
+- [X] T026 [P] [US4] Criar suite de testes unitários para cálculo de percentuais de carteira e regras de calibração de risco em `tests/unit/investment.service.test.ts`
+- [X] T027 [P] [US4] Criar suite de testes de integração para as rotas `/api/investments/holdings` em `tests/integration/investments.routes.test.ts`
 
 ### Implementation for User Story 4
-- [ ] T028 [US4] Implementar serviço `InvestmentService.upsertHolding(userId, data)` e `InvestmentService.getPortfolioSummary(userId)` confrontando com `riskProfile` em `src/services/investment.service.ts`
-- [ ] T029 [US4] Implementar rotas Fastify `GET /api/investments/holdings` e `PUT /api/investments/holdings` em `src/routes/investment.routes.ts`
-- [ ] T030 [US4] Registrar plugin `investmentRoutes` no servidor em `src/app.ts`
+- [X] T028 [US4] Implementar serviço `InvestmentService.upsertHolding(userId, data)` e `InvestmentService.getPortfolioSummary(userId)` confrontando com `riskProfile` em `src/services/investment.service.ts`
+- [X] T029 [US4] Implementar rotas Fastify `GET /api/investments/holdings` e `PUT /api/investments/holdings` em `src/routes/investment.routes.ts`
+- [X] T030 [US4] Registrar plugin `investmentRoutes` no servidor em `src/app.ts`
 
 **Checkpoint**: Módulo de carteira de investimentos integrado e ativo.
 

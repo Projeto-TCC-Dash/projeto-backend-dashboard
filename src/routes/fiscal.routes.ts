@@ -7,12 +7,16 @@ import { FiscalProofDocumentModel } from '../models/fiscal-proof.model.js';
 import { requireAiKey, requireAuth } from '../plugins/auth.plugin.js';
 import {
   FiscalAnnualSummaryResponseSchema,
+  FiscalDossierQuerySchema,
   FiscalOcrResponseSchema,
   FiscalSummaryQuerySchema,
   UpdateTransactionFiscalBodySchema,
 } from '../schemas/fiscal.schemas.js';
 import { TransactionIdParamSchema } from '../schemas/transaction.schemas.js';
+import { TransactionModel } from '../models/transaction.model.js';
+import { UserModel } from '../models/user.model.js';
 import { AuthService } from '../services/auth.service.js';
+import { FiscalDossierExportService, IFiscalDossierRecord } from '../services/fiscal-dossier-export.service.js';
 import { FiscalOcrService } from '../services/fiscal-ocr.service.js';
 import { FiscalService } from '../services/fiscal.service.js';
 
@@ -203,6 +207,60 @@ export const fiscalRoutes: FastifyPluginAsyncZod = async (fastify) => {
         extractedData: extracted,
         suggestedMatches,
       });
+    }
+  );
+
+  // GET /api/fiscal/dossier
+  fastify.get(
+    '/api/fiscal/dossier',
+    {
+      preHandler: [requireAuth],
+      schema: {
+        description: 'Exportação do Dossiê Fiscal anual consolidado em formato PDF ou XLSX',
+        tags: ['Fiscal'],
+        security: [{ bearerAuth: [] }],
+        querystring: FiscalDossierQuerySchema,
+        response: {
+          200: z.any(),
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { year, format } = request.query;
+
+      const user = await UserModel.findById(request.user.id).exec();
+      const summary = await FiscalService.getAnnualSummary(request.user.id, year);
+      const records = await FiscalService.getDossierRecords(request.user.id, year);
+
+      const buffer = await FiscalDossierExportService.generate(
+        {
+          id: request.user.id,
+          email: request.user.email,
+          name: user?.name,
+        },
+        summary,
+        records,
+        format
+      );
+
+      if (format === 'pdf') {
+        return reply
+          .header('Content-Type', 'application/pdf')
+          .header('Content-Disposition', `attachment; filename="dossie-fiscal-${year}.pdf"`)
+          .status(200)
+          .send(buffer);
+      }
+
+      return reply
+        .header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        .header('Content-Disposition', `attachment; filename="dossie-fiscal-${year}.xlsx"`)
+        .status(200)
+        .send(buffer);
     }
   );
 };

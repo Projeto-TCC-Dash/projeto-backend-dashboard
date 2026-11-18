@@ -124,13 +124,13 @@
 **Independent Test**: Enviar arquivo via `POST /api/fiscal/ocr` e receber JSON estruturado contendo CNPJ, Razão Social, Valor e transação bancária sugerida com score de confiança.
 
 ### Tests for User Story 5
-- [ ] T031 [P] [US5] Criar suite de testes unitários para a extração estruturada de comprovantes com mock do Gemini em `tests/unit/fiscal-ocr.service.test.ts`
-- [ ] T032 [P] [US5] Criar suite de testes de integração para o upload multipart de comprovantes em `tests/integration/fiscal-ocr.routes.test.ts`
+- [X] T031 [P] [US5] Criar suite de testes unitários para a extração estruturada de comprovantes com mock do Gemini em `tests/unit/fiscal-ocr.service.test.ts`
+- [X] T032 [P] [US5] Criar suite de testes de integração para o upload multipart de comprovantes em `tests/integration/fiscal-ocr.routes.test.ts`
 
 ### Implementation for User Story 5
-- [ ] T033 [US5] Implementar serviço `FiscalOcrService.extractReceiptData(apiKey, fileBuffer, mimeType)` utilizando Gemini Vision e JSON Schema estrito em `src/services/fiscal-ocr.service.ts`
-- [ ] T034 [US5] Implementar método de busca de transações bancárias compatíveis por data e valor em `src/services/fiscal.service.ts`
-- [ ] T035 [US5] Implementar rota `POST /api/fiscal/ocr` multipart com guardas `requireAuth` e `requireAiKey` em `src/routes/fiscal.routes.ts`
+- [X] T033 [US5] Implementar serviço `FiscalOcrService.extractReceiptData(apiKey, fileBuffer, mimeType)` utilizando Gemini Vision e JSON Schema estrito em `src/services/fiscal-ocr.service.ts`
+- [X] T034 [US5] Implementar método de busca de transações bancárias compatíveis por data e valor em `src/services/fiscal.service.ts`
+- [X] T035 [US5] Implementar rota `POST /api/fiscal/ocr` multipart com guardas `requireAuth` e `requireAiKey` em `src/routes/fiscal.routes.ts`
 
 **Checkpoint**: Extração inteligente e conciliação de comprovantes pronta.
 

@@ -183,4 +183,58 @@ export class FiscalService {
       },
     };
   }
+
+  /**
+   * Localiza transações bancárias de débito que correspondam ao valor e à data do comprovante.
+   */
+  public static async findSuggestedMatches(
+    userId: string,
+    totalAmount?: number,
+    issueDateStr?: string
+  ): Promise<
+    Array<{
+      transactionId: string;
+      date: Date;
+      amount: number;
+      cleanDescription: string;
+      confidence: 'HIGH' | 'MEDIUM' | 'LOW';
+    }>
+  > {
+    if (totalAmount === undefined || totalAmount <= 0) {
+      return [];
+    }
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const targetAmount = -Math.abs(totalAmount);
+
+    let startDate: Date;
+    let endDate: Date;
+
+    if (issueDateStr && !isNaN(Date.parse(issueDateStr))) {
+      const issueDate = new Date(issueDateStr);
+      startDate = new Date(issueDate.getTime() - 5 * 24 * 60 * 60 * 1000);
+      endDate = new Date(issueDate.getTime() + 5 * 24 * 60 * 60 * 1000);
+    } else {
+      const now = new Date();
+      startDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+      endDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+    }
+
+    const matchingTxs = await TransactionModel.find({
+      userId: userObjectId,
+      amount: targetAmount,
+      date: { $gte: startDate, $lte: endDate },
+    })
+      .sort({ date: -1 })
+      .limit(5)
+      .exec();
+
+    return matchingTxs.map((t) => ({
+      transactionId: t._id.toString(),
+      date: t.date,
+      amount: t.amount,
+      cleanDescription: t.cleanDescription,
+      confidence: (issueDateStr ? 'HIGH' : 'MEDIUM') as 'HIGH' | 'MEDIUM',
+    }));
+  }
 }

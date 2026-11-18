@@ -17,11 +17,11 @@
 
 **Purpose**: Definição de constantes de domínio, tipos canônicos e schemas Zod para todos os novos módulos
 
-- [ ] T001 Adicionar constantes canônicas `TAX_CATEGORIES`, `FISCAL_VERIFICATION_STATUSES`, `ASSET_MACRO_CLASSES` e `BUDGET_CONSUMPTION_STATUSES` em `src/config/constants.ts`
-- [ ] T002 [P] Criar esquemas Zod de validação para planos e consumo orçamentário (`SetBudgetBodySchema`, `BudgetOverviewResponseSchema`) em `src/schemas/budget.schemas.ts`
-- [ ] T003 [P] Criar esquemas Zod de validação para classificação fiscal, OCR e dossiê (`UpdateTransactionFiscalBodySchema`, `FiscalAnnualSummaryResponseSchema`) em `src/schemas/fiscal.schemas.ts`
-- [ ] T004 [P] Criar esquemas Zod de validação para carteira de investimentos (`UpsertInvestmentHoldingBodySchema`, `InvestmentPortfolioSummarySchema`) em `src/schemas/investment.schemas.ts`
-- [ ] T005 [P] Configurar diretório de upload de comprovantes fiscais `uploads/receipts` e constantes de limite (10MB, MIME types permitidos) em `src/config/constants.ts`
+- [X] T001 Adicionar constantes canônicas `TAX_CATEGORIES`, `FISCAL_VERIFICATION_STATUSES`, `ASSET_MACRO_CLASSES` e `BUDGET_CONSUMPTION_STATUSES` em `src/config/constants.ts`
+- [X] T002 [P] Criar esquemas Zod de validação para planos e consumo orçamentário (`SetBudgetBodySchema`, `BudgetOverviewResponseSchema`) em `src/schemas/budget.schemas.ts`
+- [X] T003 [P] Criar esquemas Zod de validação para classificação fiscal, OCR e dossiê (`UpdateTransactionFiscalBodySchema`, `FiscalAnnualSummaryResponseSchema`) em `src/schemas/fiscal.schemas.ts`
+- [X] T004 [P] Criar esquemas Zod de validação para carteira de investimentos (`UpsertInvestmentHoldingBodySchema`, `InvestmentPortfolioSummarySchema`) em `src/schemas/investment.schemas.ts`
+- [X] T005 [P] Configurar diretório de upload de comprovantes fiscais `uploads/receipts` e constantes de limite (10MB, MIME types permitidos) em `src/config/constants.ts`
 
 ---
 
@@ -31,10 +31,10 @@
 
 **⚠️ CRITICAL**: Nenhuma história de usuário pode ser implementada antes da conclusão desta fase
 
-- [ ] T006 Atualizar `TransactionModel` adicionando o subdocumento `fiscal: ITransactionFiscalMetadata` e índices compostos de busca em `src/models/transaction.model.ts`
-- [ ] T007 [P] Criar modelo Mongoose `BudgetPlanModel` (`budgets`) com índice composto único `{ userId: 1, month: 1 }` em `src/models/budget.model.ts`
-- [ ] T008 [P] Criar modelo Mongoose `FiscalProofDocumentModel` (`fiscal_proofs`) com metadados do arquivo e dados extraídos em `src/models/fiscal-proof.model.ts`
-- [ ] T009 [P] Criar modelo Mongoose `InvestmentHoldingModel` (`investment_holdings`) com índice composto único `{ userId: 1, accountId: 1, macroClass: 1 }` em `src/models/investment-holding.model.ts`
+- [X] T006 Atualizar `TransactionModel` adicionando o subdocumento `fiscal: ITransactionFiscalMetadata` e índices compostos de busca em `src/models/transaction.model.ts`
+- [X] T007 [P] Criar modelo Mongoose `BudgetPlanModel` (`budgets`) com índice composto único `{ userId: 1, month: 1 }` em `src/models/budget.model.ts`
+- [X] T008 [P] Criar modelo Mongoose `FiscalProofDocumentModel` (`fiscal_proofs`) com metadados do arquivo e dados extraídos em `src/models/fiscal-proof.model.ts`
+- [X] T009 [P] Criar modelo Mongoose `InvestmentHoldingModel` (`investment_holdings`) com índice composto único `{ userId: 1, accountId: 1, macroClass: 1 }` em `src/models/investment-holding.model.ts`
 
 **Checkpoint**: Camada de modelos persistentes pronta e validada. As histórias de usuário podem iniciar.
 

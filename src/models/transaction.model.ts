@@ -1,5 +1,26 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { CANONICAL_CATEGORIES, Category, TRANSACTION_SOURCES, TransactionSource } from '../config/constants.js';
+import {
+  CANONICAL_CATEGORIES,
+  Category,
+  FISCAL_VERIFICATION_STATUSES,
+  FiscalVerificationStatus,
+  TAX_CATEGORIES,
+  TaxCategory,
+  TRANSACTION_SOURCES,
+  TransactionSource,
+} from '../config/constants.js';
+
+export interface ITransactionFiscalMetadata {
+  isTaxDeductible: boolean;
+  taxCategory?: TaxCategory;
+  providerDocument?: string;
+  providerName?: string;
+  proofDocumentId?: mongoose.Types.ObjectId;
+  deductibleAmount?: number;
+  status: FiscalVerificationStatus;
+  verifiedAt?: Date;
+  notes?: string;
+}
 
 export interface ITransaction extends Document {
   _id: mongoose.Types.ObjectId;
@@ -12,9 +33,25 @@ export interface ITransaction extends Document {
   date: Date;
   category: Category;
   source: TransactionSource;
+  fiscal?: ITransactionFiscalMetadata;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const TransactionFiscalSchema = new Schema<ITransactionFiscalMetadata>(
+  {
+    isTaxDeductible: { type: Boolean, default: false },
+    taxCategory: { type: String, enum: TAX_CATEGORIES },
+    providerDocument: { type: String, trim: true },
+    providerName: { type: String, trim: true },
+    proofDocumentId: { type: Schema.Types.ObjectId, ref: 'FiscalProofDocument' },
+    deductibleAmount: { type: Number },
+    status: { type: String, enum: FISCAL_VERIFICATION_STATUSES, default: 'PENDING' },
+    verifiedAt: { type: Date },
+    notes: { type: String, trim: true },
+  },
+  { _id: false }
+);
 
 const TransactionSchema = new Schema<ITransaction>(
   {
@@ -61,6 +98,10 @@ const TransactionSchema = new Schema<ITransaction>(
       enum: TRANSACTION_SOURCES,
       required: true,
     },
+    fiscal: {
+      type: TransactionFiscalSchema,
+      default: undefined,
+    },
   },
   {
     timestamps: true,
@@ -75,6 +116,8 @@ TransactionSchema.index({ userId: 1, externalId: 1 }, { unique: true });
 TransactionSchema.index({ userId: 1, date: -1 });
 TransactionSchema.index({ userId: 1, category: 1 });
 TransactionSchema.index({ userId: 1, accountId: 1 });
+TransactionSchema.index({ userId: 1, 'fiscal.isTaxDeductible': 1, date: -1 });
+TransactionSchema.index({ userId: 1, 'fiscal.taxCategory': 1 });
 
 export const TransactionModel = mongoose.model<ITransaction>(
   'Transaction',

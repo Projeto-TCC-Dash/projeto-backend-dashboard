@@ -24,7 +24,7 @@ describe('GeminiErrorParser & withGeminiRetry Unit Tests', () => {
       expect(parsed.type).toBe('UPSTREAM_UNAVAILABLE');
       expect(parsed.statusCode).toBe(503);
       expect(parsed.isTransient).toBe(true);
-      expect(parsed.userMessage).toContain('alta demanda temporária');
+      expect(parsed.userMessage).toContain('alta demanda no momento');
     });
 
     it('deve identificar erro 429 de quota/rate limit como RATE_LIMIT_ERROR', () => {
@@ -47,7 +47,7 @@ describe('GeminiErrorParser & withGeminiRetry Unit Tests', () => {
       expect(parsed.type).toBe('AUTH_ERROR');
       expect(parsed.statusCode).toBe(400);
       expect(parsed.isTransient).toBe(false);
-      expect(parsed.userMessage).toContain('chave de API fornecida é inválida');
+      expect(parsed.userMessage).toContain('chave da API Gemini parece inválida');
     });
 
     it('deve identificar erro de PERMISSION_DENIED (403) como AUTH_ERROR', () => {
@@ -81,14 +81,14 @@ describe('GeminiErrorParser & withGeminiRetry Unit Tests', () => {
       expect(parsed.isTransient).toBe(true);
     });
 
-    it('deve identificar erro 404 de modelo não encontrado como UPSTREAM_UNAVAILABLE sem retentativa', () => {
+    it('deve identificar erro 404 de modelo não encontrado como MODEL_NOT_FOUND sem retentativa', () => {
       const err = {
         status: 404,
         message: 'models/gemini-3.8-flash is not found for API version v1beta',
       };
 
       const parsed = GeminiErrorParser.parse(err);
-      expect(parsed.type).toBe('UPSTREAM_UNAVAILABLE');
+      expect(parsed.type).toBe('MODEL_NOT_FOUND');
       expect(parsed.statusCode).toBe(503);
       expect(parsed.isTransient).toBe(false);
     });

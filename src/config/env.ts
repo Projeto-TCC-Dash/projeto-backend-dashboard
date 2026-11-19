@@ -37,17 +37,20 @@ export function isCorsOriginAllowed(origin?: string): boolean {
   const raw = env.CORS_ORIGINS?.trim().replace(/^["']|["']$/g, '');
   if (raw === '*') return true;
 
-  const allowed = raw
-    ? raw
-        .split(',')
-        .map((o) => o.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, ''))
-        .filter(Boolean)
-    : env.NODE_ENV === 'production'
+  const defaults =
+    env.NODE_ENV === 'production'
       ? [
           'https://projeto-frontend-dashboard-debgoulart-projects.vercel.app',
           'https://projeto-frontend-dashboard-git-develop-debgoulart-projects.vercel.app',
         ]
       : ['http://localhost:3001', 'http://127.0.0.1:3001'];
 
-  return allowed.includes(normalizedOrigin);
+  const configured = raw
+    ? raw
+        .split(',')
+        .map((o) => o.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, ''))
+        .filter(Boolean)
+    : [];
+
+  return defaults.includes(normalizedOrigin) || configured.includes(normalizedOrigin);
 }

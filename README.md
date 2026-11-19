@@ -105,7 +105,7 @@ flowchart TD
     Services -.-> ExternalAPIs["APIs Externas"]
 
     subgraph ExternalAPIs["Serviços de IA"]
-        GoogleGemini["Google AI Studio (gemini-3.8-flash)"]
+        GoogleGemini["Google AI Studio (gemini-3.5-flash-lite)"]
     end
 ```
 
@@ -197,7 +197,7 @@ flowchart TD
 
     subgraph MissFlow["CACHE MISS / INVALIDAÇÃO"]
         DecKey["Descriptografa Chave BYOK em memória"]
-        CallGemini["Gera Diagnóstico Estruturado via gemini-3.8-flash"]
+        CallGemini["Gera Diagnóstico Estruturado via gemini-3.5-flash-lite"]
         Upsert["Upsert no MongoDB com TTL de 24 horas"]
         DecKey --> CallGemini --> Upsert
     end
@@ -263,8 +263,8 @@ ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 # Chave Padrão do Google AI Studio para testes e seed (obtida em https://aistudio.google.com/)
 GOOGLE_GENERATIVE_AI_API_KEY=AIzaSy...
 
-# [OPCIONAL] Modelo do Google Gemini (padrão: gemini-3.8-flash)
-GEMINI_MODEL=gemini-3.8-flash
+# [OPCIONAL] Modelo do Google Gemini (padrão: gemini-3.5-flash-lite)
+GEMINI_MODEL=gemini-3.5-flash-lite
 
 # [OPCIONAL] Client ID do Google OAuth 2.0 para validação de audiência (aud) dos tokens
 GOOGLE_CLIENT_ID=

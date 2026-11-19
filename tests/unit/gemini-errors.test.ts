@@ -150,17 +150,51 @@ describe('GeminiErrorParser & withGeminiRetry Unit Tests', () => {
   });
 
   describe('GeminiService.validateApiKey', () => {
-    it('não deve aceitar chave provisoriamente quando ocorrer NETWORK_ERROR', async () => {
-      const networkErr = new Error('request timeout');
+    it('não deve aceitar chave provisoriamente quando ocorrer NETWORK_ERROR e deve preservar originalMessage com cause', async () => {
+      const rootCause = Object.assign(new TypeError('Undici globalDispatcher is not available'), {
+        code: 'ERR_UNDICI',
+      });
+      const networkErr = new TypeError('fetch failed', { cause: rootCause });
+
       vi.spyOn(GeminiService as any, 'createClient').mockReturnValue({
         models: {
           generateContent: vi.fn().mockRejectedValue(networkErr),
         },
       });
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      await expect(
-        GeminiService.validateApiKey('AIzaSyDummyKeyWithMoreThan20Chars')
-      ).rejects.toThrow(GeminiApiError);
+      try {
+        await expect(
+          GeminiService.validateApiKey('AIzaSyDummyKeyWithMoreThan20Chars')
+        ).rejects.toMatchObject({
+          statusCode: 503,
+          type: 'NETWORK_ERROR',
+          originalMessage: expect.stringContaining('Undici globalDispatcher is not available'),
+        });
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          '❌ Falha na validação ativa da API Key no Gemini:',
+          expect.stringContaining('Undici globalDispatcher is not available')
+        );
+      } finally {
+        consoleErrorSpy.mockRestore();
+        vi.restoreAllMocks();
+      }
+    });
+  });
+
+  describe('GeminiErrorParser cause extraction', () => {
+    it('deve extrair detalhes de error.cause em TypeError fetch failed', () => {
+      const err = new TypeError('fetch failed', {
+        cause: Object.assign(new Error('connect ETIMEDOUT 142.250.0.1:443'), {
+          code: 'ETIMEDOUT',
+        }),
+      });
+
+      const parsed = GeminiErrorParser.parse(err);
+      expect(parsed.type).toBe('NETWORK_ERROR');
+      expect(parsed.originalMessage).toContain('fetch failed');
+      expect(parsed.originalMessage).toContain('ETIMEDOUT');
     });
   });
 });

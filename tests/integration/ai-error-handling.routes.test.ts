@@ -212,7 +212,7 @@ describe('AI Routes Semantic Error Handling (HTTP 503 / 429)', () => {
       expect(res.headers['content-type']).toContain('text/event-stream');
       expect(res.body).toContain('"statusCode":503');
       expect(res.body).toContain('"code":"UPSTREAM_UNAVAILABLE"');
-      expect(res.body).toContain('alta demanda temporária');
+      expect(res.body).toContain('alta demanda no momento');
     });
   });
 });

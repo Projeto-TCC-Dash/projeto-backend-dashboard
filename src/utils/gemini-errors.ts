@@ -1,6 +1,7 @@
 export type GeminiErrorType =
   | 'AUTH_ERROR'
   | 'RATE_LIMIT_ERROR'
+  | 'MODEL_NOT_FOUND'
   | 'UPSTREAM_UNAVAILABLE'
   | 'NETWORK_ERROR'
   | 'UNKNOWN_ERROR';
@@ -113,7 +114,7 @@ export class GeminiErrorParser {
         type: 'UPSTREAM_UNAVAILABLE',
         statusCode: 503,
         userMessage:
-          'Os servidores do Google AI Studio estão com alta demanda temporária no momento. Por favor, tente novamente em instantes.',
+          'Os servidores do Google Gemini estão com alta demanda no momento. Aguarde alguns segundos e clique em Tentar novamente.',
         isTransient: true,
         originalMessage: fullOriginalMsg,
         originalStatus: extractedStatus,
@@ -133,7 +134,7 @@ export class GeminiErrorParser {
         type: 'RATE_LIMIT_ERROR',
         statusCode: 429,
         userMessage:
-          'O limite de requisições ou cota da sua chave no Google AI Studio foi atingido temporariamente.',
+          'Você atingiu o limite temporário de uso da sua chave no Google AI Studio. Aguarde cerca de 1 minuto e tente novamente (ou verifique sua cota no AI Studio).',
         isTransient: true,
         originalMessage: fullOriginalMsg,
         originalStatus: extractedStatus,
@@ -156,7 +157,8 @@ export class GeminiErrorParser {
       return {
         type: 'AUTH_ERROR',
         statusCode: 400,
-        userMessage: 'A chave de API fornecida é inválida ou foi revogada no Google AI Studio.',
+        userMessage:
+          'Sua chave da API Gemini parece inválida, expirada ou sem permissão. Atualize sua chave em Configurações → Segurança.',
         isTransient: false,
         originalMessage: fullOriginalMsg,
         originalStatus: extractedStatus,
@@ -171,10 +173,10 @@ export class GeminiErrorParser {
       lowerMsg.includes('not supported for generatecontent')
     ) {
       return {
-        type: 'UPSTREAM_UNAVAILABLE',
+        type: 'MODEL_NOT_FOUND',
         statusCode: 503,
         userMessage:
-          'O modelo de IA configurado encontra-se indisponível ou não foi encontrado no Google AI Studio.',
+          'O serviço de IA está temporariamente indisponível por incompatibilidade do modelo na plataforma. Tente novamente mais tarde; sua chave não precisa ser alterada.',
         isTransient: false,
         originalMessage: fullOriginalMsg,
         originalStatus: extractedStatus,
@@ -198,7 +200,7 @@ export class GeminiErrorParser {
         type: 'NETWORK_ERROR',
         statusCode: 503,
         userMessage:
-          'Não foi possível estabelecer conexão com os servidores do Google AI Studio. Verifique sua conexão com a internet.',
+          'Falha de conexão ao tentar falar com o Google AI Studio. Tente novamente em instantes.',
         isTransient: true,
         originalMessage: fullOriginalMsg,
         originalStatus: extractedStatus,

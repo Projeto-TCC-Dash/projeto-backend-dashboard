@@ -2,11 +2,14 @@ import mongoose from 'mongoose';
 import { env } from './env.js';
 
 let isConnected = false;
+let connectionPromise: Promise<void> | null = null;
+let listenersRegistered = false;
 
-export async function connectDatabase(): Promise<void> {
-  if (isConnected) {
+function registerConnectionListeners(): void {
+  if (listenersRegistered) {
     return;
   }
+  listenersRegistered = true;
 
   mongoose.connection.on('connected', () => {
     isConnected = true;
@@ -22,25 +25,44 @@ export async function connectDatabase(): Promise<void> {
     isConnected = false;
     console.warn('⚠️ Conexão com o MongoDB perdida.');
   });
+}
 
-  try {
-    await mongoose.connect(env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-    });
+export async function connectDatabase(): Promise<void> {
+  if (mongoose.connection.readyState === 1) {
     isConnected = true;
-  } catch (error) {
-    isConnected = false;
-    console.error('❌ Falha ao conectar ao MongoDB:', error);
-    throw error;
+    return;
   }
+
+  if (!connectionPromise) {
+    registerConnectionListeners();
+
+    connectionPromise = mongoose
+      .connect(env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 10000,
+      })
+      .then(() => {
+        isConnected = true;
+      })
+      .catch((error) => {
+        isConnected = false;
+        console.error('❌ Falha ao conectar ao MongoDB:', error);
+        throw error;
+      })
+      .finally(() => {
+        connectionPromise = null;
+      });
+  }
+
+  await connectionPromise;
 }
 
 export async function disconnectDatabase(): Promise<void> {
-  if (!isConnected) {
+  if (!isConnected && mongoose.connection.readyState === 0) {
     return;
   }
   await mongoose.disconnect();
   isConnected = false;
+  connectionPromise = null;
   console.log('🔌 Conexão com MongoDB encerrada.');
 }
 

@@ -119,7 +119,19 @@ export class TransactionService {
       targetAccountId = defaultAccount._id;
     }
 
-    const operations = transactions.map((t) => ({
+    const totalExtracted = transactions.length;
+
+    // Deduplica externalId em memória antes do bulkWrite para evitar colisão de índice único (E11000)
+    // quando duas linhas do mesmo arquivo compartilham o mesmo id/fitid/documento.
+    const uniqueTransactionsMap = new Map<string, ParsedTransaction>();
+    for (const tx of transactions) {
+      if (!uniqueTransactionsMap.has(tx.externalId)) {
+        uniqueTransactionsMap.set(tx.externalId, tx);
+      }
+    }
+    const uniqueTransactions = Array.from(uniqueTransactionsMap.values());
+
+    const operations = uniqueTransactions.map((t) => ({
       updateOne: {
         filter: {
           userId: userObjectId,
@@ -145,7 +157,6 @@ export class TransactionService {
     const result = await TransactionModel.bulkWrite(operations, { ordered: false });
 
     const imported = result.upsertedCount;
-    const totalExtracted = transactions.length;
     const duplicatesIgnored = Math.max(0, totalExtracted - imported);
 
     if (imported > 0) {

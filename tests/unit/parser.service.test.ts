@@ -80,4 +80,63 @@ VERSION:102
     expect(transactions[1]?.externalId).toBe('DOC12346');
     expect(transactions[1]?.amount).toBe(-55.0);
   });
+
+  it('deve suportar CSV UTF-8 com BOM e aspas na primeira coluna', () => {
+    const csvContent = `\uFEFF"Data";"Descricao";"Valor";"Documento"
+"10/10/2026";"PADARIA PAO QUENTE";"-25,90";"DOC001"`;
+
+    const buffer = Buffer.from(csvContent, 'utf-8');
+    const transactions = ParserService.parseCSV(buffer);
+
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]?.externalId).toBe('DOC001');
+    expect(transactions[0]?.amount).toBe(-25.9);
+    expect(transactions[0]?.cleanDescription).toContain('PADARIA PAO QUENTE');
+  });
+
+  it('deve ignorar linhas iniciais de metadados e detectar o cabeçalho e delimitador reais', () => {
+    const csvContent = `Extrato de Conta Corrente
+Agência: 1234 - Conta: 56789-0
+Período: 01/10/2026 a 31/10/2026
+
+Data;Descrição;Valor;Documento
+10/10/2026;SUPERMERCADO BOM PRECO;-1.234,56;DOC999`;
+
+    const buffer = Buffer.from(csvContent, 'utf-8');
+    const transactions = ParserService.parseCSV(buffer);
+
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]?.externalId).toBe('DOC999');
+    expect(transactions[0]?.amount).toBe(-1234.56);
+    expect(transactions[0]?.cleanDescription).toContain('SUPERMERCADO BOM PRECO');
+  });
+
+  it('deve tolerar aspas soltas não escapadas em descrições CSV', () => {
+    const csvContent = `Data;Descricao;Valor;Documento
+12/10/2026;BAR DO "ZE CENTRAL;-42,50;DOC777
+13/10/2026;LOJA "XYZ" LTDA;-100,00;DOC778`;
+
+    const buffer = Buffer.from(csvContent, 'utf-8');
+    const transactions = ParserService.parseCSV(buffer);
+
+    expect(transactions).toHaveLength(2);
+    expect(transactions[0]?.amount).toBe(-42.5);
+    expect(transactions[1]?.amount).toBe(-100);
+  });
+
+  it('deve interpretar corretamente valores com ponto decimal (formato Nubank/US) e formato BR/US com milhar', () => {
+    const csvContent = `date,title,amount
+2026-10-10,Uber Viagem,150.30
+2026-10-11,Restaurante,-89.90
+2026-10-12,Compra Internacional,"1,234.56"`;
+
+    const buffer = Buffer.from(csvContent, 'utf-8');
+    const transactions = ParserService.parseCSV(buffer);
+
+    expect(transactions).toHaveLength(3);
+    expect(transactions[0]?.amount).toBe(150.3);
+    expect(transactions[0]?.rawDescription).toBe('Uber Viagem');
+    expect(transactions[1]?.amount).toBe(-89.9);
+    expect(transactions[2]?.amount).toBe(1234.56);
+  });
 });

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../src/app.js';
+import { ParserService } from '../../src/services/parser.service.js';
 import { TransactionService } from '../../src/services/transaction.service.js';
 
 describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering', () => {
@@ -353,6 +354,97 @@ describe('Transaction Routes - PATCH /api/transactions/:id & Category Filtering'
       expect(res.statusCode).toBe(204);
       expect(res.body).toBe('');
       expect(deleteSpy).toHaveBeenCalledWith(testUserId, testTransactionId);
+    });
+  });
+
+  describe('POST /api/transactions/upload', () => {
+    function buildMultipartCsv(filename: string, content: string) {
+      const boundary = '----WebKitFormBoundaryFinAITest123';
+      const payload = [
+        `--${boundary}`,
+        `Content-Disposition: form-data; name="file"; filename="${filename}"`,
+        'Content-Type: text/csv',
+        '',
+        content,
+        `--${boundary}--`,
+        '',
+      ].join('\r\n');
+
+      return {
+        payload,
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': `multipart/form-data; boundary=${boundary}`,
+        },
+      };
+    }
+
+    it('deve retornar 400 Bad Request (e não 500) quando ParserService.parseCSV lançar erro inesperado', async () => {
+      vi.spyOn(ParserService, 'parseCSV').mockImplementationOnce(() => {
+        throw new Error('CsvError: Invalid Opening Quote');
+      });
+
+      const { payload, headers } = buildMultipartCsv('extrato.csv', 'conteudo-quebrado');
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/transactions/upload',
+        headers,
+        payload,
+      });
+
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body);
+      expect(body.statusCode).toBe(400);
+      expect(body.error).toBe('Bad Request');
+    });
+
+    it('deve retornar 400 Bad Request (e não 500) quando ParserService.parseOFX lançar erro inesperado', async () => {
+      vi.spyOn(ParserService, 'parseOFX').mockImplementationOnce(() => {
+        throw new Error('Malformed OFX payload');
+      });
+
+      const { payload, headers } = buildMultipartCsv('extrato.ofx', 'conteudo-ofx-quebrado');
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/transactions/upload',
+        headers,
+        payload,
+      });
+
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body);
+      expect(body.statusCode).toBe(400);
+      expect(body.error).toBe('Bad Request');
+    });
+
+    it('deve processar upload de CSV com BOM, linhas de metadados, aspas soltas e ponto decimal', async () => {
+      const importSpy = vi.spyOn(TransactionService, 'importTransactions').mockResolvedValueOnce({
+        totalExtracted: 2,
+        imported: 2,
+        duplicatesIgnored: 0,
+      });
+
+      const csvContent = `\uFEFFExtrato Conta Corrente
+Agência: 0001; Conta: 12345-6
+
+"Data";"Descricao";"Valor";"Documento"
+"10/10/2026";"COMPRA "LOJA CENTRO";"150.30";"DOC-1"
+"11/10/2026";"MERCADO BAIRRO";"-45.20";"DOC-1"`;
+
+      const { payload, headers } = buildMultipartCsv('extrato.csv', csvContent);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/transactions/upload',
+        headers,
+        payload,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(importSpy).toHaveBeenCalledTimes(1);
+      const passedTransactions = importSpy.mock.calls[0]?.[1];
+      expect(passedTransactions).toHaveLength(2);
+      expect(passedTransactions?.[0]?.amount).toBe(150.3);
+      expect(passedTransactions?.[1]?.amount).toBe(-45.2);
     });
   });
 });

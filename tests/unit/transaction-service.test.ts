@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TransactionModel } from '../../src/models/transaction.model.js';
 import { UserModel } from '../../src/models/user.model.js';
+import { AccountService } from '../../src/services/account.service.js';
 import { AnalysisService } from '../../src/services/analysis.service.js';
 import { BudgetService } from '../../src/services/budget.service.js';
 import { ChatService } from '../../src/services/chat.service.js';
@@ -174,6 +175,59 @@ describe('TransactionService.deleteTransaction - Unit Tests', () => {
       const instruction = await ChatService.buildSystemInstruction(userId);
 
       expect(instruction).toContain('PERFIL FINANCEIRO DO USUÁRIO: Não informado');
+    });
+  });
+
+  describe('TransactionService.importTransactions - Deduplicação em memória', () => {
+    it('deve deduplicar transações com externalId repetido no mesmo lote antes de chamar bulkWrite', async () => {
+      const mockAccountId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439088');
+      vi.spyOn(AccountService, 'getOrCreateDefaultAccount').mockResolvedValue({
+        _id: mockAccountId,
+      } as any);
+
+      const bulkWriteSpy = vi.spyOn(TransactionModel, 'bulkWrite').mockResolvedValue({
+        upsertedCount: 2,
+      } as any);
+      const invalidateSpy = vi.spyOn(AnalysisService, 'invalidate').mockResolvedValue(1);
+
+      const result = await TransactionService.importTransactions(userId, [
+        {
+          externalId: 'DOC-DUP-1',
+          rawDescription: 'COMPRA A',
+          cleanDescription: 'COMPRA A',
+          amount: -50,
+          date: new Date('2026-10-10T12:00:00Z'),
+          source: 'CSV',
+        },
+        {
+          externalId: 'DOC-DUP-1',
+          rawDescription: 'COMPRA A DUPLICADA',
+          cleanDescription: 'COMPRA A DUPLICADA',
+          amount: -50,
+          date: new Date('2026-10-10T12:00:00Z'),
+          source: 'CSV',
+        },
+        {
+          externalId: 'DOC-UNIQ-2',
+          rawDescription: 'COMPRA B',
+          cleanDescription: 'COMPRA B',
+          amount: -120.5,
+          date: new Date('2026-10-11T12:00:00Z'),
+          source: 'CSV',
+        },
+      ]);
+
+      expect(bulkWriteSpy).toHaveBeenCalledTimes(1);
+      const operations = bulkWriteSpy.mock.calls[0]?.[0] as any[];
+      expect(operations).toHaveLength(2);
+      expect(operations[0].updateOne.filter.externalId).toBe('DOC-DUP-1');
+      expect(operations[1].updateOne.filter.externalId).toBe('DOC-UNIQ-2');
+      expect(result).toEqual({
+        totalExtracted: 3,
+        imported: 2,
+        duplicatesIgnored: 1,
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith(userId);
     });
   });
 });

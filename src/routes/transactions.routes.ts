@@ -13,7 +13,7 @@ import {
 import { AccountNotFoundError } from '../services/account.service.js';
 import { AuthService } from '../services/auth.service.js';
 import { GeminiService } from '../services/gemini.service.js';
-import { ParserService } from '../services/parser.service.js';
+import { ParserService, ParsedTransaction } from '../services/parser.service.js';
 import { TransactionService } from '../services/transaction.service.js';
 
 function serializeTransaction(t: ITransaction) {
@@ -62,16 +62,25 @@ export const transactionRoutes: FastifyPluginAsyncZod = async (fastify) => {
       const filename = data.filename.toLowerCase();
       const buffer = await data.toBuffer();
 
-      let extracted = [];
-      if (filename.endsWith('.ofx')) {
-        extracted = ParserService.parseOFX(buffer);
-      } else if (filename.endsWith('.csv')) {
-        extracted = ParserService.parseCSV(buffer);
-      } else {
+      let extracted: ParsedTransaction[] = [];
+      try {
+        if (filename.endsWith('.ofx')) {
+          extracted = ParserService.parseOFX(buffer);
+        } else if (filename.endsWith('.csv')) {
+          extracted = ParserService.parseCSV(buffer);
+        } else {
+          return reply.status(400).send({
+            statusCode: 400,
+            error: 'Bad Request',
+            message: 'Formato de arquivo não suportado. Apenas extensões .ofx e .csv são aceitas.',
+          });
+        }
+      } catch (err) {
+        request.log.warn({ err, filename }, 'Falha ao realizar o parsing do arquivo de extrato');
         return reply.status(400).send({
           statusCode: 400,
           error: 'Bad Request',
-          message: 'Formato de arquivo não suportado. Apenas extensões .ofx e .csv são aceitas.',
+          message: 'Arquivo inválido ou malformado. Não foi possível processar o extrato enviado.',
         });
       }
 

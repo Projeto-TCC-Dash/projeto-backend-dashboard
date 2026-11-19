@@ -131,23 +131,173 @@ export class ParserService {
     return new Date();
   }
 
+  private static readonly CSV_DATE_HEADERS = new Set([
+    'data',
+    'date',
+    'dt',
+    'data lancamento',
+    'data da operacao',
+    'dt lancamento',
+  ]);
+  private static readonly CSV_DESC_HEADERS = new Set([
+    'descricao',
+    'description',
+    'historico',
+    'memo',
+    'titulo',
+    'title',
+    'lancamento',
+    'estabelecimento',
+  ]);
+  private static readonly CSV_AMOUNT_HEADERS = new Set([
+    'valor',
+    'amount',
+    'vl',
+    'valor (r$)',
+    'valor r$',
+  ]);
+  private static readonly CSV_ID_HEADERS = new Set([
+    'id',
+    'fitid',
+    'documento',
+    'doc',
+    'identificador',
+  ]);
+
+  private static normalizeHeaderKey(key: string): string {
+    return key
+      .replace(/^\uFEFF/, '')
+      .replace(/^["']|["']$/g, '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
+  /**
+   * Localiza a linha real de cabeçalho e o delimitador mais adequado,
+   * ignorando linhas iniciais de metadados comuns em extratos bancários brasileiros.
+   */
+  private static detectCsvHeaderAndDelimiter(content: string): {
+    csvBody: string;
+    delimiter: string;
+  } {
+    const lines = content.split(/\r?\n/);
+    const candidates = [';', '\t', ','];
+    const maxScanLines = Math.min(lines.length, 50);
+
+    for (let i = 0; i < maxScanLines; i++) {
+      const line = lines[i]?.trim();
+      if (!line) continue;
+
+      for (const delimiter of candidates) {
+        if (!line.includes(delimiter)) continue;
+
+        const cells = line.split(delimiter).map((cell) => this.normalizeHeaderKey(cell));
+        let matchedGroups = 0;
+
+        if (cells.some((c) => this.CSV_DATE_HEADERS.has(c))) matchedGroups++;
+        if (cells.some((c) => this.CSV_DESC_HEADERS.has(c))) matchedGroups++;
+        if (cells.some((c) => this.CSV_AMOUNT_HEADERS.has(c))) matchedGroups++;
+        if (cells.some((c) => this.CSV_ID_HEADERS.has(c))) matchedGroups++;
+
+        if (matchedGroups >= 2) {
+          return {
+            csvBody: lines.slice(i).join('\n'),
+            delimiter,
+          };
+        }
+      }
+    }
+
+    // Fallback: primeira linha não vazia que contenha um delimitador conhecido
+    for (let i = 0; i < maxScanLines; i++) {
+      const line = lines[i]?.trim();
+      if (!line) continue;
+
+      for (const delimiter of candidates) {
+        if (line.includes(delimiter)) {
+          return {
+            csvBody: lines.slice(i).join('\n'),
+            delimiter,
+          };
+        }
+      }
+    }
+
+    return {
+      csvBody: content,
+      delimiter: ',',
+    };
+  }
+
+  /**
+   * Converte string monetária em número suportando formatos BR (1.234,56 / -150,30)
+   * e US/Nubank (1234.56 / 150.30 / 1,234.56).
+   */
+  private static parseCsvAmount(rawAmount: string): number {
+    let normalized = rawAmount.replace(/(?:R\$|US\$|\$)/gi, '').replace(/\s+/g, '').trim();
+    const hasComma = normalized.includes(',');
+    const hasDot = normalized.includes('.');
+
+    if (hasComma && hasDot) {
+      if (normalized.lastIndexOf(',') > normalized.lastIndexOf('.')) {
+        normalized = normalized.replace(/\./g, '').replace(',', '.');
+      } else {
+        normalized = normalized.replace(/,/g, '');
+      }
+    } else if (hasComma) {
+      normalized = normalized.replace(',', '.');
+    }
+
+    return parseFloat(normalized);
+  }
+
   /**
    * Realiza o parsing de arquivo CSV com detecção de delimitador e mapeamento de colunas.
    */
   public static parseCSV(buffer: Buffer): ParsedTransaction[] {
-    const content = this.decodeBuffer(buffer);
+    const content = this.decodeBuffer(buffer).replace(/^\uFEFF/, '');
+    if (!content.trim()) {
+      return [];
+    }
 
-    // Identifica o delimitador mais provável
-    const firstLine = content.split('\n')[0] || '';
-    const delimiter = firstLine.includes(';') ? ';' : firstLine.includes('\t') ? '\t' : ',';
+    const { csvBody, delimiter } = this.detectCsvHeaderAndDelimiter(content);
 
-    const records = parseCsv(content, {
+    const baseOptions = {
       delimiter,
-      columns: true,
+      columns: true as const,
       skip_empty_lines: true,
       trim: true,
+      bom: true,
       relax_column_count: true,
-    }) as Array<Record<string, string>>;
+      relax_quotes: true,
+    };
+
+    let records: Array<Record<string, string>>;
+    let usedUnquotedFallback = false;
+
+    try {
+      records = parseCsv(csvBody, baseOptions) as Array<Record<string, string>>;
+    } catch (err: any) {
+      const quoteErrorCodes = new Set([
+        'CSV_NON_TRIMABLE_CHAR_AFTER_CLOSING_QUOTE',
+        'CSV_INVALID_CLOSING_QUOTE',
+        'INVALID_OPENING_QUOTE',
+        'CSV_QUOTE_NOT_CLOSED',
+      ]);
+
+      if (err && quoteErrorCodes.has(err.code)) {
+        // Fallback para CSVs com aspas soltas não escapadas dentro de campos entre aspas
+        usedUnquotedFallback = true;
+        records = parseCsv(csvBody, {
+          ...baseOptions,
+          quote: false,
+        }) as Array<Record<string, string>>;
+      } else {
+        throw err;
+      }
+    }
 
     const transactions: ParsedTransaction[] = [];
 
@@ -158,30 +308,47 @@ export class ParserService {
       // Normaliza as chaves do cabeçalho
       const normalizedRow: Record<string, string> = {};
       for (const [k, v] of Object.entries(row)) {
-        normalizedRow[k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()] = v;
+        const cleanVal =
+          usedUnquotedFallback && typeof v === 'string'
+            ? v.replace(/^"|"$/g, '').trim()
+            : v;
+        normalizedRow[this.normalizeHeaderKey(k)] = cleanVal;
       }
 
       const dateStr =
-        normalizedRow['data'] || normalizedRow['date'] || normalizedRow['dt'] || '';
+        normalizedRow['data'] ||
+        normalizedRow['date'] ||
+        normalizedRow['dt'] ||
+        normalizedRow['data lancamento'] ||
+        normalizedRow['data da operacao'] ||
+        normalizedRow['dt lancamento'] ||
+        '';
       const descStr =
         normalizedRow['descricao'] ||
         normalizedRow['description'] ||
         normalizedRow['historico'] ||
         normalizedRow['memo'] ||
         normalizedRow['titulo'] ||
+        normalizedRow['title'] ||
+        normalizedRow['lancamento'] ||
+        normalizedRow['estabelecimento'] ||
         'Lançamento CSV';
       const amountStr =
-        normalizedRow['valor'] || normalizedRow['amount'] || normalizedRow['vl'] || '0';
+        normalizedRow['valor'] ||
+        normalizedRow['amount'] ||
+        normalizedRow['vl'] ||
+        normalizedRow['valor (r$)'] ||
+        normalizedRow['valor r$'] ||
+        '';
       const idStr =
         normalizedRow['id'] ||
         normalizedRow['fitid'] ||
         normalizedRow['documento'] ||
         normalizedRow['doc'] ||
+        normalizedRow['identificador'] ||
         '';
 
-      const amount = parseFloat(
-        amountStr.replace(/\./g, '').replace(',', '.').replace(/R\$\s*/g, '').trim()
-      );
+      const amount = this.parseCsvAmount(amountStr);
 
       const parsedDate = this.parseCsvDate(dateStr);
 

@@ -93,12 +93,12 @@ describe('GeminiErrorParser & withGeminiRetry Unit Tests', () => {
       expect(parsed.isTransient).toBe(false);
     });
 
-    it('deve classificar erro inesperado como UNKNOWN_ERROR com status 500', () => {
+    it('deve classificar erro inesperado como UNKNOWN_ERROR com status 503', () => {
       const err = new Error('Random unexpected internal bug');
 
       const parsed = GeminiErrorParser.parse(err);
       expect(parsed.type).toBe('UNKNOWN_ERROR');
-      expect(parsed.statusCode).toBe(500);
+      expect(parsed.statusCode).toBe(503);
       expect(parsed.isTransient).toBe(false);
     });
   });

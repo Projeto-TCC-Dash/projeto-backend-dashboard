@@ -15,7 +15,7 @@ export interface KeyValidationResult {
 }
 
 export class GeminiService {
-  private static readonly VALIDATION_TIMEOUT_MS = 8_000;
+  private static readonly VALIDATION_TIMEOUT_MS = 12_000;
   private static readonly GENERATION_TIMEOUT_MS = 25_000;
   private static readonly STREAM_TIMEOUT_MS = 30_000;
 

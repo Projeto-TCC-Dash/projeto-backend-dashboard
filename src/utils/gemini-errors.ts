@@ -171,10 +171,10 @@ export class GeminiErrorParser {
       };
     }
 
-    // 5. Erro Genérico Desconhecido
+    // 5. Erro Genérico Desconhecido (upstream Google AI Studio indisponível)
     return {
       type: 'UNKNOWN_ERROR',
-      statusCode: 500,
+      statusCode: 503,
       userMessage: 'Ocorreu um erro inesperado ao se comunicar com o Google AI Studio.',
       isTransient: false,
       originalMessage: extractedMsg,

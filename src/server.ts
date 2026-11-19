@@ -36,4 +36,8 @@ async function bootstrap() {
   }
 }
 
-bootstrap();
+if (!process.env.VERCEL) {
+  void bootstrap();
+}
+
+export { default } from './vercel.js';

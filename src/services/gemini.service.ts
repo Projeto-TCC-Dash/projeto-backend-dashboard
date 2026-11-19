@@ -15,6 +15,17 @@ export interface KeyValidationResult {
 }
 
 export class GeminiService {
+  private static readonly VALIDATION_TIMEOUT_MS = 10_000;
+  private static readonly GENERATION_TIMEOUT_MS = 25_000;
+  private static readonly STREAM_TIMEOUT_MS = 30_000;
+
+  private static createClient(apiKey: string, timeout: number): GoogleGenAI {
+    return new GoogleGenAI({
+      apiKey,
+      httpOptions: { timeout },
+    });
+  }
+
   /**
    * Executa um teste ativo na API do Gemini para validar a chave do usuário antes de aceitá-la.
    * Se o Google responder 503 UNAVAILABLE ou 429, a chave é reconhecida como autenticada pelo gateway.
@@ -33,7 +44,7 @@ export class GeminiService {
     try {
       await withGeminiRetry(
         async () => {
-          const ai = new GoogleGenAI({ apiKey });
+          const ai = this.createClient(apiKey, this.VALIDATION_TIMEOUT_MS);
           await ai.models.generateContent({
             model: SYSTEM_DEFAULTS.GEMINI_MODEL,
             contents: 'Ping de validação de chave de API',
@@ -106,7 +117,7 @@ Diretrizes:
       return {};
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = this.createClient(apiKey, this.GENERATION_TIMEOUT_MS);
 
     const systemPrompt = this.buildCategorizationSystemPrompt();
 
@@ -191,7 +202,7 @@ Diretrizes:
     history: Array<{ role: 'user' | 'assistant'; content: string }>,
     newMessage: string
   ): AsyncIterable<string> {
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = this.createClient(apiKey, this.STREAM_TIMEOUT_MS);
 
     const contents = [
       {
@@ -325,7 +336,7 @@ Retorne um JSON estrito contendo:
     },
     profile?: IFinancialProfile | null
   ): Promise<{ diagnosis: string; recommendations: string[] }> {
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = this.createClient(apiKey, this.GENERATION_TIMEOUT_MS);
 
     const { systemPrompt, userPrompt } = this.buildFinancialDiagnosisPrompts(summary, profile);
 

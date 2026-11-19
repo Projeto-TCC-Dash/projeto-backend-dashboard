@@ -163,10 +163,22 @@ export class AuthService {
   public static async getDecryptedApiKey(userId: string): Promise<string> {
     const user = await UserModel.findById(userId).exec();
     if (!user || !user.encryptedApiKey || !user.iv || !user.authTag) {
-      throw new Error('Chave de API do Gemini não configurada para este usuário.');
+      const error = new Error('Chave de API do Gemini não configurada para este usuário.') as Error & {
+        statusCode?: number;
+      };
+      error.statusCode = 403;
+      throw error;
     }
 
-    return CryptoService.decrypt(user.encryptedApiKey, user.iv, user.authTag);
+    try {
+      return CryptoService.decrypt(user.encryptedApiKey, user.iv, user.authTag);
+    } catch {
+      const error = new Error(
+        'Não foi possível descriptografar sua chave de API do Gemini. Cadastre-a novamente nas configurações.'
+      ) as Error & { statusCode?: number };
+      error.statusCode = 400;
+      throw error;
+    }
   }
 
   /**

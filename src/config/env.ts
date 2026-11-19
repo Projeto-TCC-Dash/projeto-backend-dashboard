@@ -29,18 +29,25 @@ if (!parsed.success) {
 export const env = parsed.data;
 
 /**
- * Checks whether a request Origin is allowed by CORS_ORIGINS (or localhost:3001 in non-production).
+ * Checks whether a request Origin is allowed by CORS_ORIGINS (or known frontend origins).
  */
 export function isCorsOriginAllowed(origin?: string): boolean {
   if (!origin) return true;
-  const raw = env.CORS_ORIGINS?.trim();
+  const normalizedOrigin = origin.trim().replace(/\/+$/, '');
+  const raw = env.CORS_ORIGINS?.trim().replace(/^["']|["']$/g, '');
   if (raw === '*') return true;
 
   const allowed = raw
-    ? raw.split(',').map((o) => o.trim()).filter(Boolean)
+    ? raw
+        .split(',')
+        .map((o) => o.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, ''))
+        .filter(Boolean)
     : env.NODE_ENV === 'production'
-      ? []
+      ? [
+          'https://projeto-frontend-dashboard-debgoulart-projects.vercel.app',
+          'https://projeto-frontend-dashboard-git-develop-debgoulart-projects.vercel.app',
+        ]
       : ['http://localhost:3001', 'http://127.0.0.1:3001'];
 
-  return allowed.includes(origin);
+  return allowed.includes(normalizedOrigin);
 }

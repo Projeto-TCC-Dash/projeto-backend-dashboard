@@ -18,6 +18,7 @@ export class GeminiApiError extends Error {
   public readonly statusCode: number;
   public readonly type: GeminiErrorType;
   public readonly isTransient: boolean;
+  public readonly originalMessage: string;
 
   constructor(parsed: ParsedGeminiError) {
     super(parsed.userMessage);
@@ -25,7 +26,34 @@ export class GeminiApiError extends Error {
     this.statusCode = parsed.statusCode;
     this.type = parsed.type;
     this.isTransient = parsed.isTransient;
+    this.originalMessage = parsed.originalMessage;
   }
+}
+
+function extractCauseDetails(error: unknown): string {
+  const parts: string[] = [];
+  let current: unknown =
+    error && typeof error === 'object' ? (error as { cause?: unknown }).cause : undefined;
+  let depth = 0;
+
+  while (current && depth < 3) {
+    if (current instanceof Error) {
+      const code = (current as { code?: unknown }).code;
+      parts.push(
+        `${current.name}: ${current.message}${code ? ` (${String(code)})` : ''}`
+      );
+      current = (current as { cause?: unknown }).cause;
+    } else if (typeof current === 'object') {
+      parts.push(JSON.stringify(current));
+      break;
+    } else {
+      parts.push(String(current));
+      break;
+    }
+    depth++;
+  }
+
+  return parts.join(' -> ');
 }
 
 export class GeminiErrorParser {
@@ -34,6 +62,7 @@ export class GeminiErrorParser {
    */
   public static parse(error: unknown): ParsedGeminiError {
     const rawMsg = error instanceof Error ? error.message : String(error || '');
+    const causeDetails = extractCauseDetails(error);
     let extractedMsg = rawMsg;
     let extractedStatus: number | string | undefined = undefined;
 
@@ -64,7 +93,12 @@ export class GeminiErrorParser {
       }
     }
 
-    const lowerMsg = (extractedMsg + ' ' + (extractedStatus || '')).toLowerCase();
+    const fullOriginalMsg =
+      causeDetails && !extractedMsg.includes(causeDetails)
+        ? `${extractedMsg} [cause: ${causeDetails}]`
+        : extractedMsg;
+
+    const lowerMsg = (extractedMsg + ' ' + causeDetails + ' ' + (extractedStatus || '')).toLowerCase();
 
     // 1. Alta Demanda / Indisponibilidade Upstream (503 / UNAVAILABLE / Spikes in demand)
     if (
@@ -81,7 +115,7 @@ export class GeminiErrorParser {
         userMessage:
           'Os servidores do Google AI Studio estão com alta demanda temporária no momento. Por favor, tente novamente em instantes.',
         isTransient: true,
-        originalMessage: extractedMsg,
+        originalMessage: fullOriginalMsg,
         originalStatus: extractedStatus,
       };
     }
@@ -101,7 +135,7 @@ export class GeminiErrorParser {
         userMessage:
           'O limite de requisições ou cota da sua chave no Google AI Studio foi atingido temporariamente.',
         isTransient: true,
-        originalMessage: extractedMsg,
+        originalMessage: fullOriginalMsg,
         originalStatus: extractedStatus,
       };
     }
@@ -124,7 +158,7 @@ export class GeminiErrorParser {
         statusCode: 400,
         userMessage: 'A chave de API fornecida é inválida ou foi revogada no Google AI Studio.',
         isTransient: false,
-        originalMessage: extractedMsg,
+        originalMessage: fullOriginalMsg,
         originalStatus: extractedStatus,
       };
     }
@@ -142,7 +176,7 @@ export class GeminiErrorParser {
         userMessage:
           'O modelo de IA configurado encontra-se indisponível ou não foi encontrado no Google AI Studio.',
         isTransient: false,
-        originalMessage: extractedMsg,
+        originalMessage: fullOriginalMsg,
         originalStatus: extractedStatus,
       };
     }
@@ -166,7 +200,7 @@ export class GeminiErrorParser {
         userMessage:
           'Não foi possível estabelecer conexão com os servidores do Google AI Studio. Verifique sua conexão com a internet.',
         isTransient: true,
-        originalMessage: extractedMsg,
+        originalMessage: fullOriginalMsg,
         originalStatus: extractedStatus,
       };
     }
@@ -177,7 +211,7 @@ export class GeminiErrorParser {
       statusCode: 503,
       userMessage: 'Ocorreu um erro inesperado ao se comunicar com o Google AI Studio.',
       isTransient: false,
-      originalMessage: extractedMsg,
+      originalMessage: fullOriginalMsg,
       originalStatus: extractedStatus,
     };
   }

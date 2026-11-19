@@ -15,14 +15,19 @@ export interface KeyValidationResult {
 }
 
 export class GeminiService {
-  private static readonly VALIDATION_TIMEOUT_MS = 10_000;
+  private static readonly VALIDATION_TIMEOUT_MS = 8_000;
   private static readonly GENERATION_TIMEOUT_MS = 25_000;
   private static readonly STREAM_TIMEOUT_MS = 30_000;
 
   private static createClient(apiKey: string, timeout: number): GoogleGenAI {
     return new GoogleGenAI({
       apiKey,
-      httpOptions: { timeout },
+      httpOptions: {
+        timeout,
+        // Evita o dispatcher Undici customizado do SDK que depende de `undici.globalDispatcher.1`
+        // e pode falhar com `TypeError: fetch failed` em runtimes serverless como a Vercel.
+        fetch: (input, init) => globalThis.fetch(input, init),
+      },
     });
   }
 
@@ -47,11 +52,14 @@ export class GeminiService {
           const ai = this.createClient(apiKey, this.VALIDATION_TIMEOUT_MS);
           await ai.models.generateContent({
             model: SYSTEM_DEFAULTS.GEMINI_MODEL,
-            contents: 'Ping de validação de chave de API',
+            contents: 'Ping',
+            config: {
+              maxOutputTokens: 1,
+            },
           });
         },
-        2,
-        400
+        1,
+        300
       );
 
       return {
@@ -66,7 +74,7 @@ export class GeminiService {
               statusCode: error.statusCode,
               userMessage: error.message,
               isTransient: error.isTransient,
-              originalMessage: error.message,
+              originalMessage: error.originalMessage,
             }
           : GeminiErrorParser.parse(error);
 

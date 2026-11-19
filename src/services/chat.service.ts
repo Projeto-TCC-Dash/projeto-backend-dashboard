@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { SYSTEM_DEFAULTS } from '../config/constants.js';
 import { ChatSessionModel, IChatSession } from '../models/chat-session.model.js';
 import { UserModel } from '../models/user.model.js';
+import { BudgetService } from './budget.service.js';
 import { TransactionService } from './transaction.service.js';
 
 export class ChatService {
@@ -45,6 +46,7 @@ export class ChatService {
    */
   public static async buildSystemInstruction(userId: string): Promise<string> {
     const summary = await TransactionService.getMonthlyFinancialSummary(userId);
+    const budgetAlerts = await BudgetService.getAlertingBudgetsSummary(userId, summary.month);
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const user = await UserModel.findById(userObjectId).exec();
@@ -69,6 +71,8 @@ export class ChatService {
 - Perfil de Risco: ${profile.riskProfile || 'Não informado'}`
       : 'PERFIL FINANCEIRO DO USUÁRIO: Não informado (adote parâmetros padrão de planejamento financeiro).';
 
+    const budgetBlock = budgetAlerts ? `\n${budgetAlerts}\n` : '';
+
     return `Você é o Consultor Financeiro Inteligente da plataforma.
 Sua missão é auxiliar o usuário a compreender seus hábitos de consumo, identificar desperdícios e atingir estabilidade e crescimento patrimonial.
 
@@ -79,9 +83,10 @@ DIRETRIZES DA PERSONA:
 4. Baseie suas análises EXCLUSIVAMENTE nos dados consolidados do mês do usuário informados abaixo.
 5. Importante: Diferencie despesas operacionais primárias (consumo real) de quitações de fatura de cartão ('Pagamento de Fatura'), para não acusar o usuário de ter despesas duplicadas.
 6. Personalize seu aconselhamento e priorização de acordo com o regime de trabalho, renda declarada e metas do usuário informados no perfil (ex: se PJ/autônomo, reforce a necessidade de reserva de emergência de 6 a 12 meses; se CLT/servidor público, 3 a 6 meses; priorize as metas declaradas pelo usuário).
+7. Se houver alertas orçamentários (categorias com status WARNING ou EXCEEDED), alerte o usuário com prioridade e recomende ajustes pontuais de contenção.
 
 ${profileBlock}
-
+${budgetBlock}
 CONTEXTO FINANCEIRO DO MÊS (${summary.month}):
 - Total de Entradas/Receitas: R$ ${summary.totalIncome.toFixed(2)}
 - Despesas Operacionais (Consumo): R$ ${summary.totalExpenses.toFixed(2)}

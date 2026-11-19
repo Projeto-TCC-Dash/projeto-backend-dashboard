@@ -1,8 +1,10 @@
 import mongoose from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
-import { CANONICAL_CATEGORIES } from '../../src/config/constants.js';
+import { ASSET_MACRO_CLASSES, CANONICAL_CATEGORIES, SYSTEM_DEFAULTS } from '../../src/config/constants.js';
 import { env } from '../../src/config/env.js';
 import { AccountModel } from '../../src/models/account.model.js';
+import { BudgetPlanModel } from '../../src/models/budget.model.js';
+import { InvestmentHoldingModel } from '../../src/models/investment-holding.model.js';
 import { TransactionModel } from '../../src/models/transaction.model.js';
 import { UserModel } from '../../src/models/user.model.js';
 import {
@@ -112,16 +114,34 @@ describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
       const mockUpdateMany = vi.spyOn(TransactionModel, 'updateMany').mockReturnValue({
         exec: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
       } as any);
+      const mockBudgetFindOneAndUpdate = vi.spyOn(BudgetPlanModel, 'findOneAndUpdate').mockResolvedValue({} as any);
+      const mockHoldingDeleteMany = vi.spyOn(InvestmentHoldingModel, 'deleteMany').mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+      } as any);
+      const mockHoldingFindOneAndUpdate = vi.spyOn(InvestmentHoldingModel, 'findOneAndUpdate').mockResolvedValue({} as any);
 
       const result = await runSeed();
       expect(result.email).toBe(SEED_CONFIG.EMAIL);
       expect(result.transactionsImported).toBe(0);
+
+      // Garante que o seed usa apenas macroclasses oficiais (incluindo CASH_LIQUIDITY, nunca LIQUIDITY)
+      const upsertedClasses = mockHoldingFindOneAndUpdate.mock.calls.map(
+        (call) => (call[0] as { macroClass: string }).macroClass
+      );
+      expect(upsertedClasses).toContain('CASH_LIQUIDITY');
+      expect(upsertedClasses).not.toContain('LIQUIDITY');
+      for (const mc of upsertedClasses) {
+        expect(ASSET_MACRO_CLASSES).toContain(mc);
+      }
 
       mockConnect.mockRestore();
       mockFindOne.mockRestore();
       mockBulkWrite.mockRestore();
       mockAccountFindOne.mockRestore();
       mockUpdateMany.mockRestore();
+      mockBudgetFindOneAndUpdate.mockRestore();
+      mockHoldingDeleteMany.mockRestore();
+      mockHoldingFindOneAndUpdate.mockRestore();
     }
   }, 25000);
 
@@ -152,16 +172,25 @@ describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
       const mockUpdateMany = vi.spyOn(TransactionModel, 'updateMany').mockReturnValue({
         exec: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
       } as any);
+      const mockBudgetFindOneAndUpdate = vi.spyOn(BudgetPlanModel, 'findOneAndUpdate').mockResolvedValue({} as any);
+      const mockHoldingDeleteMany = vi.spyOn(InvestmentHoldingModel, 'deleteMany').mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+      } as any);
+      const mockHoldingFindOneAndUpdate = vi.spyOn(InvestmentHoldingModel, 'findOneAndUpdate').mockResolvedValue({} as any);
 
       const result = await runSeed();
       expect(result.email).toBe(SEED_CONFIG.EMAIL);
       expect(result.hasAiKey).toBe(false);
+      expect(SYSTEM_DEFAULTS.GEMINI_MODEL).not.toBe('gemini-3.8-flash');
 
       mockConnect.mockRestore();
       mockFindOne.mockRestore();
       mockBulkWrite.mockRestore();
       mockAccountFindOne.mockRestore();
       mockUpdateMany.mockRestore();
+      mockBudgetFindOneAndUpdate.mockRestore();
+      mockHoldingDeleteMany.mockRestore();
+      mockHoldingFindOneAndUpdate.mockRestore();
     } finally {
       if (originalKey !== undefined) {
         process.env.GOOGLE_GENERATIVE_AI_API_KEY = originalKey;

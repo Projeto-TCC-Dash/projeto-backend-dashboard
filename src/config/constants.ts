@@ -67,7 +67,7 @@ export const SYSTEM_DEFAULTS = {
   MAX_FILE_SIZE_BYTES: 10 * 1024 * 1024, // 10MB
   MAX_CHAT_HISTORY_MESSAGES: 20,
   DEFAULT_CATEGORY: "Não Categorizado" as Category,
-  GEMINI_MODEL: "gemini-3.8-flash",
+  GEMINI_MODEL: process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash",
 } as const;
 
 export const AVATAR_CONFIG = {
@@ -81,5 +81,56 @@ export const SESSION_CONFIG = {
   SESSION_TTL_MS: 7 * 24 * 60 * 60 * 1000, // 7 dias
   SESSION_TTL_SECONDS: 7 * 24 * 60 * 60, // 604800 segundos
 } as const;
+
+export const TAX_CATEGORIES = [
+  'HEALTH',
+  'EDUCATION',
+  'PENSION_PGBL',
+  'ALIMONY',
+  'BUSINESS_EXPENSE_BOOK',
+  'OTHER_DEDUCTIBLE',
+] as const;
+export const TaxCategoryEnum = z.enum(TAX_CATEGORIES);
+export type TaxCategory = z.infer<typeof TaxCategoryEnum>;
+
+export const FISCAL_VERIFICATION_STATUSES = [
+  'PENDING',
+  'CONFIRMED',
+  'EXEMPT',
+] as const;
+export const FiscalVerificationStatusEnum = z.enum(FISCAL_VERIFICATION_STATUSES);
+export type FiscalVerificationStatus = z.infer<typeof FiscalVerificationStatusEnum>;
+
+export const ASSET_MACRO_CLASSES = [
+  'FIXED_INCOME',
+  'EQUITIES',
+  'REAL_ESTATE',
+  'INTERNATIONAL',
+  'CRYPTO',
+  'CASH_LIQUIDITY',
+] as const;
+export const AssetMacroClassEnum = z.enum(ASSET_MACRO_CLASSES);
+export type AssetMacroClass = z.infer<typeof AssetMacroClassEnum>;
+
+export const BUDGET_CONSUMPTION_STATUSES = [
+  'REGULAR',
+  'WARNING',
+  'EXCEEDED',
+] as const;
+export const BudgetConsumptionStatusEnum = z.enum(BUDGET_CONSUMPTION_STATUSES);
+export type BudgetConsumptionStatus = z.infer<typeof BudgetConsumptionStatusEnum>;
+
+export const FISCAL_PROOF_CONFIG = {
+  MAX_SIZE_BYTES: 10 * 1024 * 1024, // 10MB
+  ALLOWED_MIME_TYPES: [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/pdf',
+  ] as const,
+  UPLOAD_DIR: 'uploads/receipts',
+  URL_PREFIX: '/uploads/receipts',
+} as const;
+
 
 

@@ -5,10 +5,39 @@ import {
   AnalysisParamsSchema,
   AnalysisQuerySchema,
   FinancialAnalysisResponseSchema,
+  MultiMonthAnalysisResponseSchema,
+  MultiMonthQuerySchema,
 } from '../schemas/analysis.schemas.js';
 import { AnalysisService } from '../services/analysis.service.js';
 
 export const analysisRoutes: FastifyPluginAsyncZod = async (fastify) => {
+  // GET /api/analysis/multi-month
+  fastify.get(
+    '/api/analysis/multi-month',
+    {
+      preHandler: [requireAuth],
+      schema: {
+        description: 'Diagnóstico financeiro multi-mês com médias móveis e detecção de tendências de custos fixos',
+        tags: ['Análise Financeira'],
+        security: [{ bearerAuth: [] }],
+        querystring: MultiMonthQuerySchema,
+        response: {
+          200: MultiMonthAnalysisResponseSchema,
+          400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const summary = await AnalysisService.getMultiMonthSummary(
+        request.user.id,
+        request.query.range
+      );
+
+      return reply.status(200).send(summary);
+    }
+  );
+
   fastify.get(
     '/api/analysis/:month',
     {
@@ -25,6 +54,8 @@ export const analysisRoutes: FastifyPluginAsyncZod = async (fastify) => {
           400: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
           401: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
           403: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          429: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
+          503: z.object({ statusCode: z.number(), error: z.string(), message: z.string() }),
         },
       },
     },

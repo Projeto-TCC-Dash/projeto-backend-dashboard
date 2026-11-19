@@ -14,6 +14,7 @@ const envSchema = z.object({
     return val.length === 32 || (val.length === 64 && /^[0-9a-fA-F]+$/.test(val));
   }, 'ENCRYPTION_KEY deve ter 32 bytes (32 caracteres ASCII ou 64 caracteres em hexadecimal).'),
   GOOGLE_CLIENT_ID: z.string().optional(),
+  GEMINI_MODEL: z.string().trim().min(1).default('gemini-2.5-flash'),
 });
 
 const parsed = envSchema.safeParse(process.env);

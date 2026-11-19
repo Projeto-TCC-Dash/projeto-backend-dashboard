@@ -1,5 +1,6 @@
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { ITransaction } from '../models/transaction.model.js';
 import { requireAiKey, requireAuth } from '../plugins/auth.plugin.js';
 import {
   ListTransactionsQuerySchema,
@@ -14,6 +15,20 @@ import { AuthService } from '../services/auth.service.js';
 import { GeminiService } from '../services/gemini.service.js';
 import { ParserService } from '../services/parser.service.js';
 import { TransactionService } from '../services/transaction.service.js';
+
+function serializeTransaction(t: ITransaction) {
+  return {
+    id: t._id.toString(),
+    accountId: t.accountId?.toString(),
+    externalId: t.externalId,
+    rawDescription: t.rawDescription,
+    cleanDescription: t.cleanDescription,
+    amount: t.amount,
+    date: t.date,
+    category: t.category,
+    source: t.source,
+  };
+}
 
 export const transactionRoutes: FastifyPluginAsyncZod = async (fastify) => {
   // POST /api/transactions/upload
@@ -110,18 +125,7 @@ export const transactionRoutes: FastifyPluginAsyncZod = async (fastify) => {
         request.query
       );
 
-      return reply.status(200).send(
-        transactions.map((t) => ({
-          id: t._id.toString(),
-          externalId: t.externalId,
-          rawDescription: t.rawDescription,
-          cleanDescription: t.cleanDescription,
-          amount: t.amount,
-          date: t.date,
-          category: t.category,
-          source: t.source,
-        }))
-      );
+      return reply.status(200).send(transactions.map(serializeTransaction));
     }
   );
 
@@ -159,16 +163,7 @@ export const transactionRoutes: FastifyPluginAsyncZod = async (fastify) => {
         });
       }
 
-      return reply.status(200).send({
-        id: updated._id.toString(),
-        externalId: updated.externalId,
-        rawDescription: updated.rawDescription,
-        cleanDescription: updated.cleanDescription,
-        amount: updated.amount,
-        date: updated.date,
-        category: updated.category,
-        source: updated.source,
-      });
+      return reply.status(200).send(serializeTransaction(updated));
     }
   );
 

@@ -80,6 +80,8 @@ describe('Categorization Routes & Initial Default Category (HTTP Inject & BYOK G
     const bulkWriteSpy = vi.spyOn(TransactionModel, 'bulkWrite').mockResolvedValueOnce({
       upsertedCount: 1,
     } as any);
+    const { AnalysisService } = await import('../../src/services/analysis.service.js');
+    vi.spyOn(AnalysisService, 'invalidate').mockResolvedValueOnce(0);
 
     await TransactionService.importTransactions(testUserId, [
       {

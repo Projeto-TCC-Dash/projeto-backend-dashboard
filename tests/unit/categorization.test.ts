@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CANONICAL_CATEGORIES, Category, CategoryEnum, SYSTEM_DEFAULTS } from '../../src/config/constants.js';
 import { GeminiService } from '../../src/services/gemini.service.js';
 
@@ -131,5 +131,27 @@ describe('Categorization Logic (Token Minimization & Reassociation)', () => {
 
     const { userPrompt } = GeminiService.buildFinancialDiagnosisPrompts(summary, undefined);
     expect(userPrompt).toContain('PERFIL FINANCEIRO DO USUÁRIO: Não informado');
+  });
+
+  it('deve dividir listas com mais de 50 estabelecimentos em lotes ao chamar GeminiService.categorizeMerchants', async () => {
+    const merchants = Array.from({ length: 65 }, (_, i) => `LOJA_${i + 1}`);
+    const generateContentMock = vi.fn().mockImplementation(async ({ contents }: { contents: string }) => {
+      const matched = merchants.filter((m) => contents.includes(`"${m}"`));
+      return {
+        text: JSON.stringify({
+          categories: matched.map((m) => ({ merchant: m, category: 'Alimentação' })),
+        }),
+      };
+    });
+
+    vi.spyOn(GeminiService as any, 'createClient').mockReturnValue({
+      models: { generateContent: generateContentMock },
+    });
+
+    const result = await GeminiService.categorizeMerchants('AIzaSyDummyKeyWithMoreThan20Chars', merchants);
+    expect(generateContentMock).toHaveBeenCalledTimes(2);
+    expect(Object.keys(result)).toHaveLength(65);
+    expect(result['LOJA_1']).toBe('Alimentação');
+    expect(result['LOJA_65']).toBe('Alimentação');
   });
 });

@@ -43,7 +43,7 @@ export class TransactionService {
       updateFields.accountId = targetAccount._id;
     }
 
-    return TransactionModel.findOneAndUpdate(
+    const updated = await TransactionModel.findOneAndUpdate(
       {
         _id: transactionObjectId,
         userId: userObjectId,
@@ -56,6 +56,11 @@ export class TransactionService {
         runValidators: true,
       }
     ).exec();
+
+    if (updated) {
+      await AnalysisService.invalidate(userId);
+    }
+    return updated;
   }
 
   /**
@@ -142,6 +147,10 @@ export class TransactionService {
     const imported = result.upsertedCount;
     const totalExtracted = transactions.length;
     const duplicatesIgnored = Math.max(0, totalExtracted - imported);
+
+    if (imported > 0) {
+      await AnalysisService.invalidate(userId);
+    }
 
     return {
       totalExtracted,
@@ -237,6 +246,10 @@ export class TransactionService {
 
     const result = await TransactionModel.bulkWrite(bulkOps, { ordered: false });
     totalUpdated = result.modifiedCount;
+
+    if (totalUpdated > 0) {
+      await AnalysisService.invalidate(userId);
+    }
 
     return totalUpdated;
   }

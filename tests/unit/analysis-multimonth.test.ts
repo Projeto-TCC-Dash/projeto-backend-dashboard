@@ -56,4 +56,29 @@ describe('AnalysisService - Multi-Month Analysis Unit Tests', () => {
     expect(result.fixedCostTrend.alertCategory).toBe('Moradia');
     expect(result.fixedCostTrend.percentageChange).toBeGreaterThanOrEqual(15);
   });
+
+  it('deve classificar tendência de custo fixo como DECLINING quando houver redução >= 15%', async () => {
+    const baseDate = new Date();
+    const y = baseDate.getUTCFullYear();
+    const m = baseDate.getUTCMonth();
+
+    const d1 = new Date(Date.UTC(y, m - 2, 10));
+    const d3 = new Date(Date.UTC(y, m, 10));
+
+    const mockTxs: any[] = [
+      { amount: 8000, date: d1, category: 'Receita' },
+      { amount: -2000, date: d1, category: 'Moradia' },
+      { amount: 8000, date: d3, category: 'Receita' },
+      { amount: -1500, date: d3, category: 'Moradia' },
+    ];
+
+    vi.spyOn(TransactionModel, 'find').mockReturnValue({
+      exec: vi.fn().mockResolvedValue(mockTxs),
+    } as any);
+
+    const result = await AnalysisService.getMultiMonthSummary(userId, '3');
+
+    expect(result.fixedCostTrend.status).toBe('DECLINING');
+    expect(result.fixedCostTrend.percentageChange).toBe(-25);
+  });
 });

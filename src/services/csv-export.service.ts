@@ -5,10 +5,16 @@ export class CsvExportService {
    * Escapa valores de string para o padrão CSV (envolve com aspas e duplica aspas internas).
    */
   private static escapeCsvField(field: string): string {
-    if (field.includes(';') || field.includes('"') || field.includes('\n') || field.includes('\r')) {
-      return `"${field.replace(/"/g, '""')}"`;
+    const safeField = /^[=+\-@\t\r]/.test(field) ? `'${field}` : field;
+    if (
+      safeField.includes(';') ||
+      safeField.includes('"') ||
+      safeField.includes('\n') ||
+      safeField.includes('\r')
+    ) {
+      return `"${safeField.replace(/"/g, '""')}"`;
     }
-    return `"${field}"`;
+    return `"${safeField}"`;
   }
 
   /**

@@ -1,8 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { AVATAR_CONFIG } from '../config/constants.js';
 import { requireAuth } from '../plugins/auth.plugin.js';
 import {
   UpdateFinancialProfileRequestSchema,
@@ -278,10 +275,9 @@ export const userRoutes: FastifyPluginAsyncZod = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const safeFilename = path.basename(request.params.filename);
-      const filePath = path.join(process.cwd(), AVATAR_CONFIG.UPLOAD_DIR, safeFilename);
+      const avatar = await UserService.getAvatarByFilename(request.params.filename);
 
-      if (!fs.existsSync(filePath)) {
+      if (!avatar) {
         return reply.status(404).send({
           statusCode: 404,
           error: 'Not Found',
@@ -289,19 +285,9 @@ export const userRoutes: FastifyPluginAsyncZod = async (fastify) => {
         });
       }
 
-      const ext = path.extname(safeFilename).toLowerCase();
-      let contentType = 'application/octet-stream';
-      if (ext === '.jpg' || ext === '.jpeg') {
-        contentType = 'image/jpeg';
-      } else if (ext === '.png') {
-        contentType = 'image/png';
-      } else if (ext === '.webp') {
-        contentType = 'image/webp';
-      }
-
-      reply.header('Content-Type', contentType);
+      reply.header('Content-Type', avatar.mimeType);
       reply.header('Cache-Control', 'public, max-age=86400');
-      return reply.send(fs.createReadStream(filePath));
+      return reply.send(avatar.buffer);
     }
   );
 };

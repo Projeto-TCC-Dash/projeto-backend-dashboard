@@ -67,7 +67,7 @@ export const SYSTEM_DEFAULTS = {
   MAX_FILE_SIZE_BYTES: 10 * 1024 * 1024, // 10MB
   MAX_CHAT_HISTORY_MESSAGES: 20,
   DEFAULT_CATEGORY: "Não Categorizado" as Category,
-  GEMINI_MODEL: process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash",
+  GEMINI_MODEL: process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash",
 } as const;
 
 export const AVATAR_CONFIG = {

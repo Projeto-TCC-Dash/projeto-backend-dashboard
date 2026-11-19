@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { GeminiService } from '../../src/services/gemini.service.js';
 import {
   GeminiApiError,
   GeminiErrorParser,
@@ -145,6 +146,21 @@ describe('GeminiErrorParser & withGeminiRetry Unit Tests', () => {
         expect(err.type).toBe('UPSTREAM_UNAVAILABLE');
       }
       expect(operation).toHaveBeenCalledTimes(3); // 1 inicial + 2 retries
+    });
+  });
+
+  describe('GeminiService.validateApiKey', () => {
+    it('não deve aceitar chave provisoriamente quando ocorrer NETWORK_ERROR', async () => {
+      const networkErr = new Error('request timeout');
+      vi.spyOn(GeminiService as any, 'createClient').mockReturnValue({
+        models: {
+          generateContent: vi.fn().mockRejectedValue(networkErr),
+        },
+      });
+
+      await expect(
+        GeminiService.validateApiKey('AIzaSyDummyKeyWithMoreThan20Chars')
+      ).rejects.toThrow(GeminiApiError);
     });
   });
 });

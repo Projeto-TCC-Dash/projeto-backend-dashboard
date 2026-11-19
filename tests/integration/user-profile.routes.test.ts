@@ -359,6 +359,8 @@ describe('User Profile Routes (HTTP Inject & Contracts)', () => {
 
   describe('GET /uploads/avatars/:filename', () => {
     it('deve retornar 404 se a imagem do avatar não for encontrada', async () => {
+      vi.spyOn(UserService, 'getAvatarByFilename').mockResolvedValueOnce(null);
+
       const res = await app.inject({
         method: 'GET',
         url: '/uploads/avatars/inexistente.png',
@@ -366,28 +368,21 @@ describe('User Profile Routes (HTTP Inject & Contracts)', () => {
       expect(res.statusCode).toBe(404);
     });
 
-    it('deve servir imagem existente com Content-Type adequado', async () => {
+    it('deve servir imagem existente com Content-Type adequado a partir do MongoDB', async () => {
       const tempFilename = `test-avatar-${Date.now()}.png`;
-      const uploadDir = path.join(process.cwd(), 'uploads/avatars');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      const testFilePath = path.join(uploadDir, tempFilename);
-      fs.writeFileSync(testFilePath, Buffer.from('fake-image-bytes'));
+      vi.spyOn(UserService, 'getAvatarByFilename').mockResolvedValueOnce({
+        buffer: Buffer.from('fake-image-bytes'),
+        mimeType: 'image/png',
+      });
 
-      try {
-        const res = await app.inject({
-          method: 'GET',
-          url: `/uploads/avatars/${tempFilename}`,
-        });
+      const res = await app.inject({
+        method: 'GET',
+        url: `/uploads/avatars/${tempFilename}`,
+      });
 
-        expect(res.statusCode).toBe(200);
-        expect(res.headers['content-type']).toBe('image/png');
-      } finally {
-        if (fs.existsSync(testFilePath)) {
-          fs.unlinkSync(testFilePath);
-        }
-      }
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toBe('image/png');
+      expect(res.body).toBe('fake-image-bytes');
     });
   });
 });

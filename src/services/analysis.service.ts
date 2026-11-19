@@ -351,7 +351,7 @@ export class AnalysisService {
       const endVal = lastMonthFixed[cat] || 0;
       if (startVal > 0) {
         const pctChange = ((endVal - startVal) / startVal) * 100;
-        if (pctChange > maxChangePct) {
+        if (Math.abs(pctChange) > Math.abs(maxChangePct)) {
           maxChangePct = pctChange;
           maxChangeCat = cat;
         }

@@ -1,5 +1,6 @@
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { isCorsOriginAllowed } from '../config/env.js';
 import { requireAiKey, requireAuth } from '../plugins/auth.plugin.js';
 import { ChatMessageRequestSchema } from '../schemas/chat.schemas.js';
 import { AuthService } from '../services/auth.service.js';
@@ -36,15 +37,18 @@ export const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
       // 3. Montar instruções de sistema com o resumo financeiro mensal injetado
       const systemInstruction = await ChatService.buildSystemInstruction(userId);
 
-      const origin = request.headers.origin || '*';
-      reply.raw.writeHead(200, {
+      const origin = request.headers.origin;
+      const sseHeaders: Record<string, string> = {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
         'X-Accel-Buffering': 'no',
-        'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept',
-      });
+      };
+      if (origin && isCorsOriginAllowed(origin)) {
+        sseHeaders['Access-Control-Allow-Origin'] = origin;
+      }
+      reply.raw.writeHead(200, sseHeaders);
 
       let isClientConnected = true;
       request.raw.on('close', () => {

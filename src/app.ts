@@ -12,7 +12,7 @@ import {
   ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 import { connectDatabase } from './config/database.js';
-import { env } from './config/env.js';
+import { env, isCorsOriginAllowed } from './config/env.js';
 import { setupErrorHandler } from './plugins/error-handler.plugin.js';
 import { accountsRoutes } from './routes/accounts.routes.js';
 import { analysisRoutes } from './routes/analysis.routes.js';
@@ -39,7 +39,9 @@ export function buildApp(): FastifyInstance {
 
   // CORS
   app.register(fastifyCors, {
-    origin: true,
+    origin: (origin, cb) => {
+      cb(null, isCorsOriginAllowed(origin));
+    },
   });
 
   // Multipart upload

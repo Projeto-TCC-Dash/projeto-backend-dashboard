@@ -28,6 +28,8 @@ export interface IUser extends Document {
   passwordHash: string;
   name?: string;
   avatarUrl?: string | null;
+  avatarData?: Buffer | null;
+  avatarMimeType?: string | null;
   encryptedApiKey?: string | null;
   iv?: string | null;
   authTag?: string | null;
@@ -80,6 +82,16 @@ const UserSchema = new Schema<IUser>(
     avatarUrl: {
       type: String,
       default: null,
+    },
+    avatarData: {
+      type: Buffer,
+      default: null,
+      select: false,
+    },
+    avatarMimeType: {
+      type: String,
+      default: null,
+      select: false,
     },
     encryptedApiKey: {
       type: String,

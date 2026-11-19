@@ -73,7 +73,21 @@ export class GoogleOAuthService {
         };
       }
 
-      // 2. Se a chamada por id_token falhou (ex: frontend enviou access_token), tenta como access_token via userinfo
+      // 2. Se a chamada por id_token falhou (ex: frontend enviou access_token), valida audiência quando GOOGLE_CLIENT_ID está configurado e consulta userinfo
+      if (env.GOOGLE_CLIENT_ID) {
+        const tokenInfoRes = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(idToken)}`
+        );
+        if (!tokenInfoRes.ok) {
+          throw new InvalidGoogleTokenError('Token do Google inválido ou expirado.');
+        }
+        const tokenInfo = (await tokenInfoRes.json()) as Record<string, unknown>;
+        const tokenAudience = tokenInfo.aud ?? tokenInfo.azp;
+        if (tokenAudience !== env.GOOGLE_CLIENT_ID) {
+          throw new InvalidGoogleTokenError('Audiência do token do Google incompatível.');
+        }
+      }
+
       const userinfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: {
           Authorization: `Bearer ${idToken}`,

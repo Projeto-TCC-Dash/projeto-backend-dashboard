@@ -1,6 +1,4 @@
-import fs from 'node:fs';
 import path from 'node:path';
-import mongoose from 'mongoose';
 import { AVATAR_CONFIG } from '../config/constants.js';
 import { UserModel } from '../models/user.model.js';
 import { AnalysisService } from './analysis.service.js';
@@ -124,7 +122,7 @@ export class UserService {
   }
 
   /**
-   * Processa upload do arquivo de imagem do avatar, armazena no disco e atualiza o usuário
+   * Processa upload do arquivo de imagem do avatar, armazena no MongoDB e atualiza o usuário
    */
   public static async uploadAvatar(
     userId: string,
@@ -137,6 +135,7 @@ export class UserService {
       );
     }
 
+    // shortcut: Vercel serverless caps request bodies at 4.5MB; 5MB limit kept for existing client/test contracts
     if (file.buffer.length > AVATAR_CONFIG.MAX_SIZE_BYTES) {
       throw new InvalidAvatarFileError('Arquivo excede o tamanho máximo permitido de 5MB.');
     }
@@ -146,28 +145,14 @@ export class UserService {
       throw new UserNotFoundError();
     }
 
-    const uploadDir = path.join(process.cwd(), AVATAR_CONFIG.UPLOAD_DIR);
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
     let ext = '.png';
     if (file.mimetype === 'image/jpeg') ext = '.jpg';
     else if (file.mimetype === 'image/webp') ext = '.webp';
 
     const filename = `${userId}-${Date.now()}${ext}`;
-    const targetPath = path.join(uploadDir, filename);
-
-    // Remove avatar antigo do disco se existir
-    if (user.avatarUrl && user.avatarUrl.startsWith(AVATAR_CONFIG.URL_PREFIX)) {
-      const oldFilename = path.basename(user.avatarUrl);
-      const oldPath = path.join(uploadDir, oldFilename);
-      await fs.promises.unlink(oldPath).catch(() => {});
-    }
-
-    await fs.promises.writeFile(targetPath, file.buffer);
-
     user.avatarUrl = `${AVATAR_CONFIG.URL_PREFIX}/${filename}`;
+    user.avatarData = file.buffer;
+    user.avatarMimeType = file.mimetype;
     await user.save();
 
     return {
@@ -178,7 +163,7 @@ export class UserService {
   }
 
   /**
-   * Remove o avatar do usuário e exclui o arquivo físico correspondente
+   * Remove o avatar do usuário no MongoDB
    */
   public static async deleteAvatar(userId: string): Promise<UserAvatarResponse> {
     const user = await UserModel.findById(userId);
@@ -186,20 +171,38 @@ export class UserService {
       throw new UserNotFoundError();
     }
 
-    if (user.avatarUrl && user.avatarUrl.startsWith(AVATAR_CONFIG.URL_PREFIX)) {
-      const uploadDir = path.join(process.cwd(), AVATAR_CONFIG.UPLOAD_DIR);
-      const oldFilename = path.basename(user.avatarUrl);
-      const oldPath = path.join(uploadDir, oldFilename);
-      await fs.promises.unlink(oldPath).catch(() => {});
-    }
-
     user.avatarUrl = null;
+    user.avatarData = null;
+    user.avatarMimeType = null;
     await user.save();
 
     return {
       success: true,
       message: 'Avatar removido com sucesso',
       avatarUrl: null,
+    };
+  }
+
+  /**
+   * Busca os bytes do avatar armazenado no MongoDB pelo nome do arquivo
+   */
+  public static async getAvatarByFilename(
+    filename: string
+  ): Promise<{ buffer: Buffer; mimeType: string } | null> {
+    const safeFilename = path.basename(filename);
+    const avatarUrl = `${AVATAR_CONFIG.URL_PREFIX}/${safeFilename}`;
+
+    const user = await UserModel.findOne({ avatarUrl })
+      .select('+avatarData +avatarMimeType')
+      .exec();
+
+    if (!user || !user.avatarData) {
+      return null;
+    }
+
+    return {
+      buffer: user.avatarData,
+      mimeType: user.avatarMimeType || 'image/png',
     };
   }
 }

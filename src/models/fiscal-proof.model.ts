@@ -16,6 +16,7 @@ export interface IFiscalProofDocument extends Document {
   storedFilename: string;
   mimeType: string;
   sizeBytes: number;
+  fileData?: Buffer | null;
   extractedData?: IFiscalExtractedData;
   createdAt: Date;
   updatedAt: Date;
@@ -60,6 +61,11 @@ const FiscalProofDocumentSchema = new Schema<IFiscalProofDocument>(
     sizeBytes: {
       type: Number,
       required: true,
+    },
+    fileData: {
+      type: Buffer,
+      default: null,
+      select: false,
     },
     extractedData: {
       type: FiscalExtractedDataSchema,

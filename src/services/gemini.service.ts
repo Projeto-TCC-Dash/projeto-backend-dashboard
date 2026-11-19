@@ -59,14 +59,22 @@ export class GeminiService {
         message: 'Chave BYOK do Google Gemini validada e armazenada com criptografia.',
       };
     } catch (error: unknown) {
-      const parsed = GeminiErrorParser.parse(error);
+      const parsed =
+        error instanceof GeminiApiError
+          ? {
+              type: error.type,
+              statusCode: error.statusCode,
+              userMessage: error.message,
+              isTransient: error.isTransient,
+              originalMessage: error.message,
+            }
+          : GeminiErrorParser.parse(error);
 
       // Se o erro for UPSTREAM_UNAVAILABLE (503) ou RATE_LIMIT_ERROR (429),
       // a chave passou com sucesso pela camada de autenticação do Google Cloud Endpoints!
       if (
         parsed.type === 'UPSTREAM_UNAVAILABLE' ||
-        parsed.type === 'RATE_LIMIT_ERROR' ||
-        parsed.type === 'NETWORK_ERROR'
+        parsed.type === 'RATE_LIMIT_ERROR'
       ) {
         console.warn(
           `⚠️ Chave reconhecida e aceita com aviso de demanda upstream (${parsed.type} - status ${parsed.statusCode}):`,
@@ -80,7 +88,7 @@ export class GeminiService {
       }
 
       console.error('❌ Falha na validação ativa da API Key no Gemini:', parsed.originalMessage);
-      throw new GeminiApiError(parsed);
+      throw error instanceof GeminiApiError ? error : new GeminiApiError(parsed);
     }
   }
 
@@ -142,48 +150,58 @@ Diretrizes:
       required: ['categories'],
     };
 
-    const userPrompt = `Classifique os seguintes estabelecimentos comerciais:\n${JSON.stringify(
-      merchants,
-      null,
-      2
-    )}`;
+    const CHUNK_SIZE = 50;
+    const merged: Record<string, Category> = {};
 
     try {
-      return await withGeminiRetry(
-        async () => {
-          const response = await ai.models.generateContent({
-            model: SYSTEM_DEFAULTS.GEMINI_MODEL,
-            contents: `${systemPrompt}\n\n${userPrompt}`,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: jsonSchema,
-              temperature: 0.1,
-            },
-          });
+      for (let i = 0; i < merchants.length; i += CHUNK_SIZE) {
+        const chunk = merchants.slice(i, i + CHUNK_SIZE);
+        const userPrompt = `Classifique os seguintes estabelecimentos comerciais:\n${JSON.stringify(
+          chunk,
+          null,
+          2
+        )}`;
 
-          const responseText = response.text;
-          if (!responseText) {
-            throw new Error('Resposta vazia recebida do modelo Gemini.');
-          }
+        const chunkResult = await withGeminiRetry(
+          async () => {
+            const response = await ai.models.generateContent({
+              model: SYSTEM_DEFAULTS.GEMINI_MODEL,
+              contents: `${systemPrompt}\n\n${userPrompt}`,
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: jsonSchema,
+                temperature: 0.1,
+              },
+            });
 
-          const parsed = JSON.parse(responseText) as {
-            categories: Array<{ merchant: string; category: Category }>;
-          };
-
-          const result: Record<string, Category> = {};
-          for (const item of parsed.categories) {
-            if (CANONICAL_CATEGORIES.includes(item.category)) {
-              result[item.merchant] = item.category;
-            } else {
-              result[item.merchant] = SYSTEM_DEFAULTS.DEFAULT_CATEGORY;
+            const responseText = response.text;
+            if (!responseText) {
+              throw new Error('Resposta vazia recebida do modelo Gemini.');
             }
-          }
 
-          return result;
-        },
-        2,
-        400
-      );
+            const parsed = JSON.parse(responseText) as {
+              categories: Array<{ merchant: string; category: Category }>;
+            };
+
+            const result: Record<string, Category> = {};
+            for (const item of parsed.categories) {
+              if (CANONICAL_CATEGORIES.includes(item.category)) {
+                result[item.merchant] = item.category;
+              } else {
+                result[item.merchant] = SYSTEM_DEFAULTS.DEFAULT_CATEGORY;
+              }
+            }
+
+            return result;
+          },
+          2,
+          400
+        );
+
+        Object.assign(merged, chunkResult);
+      }
+
+      return merged;
     } catch (err: unknown) {
       if (err instanceof GeminiApiError) {
         throw err;

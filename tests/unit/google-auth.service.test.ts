@@ -116,28 +116,67 @@ describe('GoogleOAuthService Unit Tests', () => {
   });
 
   it('deve validar com sucesso via userinfo quando for um access_token (id_token retorna 400)', async () => {
-    // 1ª chamada (tokeninfo?id_token) falha com 400
-    // 2ª chamada (userinfo) tem sucesso com 200
-    global.fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: async () => ({ error: 'invalid_token' }),
-      } as any)
-      .mockResolvedValueOnce({
+    const mockFetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: 'invalid_token' }),
+    } as any);
+
+    if (env.GOOGLE_CLIENT_ID) {
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => ({
+          aud: env.GOOGLE_CLIENT_ID,
           sub: 'access_sub_888',
-          email: 'access.user@gmail.com',
-          email_verified: true,
-          name: 'Access User',
         }),
       } as any);
+    }
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        sub: 'access_sub_888',
+        email: 'access.user@gmail.com',
+        email_verified: true,
+        name: 'Access User',
+      }),
+    } as any);
+
+    global.fetch = mockFetch;
 
     const result = await GoogleOAuthService.verifyIdToken('ya29.access_token_12345');
     expect(result.googleId).toBe('access_sub_888');
     expect(result.googleEmail).toBe('access.user@gmail.com');
+  });
+
+  it('deve rejeitar access_token de outro cliente OAuth quando GOOGLE_CLIENT_ID estiver configurado', async () => {
+    const prevClientId = env.GOOGLE_CLIENT_ID;
+    env.GOOGLE_CLIENT_ID = 'expected-client-id.apps.googleusercontent.com';
+
+    try {
+      global.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          json: async () => ({ error: 'invalid_token' }),
+        } as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            aud: 'other-client-id.apps.googleusercontent.com',
+            sub: 'access_sub_888',
+          }),
+        } as any);
+
+      await expect(
+        GoogleOAuthService.verifyIdToken('ya29.foreign_client_token')
+      ).rejects.toThrow('Audiência do token do Google incompatível.');
+    } finally {
+      env.GOOGLE_CLIENT_ID = prevClientId;
+    }
   });
 });

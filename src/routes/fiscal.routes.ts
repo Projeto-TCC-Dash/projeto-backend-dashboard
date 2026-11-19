@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -157,16 +156,8 @@ export const fiscalRoutes: FastifyPluginAsyncZod = async (fastify) => {
         });
       }
 
-      // Salvar arquivo no diretório de comprovantes
-      const uploadDir = path.join(process.cwd(), FISCAL_PROOF_CONFIG.UPLOAD_DIR);
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
       const safeFilename = path.basename(data.filename).replace(/\s+/g, '_');
       const storedFilename = `${request.user.id}-${Date.now()}-${safeFilename}`;
-      const targetPath = path.join(uploadDir, storedFilename);
-      await fs.promises.writeFile(targetPath, buffer);
 
       // Descriptografar chave BYOK efemeramente
       const apiKey = await AuthService.getDecryptedApiKey(request.user.id);
@@ -178,13 +169,14 @@ export const fiscalRoutes: FastifyPluginAsyncZod = async (fastify) => {
         data.mimetype
       );
 
-      // Persistir documento na coleção fiscal_proofs
+      // Persistir documento e bytes na coleção fiscal_proofs
       const proofDoc = await FiscalProofDocumentModel.create({
         userId: request.user.id,
         originalFilename: data.filename,
         storedFilename,
         mimeType: data.mimetype,
         sizeBytes: buffer.length,
+        fileData: buffer,
         extractedData: {
           providerDocument: extracted.providerDocument,
           providerName: extracted.providerName,

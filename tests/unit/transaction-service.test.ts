@@ -57,6 +57,26 @@ describe('TransactionService.deleteTransaction - Unit Tests', () => {
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
+  it('deve invalidar o cache de análise ao atualizar uma transação existente', async () => {
+    const mockUpdatedDoc = {
+      _id: new mongoose.Types.ObjectId(transactionId),
+      userId: new mongoose.Types.ObjectId(userId),
+      category: 'Saúde',
+    };
+
+    vi.spyOn(TransactionModel, 'findOneAndUpdate').mockReturnValue({
+      exec: vi.fn().mockResolvedValue(mockUpdatedDoc),
+    } as any);
+    const invalidateSpy = vi.spyOn(AnalysisService, 'invalidate').mockResolvedValue(1);
+
+    const result = await TransactionService.updateTransaction(userId, transactionId, {
+      category: 'Saúde',
+    });
+
+    expect(result).toBe(mockUpdatedDoc);
+    expect(invalidateSpy).toHaveBeenCalledWith(userId);
+  });
+
   describe('getMonthlyFinancialSummary - Invoice Segregation', () => {
     it('deve segregar Pagamento de Fatura de totalExpenses no resumo financeiro mensal', async () => {
       const mockTransactions = [

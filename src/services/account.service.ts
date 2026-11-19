@@ -2,6 +2,7 @@ import mongoose, { Types } from 'mongoose';
 import { DEFAULT_ACCOUNT_NAME } from '../config/constants.js';
 import { AccountModel, IAccount } from '../models/account.model.js';
 import { TransactionModel } from '../models/transaction.model.js';
+import { AnalysisService } from './analysis.service.js';
 import {
   AccountResponseItem,
   CreateAccountBody,
@@ -273,6 +274,10 @@ export class AccountService {
       _id: accountObjectId,
       userId: userObjectId,
     }).exec();
+
+    if (transactionsDeleted > 0) {
+      await AnalysisService.invalidate(userId);
+    }
 
     return {
       deletedCount: accDeleteResult.deletedCount,

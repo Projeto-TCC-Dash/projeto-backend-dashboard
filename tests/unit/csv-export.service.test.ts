@@ -54,4 +54,25 @@ describe('CsvExportService Unit Tests', () => {
     expect(content.startsWith('\uFEFF')).toBe(true);
     expect(content).toBe('\uFEFFData;Descrição;Categoria;Conta;Tipo;Valor');
   });
+
+  it('deve neutralizar prefixos de fórmula (=, +, -, @) contra CSV injection', () => {
+    const records: IExportRecord[] = [
+      {
+        date: new Date('2026-10-30T10:00:00Z'),
+        dateFormatted: '30/10/2026',
+        description: '=CMD("calc")',
+        category: '+SUM(A1:A2)',
+        accountName: '@evil',
+        type: 'DESPESA',
+        amount: -10,
+        amountFormatted: '-R$ 10,00',
+        decimalFormatted: '-10,00',
+      },
+    ];
+
+    const content = CsvExportService.generate(records).toString('utf-8');
+    expect(content).toContain(`"'=CMD(""calc"")"`);
+    expect(content).toContain(`"'+SUM(A1:A2)"`);
+    expect(content).toContain(`"'@evil"`);
+  });
 });

@@ -181,7 +181,7 @@ describe('Local Seed Synthetic Generator & Idempotency Tests', () => {
       const result = await runSeed();
       expect(result.email).toBe(SEED_CONFIG.EMAIL);
       expect(result.hasAiKey).toBe(false);
-      expect(SYSTEM_DEFAULTS.GEMINI_MODEL).not.toBe('gemini-3.8-flash');
+      expect(SYSTEM_DEFAULTS.GEMINI_MODEL).toBe('gemini-3.8-flash');
 
       mockConnect.mockRestore();
       mockFindOne.mockRestore();

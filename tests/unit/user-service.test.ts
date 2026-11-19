@@ -165,8 +165,6 @@ describe('UserService - Unit Tests', () => {
       };
 
       vi.spyOn(UserModel, 'findById').mockResolvedValue(mockUser as any);
-      vi.spyOn(fs.promises, 'writeFile').mockResolvedValue();
-      vi.spyOn(fs, 'mkdirSync').mockReturnValue(undefined as any);
 
       const buffer = Buffer.from('fake-png-content');
       const result = await UserService.uploadAvatar(mockUserId, {
@@ -178,8 +176,9 @@ describe('UserService - Unit Tests', () => {
       expect(result.success).toBe(true);
       expect(result.avatarUrl).toMatch(/^\/uploads\/avatars\/.*\.png$/);
       expect(mockUser.avatarUrl).toBe(result.avatarUrl);
+      expect((mockUser as any).avatarData).toEqual(buffer);
+      expect((mockUser as any).avatarMimeType).toBe('image/png');
       expect(mockUser.save).toHaveBeenCalled();
-      expect(fs.promises.writeFile).toHaveBeenCalled();
     });
 
     it('deve rejeitar arquivo com mimetype inválido', async () => {
@@ -204,19 +203,18 @@ describe('UserService - Unit Tests', () => {
       ).rejects.toThrow(InvalidAvatarFileError);
     });
 
-    it('deve remover avatar antigo do disco ao substituir por um novo', async () => {
+    it('deve substituir avatar existente no MongoDB ao enviar um novo', async () => {
       const oldAvatar = `/uploads/avatars/${mockUserId}-antigo.jpg`;
       const mockUser = {
         _id: new mongoose.Types.ObjectId(mockUserId),
         email: 'investidor@teste.com',
         avatarUrl: oldAvatar,
+        avatarData: Buffer.from('old-jpg'),
+        avatarMimeType: 'image/jpeg',
         save: vi.fn().mockResolvedValue(true),
       };
 
       vi.spyOn(UserModel, 'findById').mockResolvedValue(mockUser as any);
-      vi.spyOn(fs.promises, 'writeFile').mockResolvedValue();
-      const unlinkSpy = vi.spyOn(fs.promises, 'unlink').mockResolvedValue();
-      vi.spyOn(fs, 'mkdirSync').mockReturnValue(undefined as any);
 
       const buffer = Buffer.from('fake-webp');
       const result = await UserService.uploadAvatar(mockUserId, {
@@ -225,7 +223,8 @@ describe('UserService - Unit Tests', () => {
         filename: 'novo.webp',
       });
 
-      expect(unlinkSpy).toHaveBeenCalled();
+      expect(mockUser.avatarData).toEqual(buffer);
+      expect(mockUser.avatarMimeType).toBe('image/webp');
       expect(result.avatarUrl).toMatch(/\.webp$/);
     });
 
@@ -243,22 +242,24 @@ describe('UserService - Unit Tests', () => {
   });
 
   describe('deleteAvatar', () => {
-    it('deve remover avatar existente do disco e atualizar avatarUrl para null', async () => {
+    it('deve limpar avatarData, avatarMimeType e avatarUrl no MongoDB', async () => {
       const oldAvatar = `/uploads/avatars/${mockUserId}-foto.png`;
       const mockUser = {
         _id: new mongoose.Types.ObjectId(mockUserId),
         email: 'investidor@teste.com',
         avatarUrl: oldAvatar,
+        avatarData: Buffer.from('fake-png'),
+        avatarMimeType: 'image/png',
         save: vi.fn().mockResolvedValue(true),
       };
 
       vi.spyOn(UserModel, 'findById').mockResolvedValue(mockUser as any);
-      const unlinkSpy = vi.spyOn(fs.promises, 'unlink').mockResolvedValue();
 
       const result = await UserService.deleteAvatar(mockUserId);
 
-      expect(unlinkSpy).toHaveBeenCalled();
       expect(mockUser.avatarUrl).toBeNull();
+      expect(mockUser.avatarData).toBeNull();
+      expect(mockUser.avatarMimeType).toBeNull();
       expect(mockUser.save).toHaveBeenCalled();
       expect(result).toEqual({
         success: true,

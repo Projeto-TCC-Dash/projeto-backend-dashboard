@@ -39,13 +39,13 @@ A plataforma consolida transações bancárias via arquivos de extrato (**OFX SG
 - **Minimização Extrema de Tokens**: Pré-processamento local agressivo que deduplica nomes comerciais e resume métricas matemáticas no backend antes de acionar o LLM, economizando até **95% dos tokens** em comparação com abordagens tradicionais.
 - **Cache Persistente com TTL (24h)**: Diagnósticos financeiros mensais persistem no MongoDB com índice TTL nativo e invalidação determinística por hash de estado (`transactionStateHash`), eliminando requisições redundantes ao Gemini e entregando respostas em `< 15ms`.
 - **Privacidade e LGPD por Design**: Remoção cirúrgica de PII (CPFs, CNPJs, códigos de transação, dados de cartões) antes de qualquer persistência ou tráfego para provedores de inteligência artificial.
-- **Automação de Testes Plug & Play**: Script de seed determinístico e 100% offline (`npm run seed`) com provisionamento automático da chave do `.env`, 35+ transações em múltiplos meses cobrindo todas as 7 categorias canônicas e pré-aquecimento do cache de análise.
+- **Automação de Testes Plug & Play**: Script de seed determinístico e 100% offline (`npm run seed`) com provisionamento automático da chave do `.env`, 35+ transações em múltiplos meses cobrindo todas as 11 categorias canônicas e pré-aquecimento do cache de análise.
 
 ---
 
 ## 🏛 Princípios de Arquitetura
 
-O projeto segue rigorosamente os 7 princípios definidos na Constituição Técnica v2.0.0:
+O projeto segue rigorosamente os 7 princípios definidos na Constituição Técnica v2.1.0:
 
 | Princípio | Implementação Técnica |
 |---|---|
@@ -105,7 +105,7 @@ flowchart TD
     Services -.-> ExternalAPIs["APIs Externas"]
 
     subgraph ExternalAPIs["Serviços de IA"]
-        GoogleGemini["Google AI Studio (Gemini 3.8 Flash)"]
+        GoogleGemini["Google AI Studio (gemini-3.8-flash)"]
     end
 ```
 
@@ -197,7 +197,7 @@ flowchart TD
 
     subgraph MissFlow["CACHE MISS / INVALIDAÇÃO"]
         DecKey["Descriptografa Chave BYOK em memória"]
-        CallGemini["Gera Diagnóstico Estruturado via Gemini 3.8 Flash"]
+        CallGemini["Gera Diagnóstico Estruturado via gemini-3.8-flash"]
         Upsert["Upsert no MongoDB com TTL de 24 horas"]
         DecKey --> CallGemini --> Upsert
     end
@@ -223,7 +223,7 @@ flowchart TD
 
 ### 3. Categorização Inteligente Pré-LLM
 - `POST /api/transactions/categorize`: Extrai estabelecimentos únicos pendentes de categorização (`Não Categorizado`).
-- Envia apenas a lista deduplicada de nomes para o Gemini com JSON Schema estrito nas categorias canônicas da plataforma: **Alimentação**, **Transporte**, **Moradia**, **Saúde**, **Lazer**, **Educação**, **Receita**, **Outros** e **Não Categorizado**.
+- Envia apenas a lista deduplicada de nomes para o Gemini com JSON Schema estrito nas 11 categorias canônicas da plataforma: **Alimentação**, **Transporte**, **Moradia**, **Saúde**, **Lazer**, **Educação**, **Receita**, **Pagamento de Fatura**, **Investimentos**, **Outros** e **Não Categorizado**.
 - Reassociação em massa no MongoDB via `bulkWrite`.
 
 ### 4. Consultoria Financeira Conversacional (Chatbot SSE)
@@ -263,8 +263,14 @@ ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 # Chave Padrão do Google AI Studio para testes e seed (obtida em https://aistudio.google.com/)
 GOOGLE_GENERATIVE_AI_API_KEY=AIzaSy...
 
+# [OPCIONAL] Modelo do Google Gemini (padrão: gemini-3.8-flash)
+GEMINI_MODEL=gemini-3.8-flash
+
 # [OPCIONAL] Client ID do Google OAuth 2.0 para validação de audiência (aud) dos tokens
 GOOGLE_CLIENT_ID=
+
+# [OPCIONAL] Origens CORS permitidas separadas por vírgula (padrão dev: http://localhost:3001)
+CORS_ORIGINS=http://localhost:3001
 ```
 
 > [!NOTE]
@@ -358,13 +364,13 @@ npm run seed
 | `PATCH` | `/api/user/profile` | **JWT** | Atualização cadastral básica (nome de exibição) |
 | `POST` | `/api/user/avatar` | **JWT** | Upload multipart de avatar (JPG/PNG/WebP até 5MB) |
 | `DELETE`| `/api/user/avatar` | **JWT** | Remoção do avatar e reversão para iniciais/padrão |
-| `GET` | `/uploads/avatars/:file` | Não | Servidor de imagem estática do avatar do usuário |
+| `GET` | `/uploads/avatars/:file` | Não | Servidor de imagem do avatar armazenado no MongoDB |
 | `PUT` | `/api/user/ai-key` | **JWT** | Cadastro/atualização resiliente da chave Gemini BYOK (AES-256-GCM) |
 | **Gestão de Contas Bancárias & Cartões** | | | |
 | `GET` | `/api/accounts` | **JWT** | Listagem de contas com saldos agregados e totais consolidados |
 | `POST` | `/api/accounts` | **JWT** | Criação de conta corrente, poupança, investimento ou cartão |
 | `PATCH` | `/api/accounts/:id` | **JWT** | Atualização de nome, cor, banco, tipo ou saldo inicial da conta |
-| `DELETE`| `/api/accounts/:id` | **JWT** | Exclusão de conta (bloqueada se houver transações vinculadas) |
+| `DELETE`| `/api/accounts/:id` | **JWT** | Exclusão de conta (suporta `?cascade=true` para excluir transações vinculadas) |
 | **Transações, IA & Análise** | | | |
 | `POST` | `/api/transactions/upload`| **JWT** | Upload e processamento de extrato em lote (OFX ou CSV) |
 | `GET` | `/api/transactions` | **JWT** | Listagem com filtros por mês, categoria, conta e origem |
@@ -372,8 +378,18 @@ npm run seed
 | `DELETE`| `/api/transactions/:id`| **JWT** | Exclusão pontual atômica de transação com invalidação de cache |
 | `POST` | `/api/transactions/categorize`| **JWT + BYOK** | Categorização em lote via Gemini com minimização de tokens |
 | `GET` | `/api/transactions/export`| **JWT** | Exportação de extrato nos formatos CSV, XLSX e PDF com filtros |
+| `GET` | `/api/analysis/multi-month` | **JWT** | Análise agregada multi-mês (3, 6 ou 12 meses) e tendência de custos fixos |
 | `GET` | `/api/analysis/:month` | **JWT + BYOK** | Diagnóstico orçamentário mensal com cache de 24h e neutralização de fatura |
 | `POST` | `/api/chat/stream` | **JWT + BYOK** | Consultoria financeira conversacional em streaming via SSE |
+| **Orçamentos, Investimentos & Módulo Fiscal** | | | |
+| `GET` | `/api/budgets/:month` | **JWT** | Consulta de orçamento mensal configurado e consumo por categoria |
+| `PUT` | `/api/budgets/:month` | **JWT** | Criação ou atualização de tetos de orçamento mensal |
+| `GET` | `/api/investments/holdings` | **JWT** | Carteira consolidada por macroclasses e aderência ao perfil de risco |
+| `PUT` | `/api/investments/holdings` | **JWT** | Cadastro ou atualização de posição patrimonial por macroclasse |
+| `PATCH` | `/api/transactions/:id/fiscal` | **JWT** | Classificação de dedutibilidade fiscal e metadados IRPF de transação |
+| `GET` | `/api/fiscal/summary` | **JWT** | Consolidado fiscal anual (deduções IRPF e faturamento PJ/Autônomo) |
+| `POST` | `/api/fiscal/ocr` | **JWT + BYOK** | Upload de comprovante fiscal com OCR via Gemini Vision |
+| `GET` | `/api/fiscal/dossier` | **JWT** | Exportação do Dossiê Fiscal anual em PDF ou XLSX |
 
 ---
 

@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import fastifyCors from '@fastify/cors';
 import fastifyJwt from '@fastify/jwt';
 import fastifyMultipart from '@fastify/multipart';
@@ -10,6 +11,7 @@ import {
   validatorCompiler,
   ZodTypeProvider,
 } from 'fastify-type-provider-zod';
+import { connectDatabase } from './config/database.js';
 import { env } from './config/env.js';
 import { setupErrorHandler } from './plugins/error-handler.plugin.js';
 import { accountsRoutes } from './routes/accounts.routes.js';
@@ -113,4 +115,46 @@ export function buildApp(): FastifyInstance {
   app.register(analysisRoutes);
 
   return app;
+}
+
+let vercelApp: FastifyInstance | null = null;
+let vercelReadyPromise: Promise<void> | null = null;
+
+async function ensureVercelApp(): Promise<FastifyInstance> {
+  if (!vercelApp) {
+    vercelApp = buildApp();
+  }
+  if (!vercelReadyPromise) {
+    vercelReadyPromise = Promise.resolve(vercelApp.ready())
+      .then(() => undefined)
+      .catch((error) => {
+        vercelReadyPromise = null;
+        throw error;
+      });
+  }
+  await vercelReadyPromise;
+  return vercelApp;
+}
+
+/**
+ * Export padrão compatível com a detecção automática de Fastify/Serverless da Vercel (`src/app.ts`).
+ */
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  try {
+    await connectDatabase();
+    const app = await ensureVercelApp();
+    app.server.emit('request', req, res);
+  } catch (error) {
+    console.error('❌ Erro na execução serverless (Vercel):', error);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(
+        JSON.stringify({
+          error: 'Internal Server Error',
+          message: error instanceof Error ? error.message : 'Falha ao inicializar a aplicação.',
+        })
+      );
+    }
+  }
 }

@@ -60,7 +60,7 @@ export function buildApp(): FastifyInstance {
       info: {
         title: 'Financial Intelligence API',
         description: 'API REST do backend financeiro com arquitetura BYOK, ingestão de extratos OFX/CSV, módulo fiscal e consultoria patrimonial via IA.',
-        version: '1.2.0',
+        version: '1.3.0',
       },
       tags: [
         { name: 'Auth', description: 'Autenticação e gerenciamento de chaves de API BYOK' },

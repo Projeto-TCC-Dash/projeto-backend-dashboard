@@ -73,7 +73,6 @@ export const SYSTEM_DEFAULTS = {
 export const AVATAR_CONFIG = {
   MAX_SIZE_BYTES: 5 * 1024 * 1024, // 5MB
   ALLOWED_MIME_TYPES: ['image/jpeg', 'image/png', 'image/webp'] as const,
-  UPLOAD_DIR: 'uploads/avatars',
   URL_PREFIX: '/uploads/avatars',
 } as const;
 
@@ -128,7 +127,6 @@ export const FISCAL_PROOF_CONFIG = {
     'image/webp',
     'application/pdf',
   ] as const,
-  UPLOAD_DIR: 'uploads/receipts',
   URL_PREFIX: '/uploads/receipts',
 } as const;
 

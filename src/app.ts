@@ -30,6 +30,7 @@ import { userRoutes } from './routes/user.routes.js';
 export function buildApp(): FastifyInstance {
   const app = fastify({
     logger: env.NODE_ENV !== 'test',
+    trustProxy: true,
   }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);

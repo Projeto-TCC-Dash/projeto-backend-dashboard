@@ -339,15 +339,21 @@ export class AnalysisService {
     const averageMonthlyIncome =
       rangeMonths > 0 ? Math.round((totalIncomeSum / rangeMonths) * 100) / 100 : 0;
 
-    // Analisar tendência de custo fixo (comparar primeiro mês com último mês com despesa)
-    const firstMonthFixed = fixedExpensesByMonth[firstMonthStr] || {};
+    // Analisar tendência de custo fixo (comparar primeiro mês com despesa vs último mês)
     const lastMonthFixed = fixedExpensesByMonth[lastMonthStr] || {};
 
     let maxChangePct = 0;
     let maxChangeCat: string | undefined;
 
     for (const cat of fixedCategories) {
-      const startVal = firstMonthFixed[cat] || 0;
+      let startVal = 0;
+      for (const mStr of monthsList) {
+        const val = fixedExpensesByMonth[mStr]?.[cat] || 0;
+        if (val > 0) {
+          startVal = val;
+          break;
+        }
+      }
       const endVal = lastMonthFixed[cat] || 0;
       if (startVal > 0) {
         const pctChange = ((endVal - startVal) / startVal) * 100;

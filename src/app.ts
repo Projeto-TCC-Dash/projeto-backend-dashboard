@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import fastifyCors from '@fastify/cors';
 import fastifyJwt from '@fastify/jwt';
 import fastifyMultipart from '@fastify/multipart';
+import fastifyRateLimit from '@fastify/rate-limit';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import fastify, { FastifyInstance } from 'fastify';
@@ -42,6 +43,13 @@ export function buildApp(): FastifyInstance {
     origin: (origin, cb) => {
       cb(null, isCorsOriginAllowed(origin));
     },
+  });
+
+  // Rate Limiting
+  app.register(fastifyRateLimit, {
+    global: true,
+    max: 120,
+    timeWindow: '1 minute',
   });
 
   // Multipart upload

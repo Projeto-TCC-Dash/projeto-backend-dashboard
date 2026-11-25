@@ -37,6 +37,8 @@ export const ListTransactionsQuerySchema = z.object({
     .optional(),
   category: CategoryEnum.optional(),
   source: TransactionSourceEnum.optional(),
+  limit: z.coerce.number().int().min(1).max(1000).optional(),
+  page: z.coerce.number().int().min(1).optional(),
 });
 export type ListTransactionsQuery = z.infer<typeof ListTransactionsQuerySchema>;
 

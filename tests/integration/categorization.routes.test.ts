@@ -52,21 +52,17 @@ describe('Categorization Routes & Initial Default Category (HTTP Inject & BYOK G
   });
 
   it('TransactionService.getUniqueUncategorizedMerchants deve buscar transações com category: Não Categorizado', async () => {
-    const findSpy = vi.spyOn(TransactionModel, 'find').mockReturnValue({
-      exec: vi.fn().mockResolvedValue([
-        { cleanDescription: 'POSTO IPIRANGA' },
-        { cleanDescription: 'PADARIA REAL' },
-        { cleanDescription: 'POSTO IPIRANGA' },
-      ]),
+    const distinctSpy = vi.spyOn(TransactionModel, 'distinct').mockReturnValue({
+      exec: vi.fn().mockResolvedValue(['POSTO IPIRANGA', 'PADARIA REAL', 'DESCONHECIDO']),
     } as any);
 
     const merchants = await TransactionService.getUniqueUncategorizedMerchants(testUserId);
 
-    expect(findSpy).toHaveBeenCalledWith(
+    expect(distinctSpy).toHaveBeenCalledWith(
+      'cleanDescription',
       expect.objectContaining({
         category: 'Não Categorizado',
-      }),
-      { cleanDescription: 1 }
+      })
     );
     expect(merchants).toEqual(['POSTO IPIRANGA', 'PADARIA REAL']);
   });

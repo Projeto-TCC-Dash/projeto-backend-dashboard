@@ -202,30 +202,27 @@ export class TransactionService {
       query.date = { $gte: startDate, $lt: endDate };
     }
 
-    return TransactionModel.find(query).sort({ date: -1 }).exec();
+    const queryBuilder = TransactionModel.find(query).sort({ date: -1 });
+    if (filters.limit) {
+      const skip = filters.page ? (filters.page - 1) * filters.limit : 0;
+      queryBuilder.skip(skip).limit(filters.limit);
+    }
+    return queryBuilder.exec();
   }
 
   /**
-   * Extrai e deduplica em memória os nomes únicos de estabelecimentos comerciais
+   * Extrai e deduplica os nomes únicos de estabelecimentos comerciais
    * que estão com categoria pendente ('Não Categorizado') para minimização extrema de tokens antes do envio ao Gemini.
    */
   public static async getUniqueUncategorizedMerchants(userId: string): Promise<string[]> {
-    const transactions = await TransactionModel.find(
-      {
-        userId: new mongoose.Types.ObjectId(userId),
-        category: SYSTEM_DEFAULTS.DEFAULT_CATEGORY,
-      },
-      { cleanDescription: 1 }
-    ).exec();
+    const merchants = await TransactionModel.distinct('cleanDescription', {
+      userId: new mongoose.Types.ObjectId(userId),
+      category: SYSTEM_DEFAULTS.DEFAULT_CATEGORY,
+    }).exec();
 
-    const uniqueSet = new Set<string>();
-    for (const t of transactions) {
-      if (t.cleanDescription && t.cleanDescription !== 'DESCONHECIDO') {
-        uniqueSet.add(t.cleanDescription);
-      }
-    }
-
-    return Array.from(uniqueSet);
+    return merchants.filter(
+      (name): name is string => Boolean(name && name !== 'DESCONHECIDO')
+    );
   }
 
   /**
@@ -248,6 +245,7 @@ export class TransactionService {
         filter: {
           userId: userObjectId,
           cleanDescription: merchant,
+          category: SYSTEM_DEFAULTS.DEFAULT_CATEGORY,
         },
         update: {
           $set: { category },

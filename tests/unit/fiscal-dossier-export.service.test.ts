@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { FiscalDossierExportService } from '../../src/services/fiscal-dossier-export.service.js';
 
 describe('FiscalDossierExportService Unit Tests', () => {
@@ -105,5 +105,36 @@ describe('FiscalDossierExportService Unit Tests', () => {
     expect(xlsxBuffer.length).toBeGreaterThan(500);
     // Assinatura PK do cabeçalho zip/xlsx
     expect(xlsxBuffer.subarray(0, 2).toString()).toBe('PK');
+  });
+
+  it('deve usar horário de Brasília (America/Sao_Paulo) e gerar PDF vazio com exatamente 1 página', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-25T17:16:34.000Z'));
+
+    try {
+      const toLocaleSpy = vi.spyOn(Date.prototype, 'toLocaleString');
+      const pdfBuffer = await FiscalDossierExportService.generate(
+        mockUser,
+        {
+          ...mockSummary,
+          totalDeductibleExpenses: 0,
+          confirmedDeductibleExpenses: 0,
+          pendingDocumentationExpenses: 0,
+          byCategory: [],
+        },
+        [],
+        'pdf'
+      );
+
+      expect(toLocaleSpy).toHaveBeenCalledWith('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+      });
+      const pdfText = pdfBuffer.toString('latin1');
+      const pageMatches = pdfText.match(/\/Type\s*\/Page\b(?!s)/g) ?? [];
+      expect(pageMatches).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    }
   });
 });

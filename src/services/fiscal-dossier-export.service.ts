@@ -119,7 +119,7 @@ export class FiscalDossierExportService {
         .fontSize(8)
         .fillColor(secondaryColor)
         .text(`Contribuinte: ${titular}`, 310, 50, { align: 'right', width: 230 });
-      doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`, 310, 64, {
+      doc.text(`Emissão: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`, 310, 64, {
         align: 'right',
         width: 230,
       });
@@ -260,8 +260,8 @@ export class FiscalDossierExportService {
           .text(
             `Página ${i + 1} de ${range.count}  |  Plataforma Financeira Inteligente  |  Documento para fins de planejamento tributário`,
             40,
-            800,
-            { align: 'center', width: 515 }
+            785,
+            { align: 'center', width: 515, lineBreak: false }
           );
       }
 
@@ -296,7 +296,7 @@ export class FiscalDossierExportService {
     sheet.mergeCells('A2:G2');
     const subCell = sheet.getCell('A2');
     const titular = user.name ? `${user.name} (${user.email})` : user.email;
-    subCell.value = `Contribuinte: ${titular}  |  Gerado em: ${new Date().toLocaleString('pt-BR')}`;
+    subCell.value = `Contribuinte: ${titular}  |  Gerado em: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
     subCell.font = { name: 'Arial', size: 10, italic: true, color: { argb: 'FF64748B' } };
     subCell.alignment = { vertical: 'middle', horizontal: 'left' };
     sheet.getRow(2).height = 18;

@@ -230,4 +230,26 @@ describe('TransactionService.deleteTransaction - Unit Tests', () => {
       expect(invalidateSpy).toHaveBeenCalledWith(userId);
     });
   });
+
+  describe('TransactionService.reassociateCategories', () => {
+    it('deve filtrar apenas transações com categoria padrão para não sobrescrever edições manuais', async () => {
+      const bulkWriteSpy = vi.spyOn(TransactionModel, 'bulkWrite').mockResolvedValue({
+        modifiedCount: 1,
+      } as any);
+      vi.spyOn(AnalysisService, 'invalidate').mockResolvedValue(1);
+
+      const updated = await TransactionService.reassociateCategories(userId, {
+        'UBER TRIP': 'Transporte',
+      });
+
+      expect(updated).toBe(1);
+      const ops = bulkWriteSpy.mock.calls[0]?.[0] as any[];
+      expect(ops[0].updateMany.filter).toEqual(
+        expect.objectContaining({
+          cleanDescription: 'UBER TRIP',
+          category: 'Não Categorizado',
+        })
+      );
+    });
+  });
 });

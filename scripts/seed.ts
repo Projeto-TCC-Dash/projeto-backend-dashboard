@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { Category } from '../src/config/constants.js';
+import { Category, TaxCategory } from '../src/config/constants.js';
 import { env } from '../src/config/env.js';
 import { AccountModel } from '../src/models/account.model.js';
 import { BudgetPlanModel } from '../src/models/budget.model.js';
@@ -25,7 +25,7 @@ export interface SyntheticTransaction {
   source: 'SEED';
   fiscal?: {
     isTaxDeductible: boolean;
-    taxCategory?: 'HEALTH' | 'EDUCATION' | 'SOCIAL_SECURITY' | 'ALIMONY' | 'PROFESSIONAL_EXPENSE' | 'OTHER_DEDUCTIBLE';
+    taxCategory?: TaxCategory;
     providerDocument?: string;
     providerName?: string;
     deductibleAmount?: number;

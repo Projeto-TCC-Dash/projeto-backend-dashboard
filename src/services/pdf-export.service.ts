@@ -42,7 +42,7 @@ export class PdfExportService {
       const emitidoPara = user.name ? `${user.name} (${user.email})` : user.email;
       doc.fontSize(8).fillColor(secondaryColor).text(`Titular: ${emitidoPara}`, 320, 52, { align: 'right', width: 220 });
       doc.text(`Período: ${metrics.periodLabel}`, 320, 65, { align: 'right', width: 220 });
-      doc.text(`Emissão: ${metrics.generatedAt.toLocaleString('pt-BR')}`, 320, 78, { align: 'right', width: 220 });
+      doc.text(`Emissão: ${metrics.generatedAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`, 320, 78, { align: 'right', width: 220 });
 
       // 2. Sumário de KPIs em Cards
       let y = 115;

@@ -71,4 +71,34 @@ describe('AccountService Unit Tests', () => {
     createSpy.mockRestore();
     updateManySpy.mockRestore();
   });
+
+  it('getOrCreateDefaultAccount deve recuperar conta existente em race condition E11000', async () => {
+    const mockAccountDoc: any = {
+      _id: new mongoose.Types.ObjectId(),
+      userId: new mongoose.Types.ObjectId(userId),
+      name: DEFAULT_ACCOUNT_NAME,
+      type: 'CHECKING',
+      initialBalance: 0,
+      color: '#2563EB',
+    };
+
+    const findOneSpy = vi
+      .spyOn(AccountModel, 'findOne')
+      .mockReturnValueOnce({ exec: vi.fn().mockResolvedValue(null) } as any)
+      .mockReturnValueOnce({ sort: vi.fn().mockReturnThis(), exec: vi.fn().mockResolvedValue(null) } as any)
+      .mockReturnValueOnce({ exec: vi.fn().mockResolvedValue(mockAccountDoc) } as any);
+
+    const dupError = Object.assign(new Error('E11000 duplicate key'), { code: 11000 });
+    const createSpy = vi.spyOn(AccountModel, 'create').mockRejectedValueOnce(dupError);
+    const updateManySpy = vi.spyOn(TransactionModel, 'updateMany').mockReturnValue({
+      exec: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
+    } as any);
+
+    const account = await AccountService.getOrCreateDefaultAccount(userId);
+    expect(account._id).toEqual(mockAccountDoc._id);
+
+    findOneSpy.mockRestore();
+    createSpy.mockRestore();
+    updateManySpy.mockRestore();
+  });
 });

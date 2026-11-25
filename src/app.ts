@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import fastifyCors from '@fastify/cors';
 import fastifyJwt from '@fastify/jwt';
 import fastifyMultipart from '@fastify/multipart';
+import fastifyRateLimit from '@fastify/rate-limit';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import fastify, { FastifyInstance } from 'fastify';
@@ -29,6 +30,7 @@ import { userRoutes } from './routes/user.routes.js';
 export function buildApp(): FastifyInstance {
   const app = fastify({
     logger: env.NODE_ENV !== 'test',
+    trustProxy: true,
   }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
@@ -42,6 +44,13 @@ export function buildApp(): FastifyInstance {
     origin: (origin, cb) => {
       cb(null, isCorsOriginAllowed(origin));
     },
+  });
+
+  // Rate Limiting
+  app.register(fastifyRateLimit, {
+    global: true,
+    max: 120,
+    timeWindow: '1 minute',
   });
 
   // Multipart upload

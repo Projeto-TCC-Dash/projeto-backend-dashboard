@@ -106,14 +106,16 @@ export class ParserService {
 
       if (fitId) {
         const amount = parseFloat(rawAmount.replace(',', '.'));
-        transactions.push({
-          externalId: fitId,
-          rawDescription: rawDesc,
-          cleanDescription: SanitizerService.cleanDescription(rawDesc),
-          amount,
-          date: this.parseOfxDate(rawDate),
-          source: 'OFX',
-        });
+        if (!isNaN(amount)) {
+          transactions.push({
+            externalId: fitId,
+            rawDescription: rawDesc,
+            cleanDescription: SanitizerService.cleanDescription(rawDesc),
+            amount,
+            date: this.parseOfxDate(rawDate),
+            source: 'OFX',
+          });
+        }
       }
     }
 
@@ -351,6 +353,9 @@ export class ParserService {
       const amount = this.parseCsvAmount(amountStr);
 
       const parsedDate = this.parseCsvDate(dateStr);
+      if (!parsedDate || isNaN(amount)) {
+        continue;
+      }
 
       // Se não houver ID externo no CSV, gera um hash determinístico
       const externalId =
@@ -361,22 +366,20 @@ export class ParserService {
           .digest('hex')
           .substring(0, 24);
 
-      if (!isNaN(amount)) {
-        transactions.push({
-          externalId,
-          rawDescription: descStr,
-          cleanDescription: SanitizerService.cleanDescription(descStr),
-          amount,
-          date: parsedDate,
-          source: 'CSV',
-        });
-      }
+      transactions.push({
+        externalId,
+        rawDescription: descStr,
+        cleanDescription: SanitizerService.cleanDescription(descStr),
+        amount,
+        date: parsedDate,
+        source: 'CSV',
+      });
     }
 
     return transactions;
   }
 
-  private static parseCsvDate(dateStr: string): Date {
+  private static parseCsvDate(dateStr: string): Date | null {
     // Formatos comuns: DD/MM/YYYY ou YYYY-MM-DD
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
       const [d, m, y] = dateStr.split('/').map((n) => parseInt(n, 10));
@@ -385,6 +388,6 @@ export class ParserService {
       }
     }
     const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? new Date() : d;
+    return isNaN(d.getTime()) ? null : d;
   }
 }

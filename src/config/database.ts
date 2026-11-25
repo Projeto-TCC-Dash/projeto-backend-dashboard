@@ -39,6 +39,7 @@ export async function connectDatabase(): Promise<void> {
     connectionPromise = mongoose
       .connect(env.MONGODB_URI, {
         serverSelectionTimeoutMS: 10000,
+        maxPoolSize: 10,
       })
       .then(() => {
         isConnected = true;

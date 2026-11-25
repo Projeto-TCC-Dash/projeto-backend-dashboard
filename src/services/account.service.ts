@@ -1,6 +1,7 @@
 import mongoose, { Types } from 'mongoose';
 import { DEFAULT_ACCOUNT_NAME } from '../config/constants.js';
 import { AccountModel, IAccount } from '../models/account.model.js';
+import { InvestmentHoldingModel } from '../models/investment-holding.model.js';
 import { TransactionModel } from '../models/transaction.model.js';
 import { AnalysisService } from './analysis.service.js';
 import {
@@ -250,14 +251,20 @@ export class AccountService {
       throw new AccountBadRequestError('Não é permitido excluir a única conta ativa do usuário.');
     }
 
-    const linkedTransactionsCount = await TransactionModel.countDocuments({
-      userId: userObjectId,
-      accountId: accountObjectId,
-    }).exec();
+    const [linkedTransactionsCount, linkedHoldingsCount] = await Promise.all([
+      TransactionModel.countDocuments({
+        userId: userObjectId,
+        accountId: accountObjectId,
+      }).exec(),
+      InvestmentHoldingModel.countDocuments({
+        userId: userObjectId,
+        accountId: accountObjectId,
+      }).exec(),
+    ]);
 
-    if (linkedTransactionsCount > 0 && !cascade) {
+    if ((linkedTransactionsCount > 0 || linkedHoldingsCount > 0) && !cascade) {
       throw new AccountConflictError(
-        `A conta possui ${linkedTransactionsCount} transações vinculadas. Para excluir a conta juntamente com todas as suas transações, utilize ?cascade=true.`
+        `A conta possui ${linkedTransactionsCount} transações e ${linkedHoldingsCount} ativos vinculados. Para excluir a conta juntamente com todos os registros vinculados, utilize ?cascade=true.`
       );
     }
 
@@ -270,12 +277,21 @@ export class AccountService {
       transactionsDeleted = txDeleteResult.deletedCount;
     }
 
+    let holdingsDeleted = 0;
+    if (linkedHoldingsCount > 0 && cascade) {
+      const holdingDeleteResult = await InvestmentHoldingModel.deleteMany({
+        userId: userObjectId,
+        accountId: accountObjectId,
+      }).exec();
+      holdingsDeleted = holdingDeleteResult.deletedCount;
+    }
+
     const accDeleteResult = await AccountModel.deleteOne({
       _id: accountObjectId,
       userId: userObjectId,
     }).exec();
 
-    if (transactionsDeleted > 0) {
+    if (transactionsDeleted > 0 || holdingsDeleted > 0) {
       await AnalysisService.invalidate(userId);
     }
 
@@ -302,13 +318,26 @@ export class AccountService {
       if (anyAccount) {
         defaultAccount = anyAccount;
       } else {
-        defaultAccount = await AccountModel.create({
-          userId: userObjectId,
-          name: DEFAULT_ACCOUNT_NAME,
-          type: 'CHECKING',
-          initialBalance: 0,
-          color: '#2563EB',
-        });
+        try {
+          defaultAccount = await AccountModel.create({
+            userId: userObjectId,
+            name: DEFAULT_ACCOUNT_NAME,
+            type: 'CHECKING',
+            initialBalance: 0,
+            color: '#2563EB',
+          });
+        } catch (err: any) {
+          if (err?.code === 11000) {
+            const existing = await AccountModel.findOne({
+              userId: userObjectId,
+              name: DEFAULT_ACCOUNT_NAME,
+            }).exec();
+            if (!existing) throw err;
+            defaultAccount = existing;
+          } else {
+            throw err;
+          }
+        }
       }
     }
 

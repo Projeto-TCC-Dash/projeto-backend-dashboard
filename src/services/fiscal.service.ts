@@ -100,7 +100,8 @@ export class FiscalService {
 
       const amt = fiscal.deductibleAmount ?? Math.abs(t.amount);
       const roundedAmt = Math.round(amt * 100) / 100;
-      const cat = fiscal.taxCategory || 'OTHER_DEDUCTIBLE';
+      const rawCat = fiscal.taxCategory;
+      const cat: TaxCategory = rawCat && rawCat in categoryMap ? rawCat : 'OTHER_DEDUCTIBLE';
 
       totalDeductible += roundedAmt;
       if (fiscal.status === 'CONFIRMED') {
